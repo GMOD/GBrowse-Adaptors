@@ -6,3 +6,4 @@ Changes
 Build.PL
 lib/Bio/DB/Das/BioSQL.pm
 t/001_load.t
+META.yml
