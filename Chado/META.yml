@@ -1,0 +1,27 @@
+---
+name: Bio-DB-Das-Chado
+version: 0.2
+author: []
+abstract: DAS-style access to a chado database
+license: perl
+resources:
+  license: http://dev.perl.org/licenses/
+requires:
+  Bio::Root::Version: 1.006
+  DBD::Pg: 0
+  DBI: 0
+  URI::Escape: 0
+provides:
+  Bio::DB::Das::Chado:
+    file: lib/Bio/DB/Das/Chado.pm
+    version: 0.2
+  Bio::DB::Das::Chado::Segment:
+    file: lib/Bio/DB/Das/Chado/Segment.pm
+  Bio::DB::Das::Chado::Segment::Feature:
+    file: lib/Bio/DB/Das/Chado/Segment/Feature.pm
+  Bio::DB::Das::ChadoIterator:
+    file: lib/Bio/DB/Das/Chado.pm
+generated_by: Module::Build version 0.2808
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.2.html
+  version: 1.2

@@ -5,6 +5,7 @@ lib/Bio/DB/Das/Chado/Segment.pm
 lib/Bio/DB/Das/Chado/Segment/Feature.pm
 LICENSE
 MANIFEST
+META.yml
 README
 t/001_load.t
 Todo
