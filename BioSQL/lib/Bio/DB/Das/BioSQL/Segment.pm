@@ -81,9 +81,8 @@ use constant DEBUG => 1;
 
 use overload '""' => 'asString';
 
-use vars '@ISA','$VERSION';
+use vars '@ISA';
 @ISA = qw(Bio::Root::Root Bio::SeqI Bio::Das::SegmentI);
-$VERSION = 0.02;
 
 #Construct a virtual segment.
 sub new {

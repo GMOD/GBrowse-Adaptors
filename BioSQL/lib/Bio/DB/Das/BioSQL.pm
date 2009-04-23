@@ -109,7 +109,7 @@ use vars qw($VERSION @ISA);
 use constant SEGCLASS => 'Bio::DB::Das::BioSQL::Segment';
 use constant ADAPTOR_CLASS => 'Bio::DB::Das::BioSQL::BioDatabaseAdaptor';
 
-$VERSION = 0.02;
+$VERSION = 0.03;
 @ISA     = qw(Bio::Root::Root Bio::DasI);
 
 # Install horrible patch for gbrowse compatibility
