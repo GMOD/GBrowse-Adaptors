@@ -1,0 +1,8 @@
+{
+          'build_requires' => {},
+          'conflicts' => {},
+          'requires' => {
+                          'Bio::DB::BioDB' => '1.6'
+                        },
+          'recommends' => {}
+        }

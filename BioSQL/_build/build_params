@@ -1,0 +1,261 @@
+[
+          {
+            'ARGV' => []
+          },
+          {},
+          {
+            'verbose' => undef,
+            'PL_files' => undef,
+            'pollute' => undef,
+            'bindoc_dirs' => [
+                               'blib/script'
+                             ],
+            'conflicts' => {},
+            'recommends' => {},
+            'scripts' => undef,
+            'dist_version' => bless( {
+                                       'original' => '0.02',
+                                       'version' => [
+                                                      0,
+                                                      20
+                                                    ]
+                                     }, 'Module::Build::Version' ),
+            'pod_files' => undef,
+            'config_dir' => '_build',
+            'recurse_into' => [],
+            'build_bat' => 0,
+            'extra_linker_flags' => [],
+            'build_class' => 'Module::Build',
+            'prereq_action_types' => [
+                                       'requires',
+                                       'build_requires',
+                                       'conflicts',
+                                       'recommends'
+                                     ],
+            'base_dir' => '/home/scott/gbrowse-adaptors/BioSQL',
+            'allow_mb_mismatch' => 0,
+            'xs_files' => undef,
+            'destdir' => undef,
+            'metafile' => 'META.yml',
+            'mb_version' => '0.2808',
+            'has_config_data' => undef,
+            'dist_name' => 'Bio-DB-Das-BioSQL',
+            'install_base' => undef,
+            'module_name' => 'Bio::DB::Das::BioSQL',
+            'recursive_test_files' => undef,
+            'perl' => '/usr/bin/perl',
+            'libdoc_dirs' => [
+                               'blib/lib',
+                               'blib/arch'
+                             ],
+            'dist_author' => undef,
+            'use_rcfile' => 1,
+            'test_files' => undef,
+            'dist_abstract' => undef,
+            'create_readme' => undef,
+            'prefix_relpaths' => {
+                                   'core' => {
+                                               'libdoc' => [
+                                                             'man',
+                                                             'man3'
+                                                           ],
+                                               'script' => [
+                                                             'bin'
+                                                           ],
+                                               'libhtml' => [
+                                                              'html'
+                                                            ],
+                                               'bindoc' => [
+                                                             'man',
+                                                             'man1'
+                                                           ],
+                                               'bin' => [
+                                                          'bin'
+                                                        ],
+                                               'arch' => [
+                                                           'lib',
+                                                           'perl5',
+                                                           '5.8.8',
+                                                           'i486-linux-gnu-thread-multi'
+                                                         ],
+                                               'binhtml' => [
+                                                              'html'
+                                                            ],
+                                               'lib' => [
+                                                          'lib',
+                                                          'perl5'
+                                                        ]
+                                             },
+                                   'site' => {
+                                               'libdoc' => [
+                                                             'man',
+                                                             'man3'
+                                                           ],
+                                               'script' => [
+                                                             'bin'
+                                                           ],
+                                               'libhtml' => [
+                                                              'html'
+                                                            ],
+                                               'bindoc' => [
+                                                             'man',
+                                                             'man1'
+                                                           ],
+                                               'bin' => [
+                                                          'bin'
+                                                        ],
+                                               'arch' => [
+                                                           'lib',
+                                                           'perl5',
+                                                           'site_perl',
+                                                           '5.8.8',
+                                                           'i486-linux-gnu-thread-multi'
+                                                         ],
+                                               'binhtml' => [
+                                                              'html'
+                                                            ],
+                                               'lib' => [
+                                                          'lib',
+                                                          'perl5',
+                                                          'site_perl'
+                                                        ]
+                                             },
+                                   'vendor' => {
+                                                 'libdoc' => [
+                                                               'man',
+                                                               'man3'
+                                                             ],
+                                                 'script' => [
+                                                               'bin'
+                                                             ],
+                                                 'libhtml' => [
+                                                                'html'
+                                                              ],
+                                                 'bindoc' => [
+                                                               'man',
+                                                               'man1'
+                                                             ],
+                                                 'bin' => [
+                                                            'bin'
+                                                          ],
+                                                 'arch' => [
+                                                             'lib',
+                                                             'perl5',
+                                                             '5.8.8',
+                                                             'i486-linux-gnu-thread-multi'
+                                                           ],
+                                                 'binhtml' => [
+                                                                'html'
+                                                              ],
+                                                 'lib' => [
+                                                            'lib',
+                                                            'perl5'
+                                                          ]
+                                               }
+                                 },
+            'meta_merge' => {},
+            'get_options' => {},
+            'dist_version_from' => 'lib/Bio/DB/Das/BioSQL.pm',
+            'debugger' => undef,
+            'html_css' => '',
+            'build_elements' => [
+                                  'PL',
+                                  'support',
+                                  'pm',
+                                  'xs',
+                                  'pod',
+                                  'script'
+                                ],
+            'orig_dir' => '/home/scott/gbrowse-adaptors/BioSQL',
+            'include_dirs' => [],
+            'installdirs' => 'site',
+            'create_makefile_pl' => undef,
+            'magic_number' => undef,
+            'install_sets' => {
+                                'core' => {
+                                            'libdoc' => '/usr/share/man/man3',
+                                            'script' => '/usr/bin',
+                                            'libhtml' => undef,
+                                            'bindoc' => '/usr/share/man/man1',
+                                            'bin' => '/usr/bin',
+                                            'arch' => '/usr/lib/perl/5.8',
+                                            'binhtml' => undef,
+                                            'lib' => '/usr/share/perl/5.8'
+                                          },
+                                'site' => {
+                                            'libdoc' => '/usr/local/man/man3',
+                                            'script' => '/usr/local/bin',
+                                            'libhtml' => undef,
+                                            'bindoc' => '/usr/local/man/man1',
+                                            'bin' => '/usr/local/bin',
+                                            'arch' => '/usr/local/lib/perl/5.8.8',
+                                            'binhtml' => undef,
+                                            'lib' => '/usr/local/share/perl/5.8.8'
+                                          },
+                                'vendor' => {
+                                              'libdoc' => '/usr/share/man/man3',
+                                              'script' => '/usr/bin',
+                                              'libhtml' => undef,
+                                              'bindoc' => '/usr/share/man/man1',
+                                              'bin' => '/usr/bin',
+                                              'arch' => '/usr/lib/perl5',
+                                              'binhtml' => undef,
+                                              'lib' => '/usr/share/perl5'
+                                            }
+                              },
+            'install_base_relpaths' => {
+                                         'libdoc' => [
+                                                       'man',
+                                                       'man3'
+                                                     ],
+                                         'script' => [
+                                                       'bin'
+                                                     ],
+                                         'libhtml' => [
+                                                        'html'
+                                                      ],
+                                         'bindoc' => [
+                                                       'man',
+                                                       'man1'
+                                                     ],
+                                         'bin' => [
+                                                    'bin'
+                                                  ],
+                                         'arch' => [
+                                                     'lib',
+                                                     'perl5',
+                                                     'i486-linux-gnu-thread-multi'
+                                                   ],
+                                         'binhtml' => [
+                                                        'html'
+                                                      ],
+                                         'lib' => [
+                                                    'lib',
+                                                    'perl5'
+                                                  ]
+                                       },
+            'meta_add' => {},
+            'create_packlist' => 1,
+            'requires' => {
+                            'Bio::DB::BioDB' => '1.6'
+                          },
+            'install_path' => {},
+            'pm_files' => undef,
+            'quiet' => undef,
+            'extra_compiler_flags' => [],
+            'script_files' => undef,
+            'build_script' => 'Build',
+            'original_prefix' => {
+                                   'core' => '/usr',
+                                   'site' => '/usr/local',
+                                   'vendor' => '/usr'
+                                 },
+            'c_source' => undef,
+            'license' => 'perl',
+            'autosplit' => undef,
+            'build_requires' => {},
+            'config' => undef,
+            'blib' => 'blib',
+            'prefix' => undef
+          }
+        ]

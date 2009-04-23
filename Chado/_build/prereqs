@@ -1,0 +1,11 @@
+{
+          'build_requires' => {},
+          'conflicts' => {},
+          'requires' => {
+                          'URI::Escape' => '0',
+                          'DBD::Pg' => '0',
+                          'Bio::Root::Version' => '1.006',
+                          'DBI' => '0'
+                        },
+          'recommends' => {}
+        }

@@ -1,0 +1,6 @@
+Revision history for Perl module Bio::DB::Das::Chado
+
+1.0 Wed Apr 22 14:47:52 2009
+    - Stand alone module moved out of the GBrowse package
+
+
