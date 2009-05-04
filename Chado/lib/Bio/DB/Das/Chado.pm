@@ -1,4 +1,4 @@
-# $Id: Chado.pm,v 1.2 2009-04-23 14:20:56 scottcain Exp $
+# $Id: Chado.pm,v 1.3 2009-05-04 14:36:09 scottcain Exp $
 
 =head1 NAME
 
@@ -658,6 +658,25 @@ sub features {
                                             -feature_id=>$feature_id,
                                            );
   return @features;
+}
+
+sub get_seq_stream {
+    my $self = shift;
+    my ($type,$types,$callback,$attributes,$iterator,$feature_id) =
+     $self->_rearrange([qw(TYPE TYPES CALLBACK ATTRIBUTES ITERATOR FEATURE_ID)],
+                        @_);
+
+    my @features = $self->_segclass->features(-type => $type,
+                                            -attributes => $attributes,
+                                            -callback => $callback,
+                                            -iterator => $iterator,
+                                            -factory  => $self,
+                                            -feature_id=>$feature_id,
+                                           );
+
+    return Bio::DB::Das::ChadoIterator->new(\@features);
+
+
 }
 
 =head2 types
