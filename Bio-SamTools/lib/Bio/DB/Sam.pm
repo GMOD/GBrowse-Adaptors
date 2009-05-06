@@ -32,6 +32,8 @@ sub header {
     return $self->{header} ||= $self->{bam}->header;
 }
 
+sub fai { shift->{fai} }
+
 sub reset_read {
     my $self = shift;
     $self->{bam}->header;
@@ -55,17 +57,25 @@ sub target_len {
 
 sub ids {
     my $self    = shift;
-    my $targets = $self->header->target_name;
-    return @$targets;
+    my $targets = $self->_cache_targets;
+    return keys %{$targets};
 }
+
+sub _cache_targets {
+    my $self = shift;
+    return $self->{targets} if exists $self->{targets};
+    my @targets = map {lc $_} @{$self->header->target_name};
+    my @lengths =             @{$self->header->target_len};
+    my %targets;
+    @targets{@targets}      = @lengths;  # just you try to figure out what this is doing!
+    return $self->{targets} = \%targets;
+}
+
 
 sub length {
     my $self        = shift;
     my $target_name = shift;
-    my $count       = 0;
-    my %targets     = map {$_=>$count++} $self->ids;
-    return unless exists $targets{$target_name};
-    return $self->target_len($targets{$target_name});
+    return $self->_cache_targets->{lc $target_name};
 }
 
 sub maybe_build_index {
@@ -90,6 +100,32 @@ sub fetch {
     $index->fetch($self->{bam},$seqid,$start,$end,$callback,$self);
 }
 
+# segment returns a segment across the reference
+# it will not work on a arbitrary aligned feature
+sub segment {
+    my $self = shift;
+    my ($seqid,$start,$end) = @_;
+
+    if ($_[0] =~ /^-/) {
+	my %args = @_;
+	$seqid = $args{-seq_id} || $args{-name};
+	$start = $args{-start};
+	$end   = $args{-stop}    || $args{-end};
+    } else {
+	($seqid,$start,$end) = @_;
+    }
+
+    my $targets = $self->_cache_targets;
+    return unless exists $targets->{lc $seqid};
+
+    $start = 1                     unless defined $start;
+    $end   = $targets->{lc $seqid} unless defined $end;
+    $start = 1 if $start < 1;
+    $end   = $targets->{lc $seqid} if $end > $targets->{lc $seqid};
+
+    return Bio::DB::Sam::Segment->new($self,$seqid,$start,$end);
+}
+
 sub get_features_by_location {
     my $self = shift;
     my %args;
@@ -110,7 +146,7 @@ sub get_features_by_attribute {
   $self->features(-attributes=>\%attributes);
 }
 
-sub get_features_by_name {
+sub get_feature_by_name {
     my $self = shift;
     my %args;
     if ($_[0] =~ /^-/) {
@@ -121,21 +157,46 @@ sub get_features_by_name {
     $self->features(%args);
 }
 
+sub get_features_by_name { shift->get_feature_by_name(@_) }
+
+
 sub get_seq_stream {
     my $self = shift;
     $self->features(-iterator=>1,@_);
 }
 
+sub types {
+    return qw(match read_pair coverage region);
+}
+
 sub features {
     my $self = shift;
-    my %args = @_;
+
+    my %args;
+    if ($_[0] !~ /^-/) {
+	$args{-type} = \@_;
+    } else {
+	%args = @_;
+    }
 
     my $seqid     = $args{-seq_id} || $args{-seqid};
     my $start     = $args{-start};
     my $end       = $args{-end}  || $args{-stop};
     my $types     = $args{-type} || $args{-types} || [];
     my $iterator  = $args{-iterator};
+    $types        = [$args{-class}] if !@$types && defined $args{-class};
     my $use_index = defined $seqid;
+
+    # we do some special casing to retrieve target (reference) sequences
+    # if they are requested
+    if (defined $args{-name} 
+	&& (!@$types || "@$types" =~ /region|chromosome/)) {
+	my @results = $self->_segment_search(lc $args{-name});
+	warn "results = @results";
+	return @results if @results;
+    } elsif ($types->[0] =~ /region|chromosome/) {
+	return map {$self->segment($_)} $self->ids;
+    }
 
     my %seenit;
     my @types = grep {!$seenit{$_}++} ref $types ? @$types : $types;
@@ -259,7 +320,8 @@ sub _build_mates {
 		    -seq_id       => $a->seq_id,
 		    -start => $start,
 		    -end   => $end,
-		    -type  => 'read_pair'
+		    -type  => 'read_pair',
+		    -class => 'read_pair',
 		);
 	}
 	$read_pairs{$name}->add_SeqFeature($a);
@@ -304,8 +366,22 @@ sub _coverage {
 	-end          => $end,
 	-strand       => 0,
 	-type         => "coverage:$bins",
+	-class        => "coverage:$bins",
 	-attributes   => { coverage => [$coverage] }
     );
+}
+
+sub _segment_search {
+    my $self = shift;
+    my $name = shift;
+
+    my $targets = $self->_cache_targets;
+    return $self->segment($name) if $targets->{$name};
+
+    if (my $regexp = $self->_glob_match($name)) {
+	my @results = grep {/^$regexp$/i} keys %$targets;
+	return map {$self->segment($_)} @results;
+    }
 }
 
 sub bam_index {
@@ -385,6 +461,9 @@ sub AUTOLOAD {
   $self->{align}->$func_name(@_);
 }
 
+sub can {
+    shift->{align}->can(@_);
+}
 sub seq_id {
     my $self = shift;
     my $tid  = $self->tid;
@@ -392,18 +471,20 @@ sub seq_id {
 }
 
 sub primary_tag { return 'match' }
+sub abs_ref    { shift->seq_id }
+sub abs_start  { shift->start  }
+sub abs_end    { shift->end    }
+sub low        { shift->start  }
+sub high       { shift->end    }
+sub type       { shift->primary_tag }
+sub method     { shift->primary_tag }
+sub source_tag { return 'sam/bam'; }
+sub source     { return shift->source_tag; }
+sub name       { shift->qname }
+sub class      { shift->primary_tag }
 
-sub type { shift->primary_tag }
-
-sub method {
-    return 'match';
-}
-
-sub source {
-    return 'sam/bam';
-}
-
-sub source_tag { shift->source }
+# required by API
+sub get_SeqFeatures { return }
 
 package Bio::DB::Bam::Alignment;
 
@@ -585,6 +666,72 @@ sub next_seq {
     my $self = shift;
     return shift @$self;
 }
+
+package Bio::DB::Sam::Segment;
+
+use Bio::PrimarySeq;
+
+sub new {
+    my $class                   = shift;
+    my ($db,$seqid,$start,$end) = @_;
+    return bless {
+	db     => $db,
+	seqid  => $seqid,
+	start  => $start,
+	end    => $end},ref $class || $class;
+}
+
+sub db       { shift->{db}    };
+
+# required by api
+sub seq_id   { shift->{seqid} };
+# required by api
+sub start    { shift->{start} };
+# required by api
+sub end      { shift->{end}   };
+# required by api
+sub strand   { 0              };
+# required by api
+sub length   { 
+    my $self = shift;
+    return $self->end - $self->start + 1;
+}
+# required by api
+sub seq      {
+    my $self   = shift;
+    my $db     = $self->db;
+    my $region = $self->seq_id.':'.$self->start.'-'.$self->end;
+    return Bio::PrimarySeq->new(-seq => $db->fai->fetch($region),
+				-id  => $self->seq_id);
+}
+# required by api
+sub primary_tag {
+    my $self = shift;
+    return 'region';
+}
+# required by api
+sub source_tag { return 'sam/bam' }
+# required by api
+sub name    { shift->seq_id }
+# required by api
+sub factory { shift->db  }
+# required by api
+sub display_name { shift->name  }
+# required by api
+sub get_SeqFeatures { return;   }
+# required by api
+sub method { shift->primary_tag }
+# required by api
+sub get_tag_values {  return; }
+# required by api
+sub score { return;  }
+# required by api
+sub class { 'sequence'  }
+# required by api
+sub abs_ref   { shift->seq_id }
+sub abs_start { shift->start  }
+sub abs_end   { shift->end    }
+
 
 1;
 __END__

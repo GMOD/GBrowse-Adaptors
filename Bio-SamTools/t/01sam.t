@@ -100,6 +100,13 @@ use Bio::DB::Sam;
     ok($sam->length('seq1'),1575);
     ok(join $sam->ids,'seq1 seq2');
 
+    my $seg = $sam->segment('seq1');
+    ok($seg);
+    ok($seg->length,1575);
+    my $seq = $seg->seq;
+    ok($seq->isa('Bio::PrimarySeq'));
+    ok(length $seq->seq,1575);
+
     my $dummy = eval {Bio::DB::Sam->new(-fasta=>"invalid_path.txt",
 				    -bam  =>"invalid_path.txt")};
     ok($dummy,undef);
