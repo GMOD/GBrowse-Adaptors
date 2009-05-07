@@ -3,6 +3,7 @@ use strict;
 use warnings;
 use Carp 'croak';
 use Bio::SeqFeature::Lite;
+use Bio::PrimarySeq;
 
 use base 'DynaLoader';
 our $VERSION = '0.01';
@@ -10,18 +11,20 @@ our $VERSION = '0.01';
 bootstrap Bio::DB::Sam;
 
 sub new {
-    my $class     = shift;
-    my %args      = @_;
-    my $fa_path   = $args{-fasta} or croak "-fasta argument required";
-    my $bam_path  = $args{-bam}   or croak "-bam argument required";
+    my $class        = shift;
+    my %args         = @_;
+    my $fa_path      = $args{-fasta} or croak "-fasta argument required";
+    my $bam_path     = $args{-bam}   or croak "-bam argument required";
+    my $expand_flags = $args{-expand_flags};
     -e $fa_path  && -r _  or croak "$fa_path does not exist or is not readable";
     -e $bam_path && -r _  or croak "$fa_path does not exist or is not readable";
     my $fai = Bio::DB::Sam::Fai->open($fa_path)  or croak "$fa_path open: $!";
     my $bam = Bio::DB::Bam->open($bam_path)      or croak "$bam_path open: $!";
     my $self =  bless {
-	fai      => $fai,
-	bam      => $bam,
-	bam_path => $bam_path
+	fai          => $fai,
+	bam          => $bam,
+	bam_path     => $bam_path,
+	expand_flags => $expand_flags,
     },ref $class || $class;
     $self->header;  # catch it
     return $self;
@@ -33,6 +36,13 @@ sub header {
 }
 
 sub fai { shift->{fai} }
+
+sub expand_flags {
+    my $self = shift;
+    my $d    = $self->{expand_flags};
+    $self->{expand_flags} = shift if @_;
+    $d;
+}
 
 sub reset_read {
     my $self = shift;
@@ -184,19 +194,20 @@ sub features {
     my $end       = $args{-end}  || $args{-stop};
     my $types     = $args{-type} || $args{-types} || [];
     my $iterator  = $args{-iterator};
+    $types        = [$types] unless ref $types;
     $types        = [$args{-class}] if !@$types && defined $args{-class};
     my $use_index = defined $seqid;
 
     # we do some special casing to retrieve target (reference) sequences
     # if they are requested
-    if (defined $args{-name} 
-	&& (!@$types || "@$types" =~ /region|chromosome/)) {
-	my @results = $self->_segment_search(lc $args{-name});
-	warn "results = @results";
-	return @results if @results;
-    } elsif ($types->[0] =~ /region|chromosome/) {
-	return map {$self->segment($_)} $self->ids;
-    }
+     if (defined($args{-name})
+ 	&& (!@$types || $types->[0]=~/region|chromosome/) 
+	 && !defined $seqid) {
+ 	my @results = $self->_segment_search(lc $args{-name});
+ 	return @results if @results;
+     } elsif (@$types && $types->[0] =~ /region|chromosome/) {
+ 	return map {$self->segment($_)} $self->ids;
+     }
 
     my %seenit;
     my @types = grep {!$seenit{$_}++} ref $types ? @$types : $types;
@@ -382,6 +393,8 @@ sub _segment_search {
 	my @results = grep {/^$regexp$/i} keys %$targets;
 	return map {$self->segment($_)} @results;
     }
+
+    return;
 }
 
 sub bam_index {
@@ -443,49 +456,9 @@ sub _glob_match {
     return $term;
 }
 
-package Bio::DB::Bam::AlignWrapper;
-
-our $AUTOLOAD;
-
-sub new {
-    my $package = shift;
-    my ($align,$sam) = @_;
-    return bless {sam   => $sam,
-		  align => $align},ref $package || $package;
-}
-
-sub AUTOLOAD {
-  my($pack,$func_name) = $AUTOLOAD=~/(.+)::([^:]+)$/;
-  return if $func_name eq 'DESTROY';
-  my $self = shift or die;
-  $self->{align}->$func_name(@_);
-}
-
-sub can {
-    shift->{align}->can(@_);
-}
-sub seq_id {
-    my $self = shift;
-    my $tid  = $self->tid;
-    $self->{sam}->target_name($tid);
-}
-
-sub primary_tag { return 'match' }
-sub abs_ref    { shift->seq_id }
-sub abs_start  { shift->start  }
-sub abs_end    { shift->end    }
-sub low        { shift->start  }
-sub high       { shift->end    }
-sub type       { shift->primary_tag }
-sub method     { shift->primary_tag }
-sub source_tag { return 'sam/bam'; }
-sub source     { return shift->source_tag; }
-sub name       { shift->qname }
-sub class      { shift->primary_tag }
-
-# required by API
-sub get_SeqFeatures { return }
-
+#################################################################################
+#
+#
 package Bio::DB::Bam::Alignment;
 
 use constant CIGAR_SYMBOLS   => [qw(M I D N S H P)];
@@ -513,7 +486,20 @@ use constant FLAGS => {
     0x0400 => 'DUPLICATE'
 };
 
-use constant RFLAGS => {reverse %{FLAGS()}};
+use constant RFLAGS => {reverse %{Bio::DB::Bam::Alignment::FLAGS()}};
+
+sub get_tag_values {
+    my $self = shift;
+    my $tag  = shift;
+    defined $tag or return;
+    # we always expand flags
+    if (my $mask = RFLAGS()->{uc $tag}) {
+        # to avoid warnings when making numeric comps
+	return ($self->flag & $mask) == 0 ? 0 : 1; 
+    } else {
+	$self->aux_get($tag);
+    }
+}
 
 sub start {
     my $self = shift;
@@ -531,8 +517,12 @@ sub stop { shift->end }
 
 sub strand {
     my $self     = shift;
-    return $self->reversed ? -1 : 1;
+    return 1;
+# in SAM format, alignment is always to the forward strand
+#    return $self->reversed ? -1 : 1;
 }
+
+sub abs_strand { shift->strand }
 
 sub mstrand {
     my $self     = shift;
@@ -541,47 +531,6 @@ sub mstrand {
 
 sub display_name {
     return shift->qname;
-}
-
-sub attributes {
-    my $self = shift;
-    my $tag  = shift;
-    if (defined $tag) {
-	return $self->get_tag_values($tag);
-    } else {
-	return map {$_=>$self->get_tag_values($_)} $self->get_all_tags;
-    }
-}
-
-sub get_all_tags {
-    my $self      = shift;
-    my @aux_tags  = $self->aux_keys;
-    my @flag_tags = keys %{RFLAGS()};
-    return (@aux_tags,@flag_tags);
-}
-
-sub get_tag_values {
-    my $self = shift;
-    my $tag  = shift;
-    defined $tag or return;
-    if (my $mask = RFLAGS()->{uc $tag}) {  # special tag
-        # to avoid warnings when making numeric comps
-	return ($self->flag & $mask) == 0 ? 0 : 1; 
-    } else {
-	$self->aux_get($tag);
-    }
-}
-
-sub has_tag {
-    my $self = shift;
-    my $tag  = shift;
-    defined $tag or return;
-    if (my $mask = RFLAGS()->{uc $tag}) {  # special tag
-	return 1;
-    } else {
-	my %keys = map {$_=>1} $self->aux_keys;
-	return exists $keys{uc $tag};
-    }
 }
 
 sub cigar_str {
@@ -595,6 +544,20 @@ sub cigar_str {
 	$result .= "${symbol}${l}";
     }
     return $result;
+}
+
+sub cigar_array {
+    my $self   = shift;
+    my $cigar  = $self->cigar;
+    my @result;
+    for my $c (@$cigar) {
+	my $op     = $c & BAM_CIGAR_MASK;
+	my $l      = $c >> BAM_CIGAR_SHIFT;
+	my $symbol = CIGAR_SYMBOLS->[$op];
+	push @result,[$symbol,$l];
+    }
+    return \@result;
+
 }
 
 sub flag_str {
@@ -639,6 +602,243 @@ sub mate_end {
     return $self->mate_start+$self->mate_len-1;
 }
 
+sub query {
+    my $self = shift;
+    return Bio::DB::Bam::Query->new($self);
+}
+
+# Target is the same as Query, but with meaning of start() and end() reversed
+# for compatibility with Bio::DB::GFF and its ilk. Please use Query if you can!
+sub target {
+    my $self = shift;
+    return Bio::DB::Bam::Target->new($self);
+}
+
+#########################################################################################
+#
+#########################################################################################
+package Bio::DB::Bam::AlignWrapper;
+
+*RFLAGS = \&Bio::DB::Bam::Alignment::RFLAGS;
+
+our $AUTOLOAD;
+
+sub new {
+    my $package = shift;
+    my ($align,$sam) = @_;
+    return bless {sam   => $sam,
+		  align => $align},ref $package || $package;
+}
+
+sub AUTOLOAD {
+  my($pack,$func_name) = $AUTOLOAD=~/(.+)::([^:]+)$/;
+  return if $func_name eq 'DESTROY';
+  my $self = shift or die "autoload called for non-object symbol $func_name";
+  $self->{align}->$func_name(@_);
+}
+
+sub can {
+    my $self = shift;
+    return 1 if $self->SUPER::can(@_);
+    return $self->{align}->can(@_);
+}
+sub seq_id {
+    my $self = shift;
+    my $tid  = $self->tid;
+    $self->{sam}->target_name($tid);
+}
+
+sub expand_flags {
+    shift->{sam}->expand_flags(@_);
+}
+
+sub primary_tag { return 'match' }
+sub abs_ref    { shift->seq_id }
+sub abs_start  { shift->start  }
+sub abs_end    { shift->end    }
+sub low        { shift->start  }
+sub high       { shift->end    }
+sub type       { shift->primary_tag }
+sub method     { shift->primary_tag }
+sub source_tag { return 'sam/bam'; }
+sub source     { return shift->source_tag; }
+sub name       { shift->qname }
+sub class      { shift->primary_tag }
+
+# required by API
+sub get_SeqFeatures { return }
+
+sub seq      {
+    my $self   = shift;
+    return Bio::PrimarySeq->new(-seq => $self->dna,
+				-id  => $self->seq_id);
+}
+
+sub dna {
+    my $self = shift;
+    my $region = $self->seq_id.':'.$self->start.'-'.$self->end;
+    return $self->{sam}->fai->fetch($region);
+}
+
+sub attributes {
+    my $self = shift;
+    my $tag  = shift;
+    if (defined $tag) {
+	return $self->get_tag_values($tag);
+    } else {
+	return map {$_=>$self->get_tag_values($_)} $self->get_all_tags;
+    }
+}
+
+sub get_all_tags {
+    my $self      = shift;
+    my @aux_tags  = $self->aux_keys;
+    my @flag_tags = $self->expand_flags ? keys %{RFLAGS()} : 'FLAGS';
+    return (@aux_tags,@flag_tags);
+}
+
+sub get_tag_values {
+    my $self = shift;
+    my $tag  = shift;
+    defined $tag or return;
+    if ($self->expand_flags && 
+	(my $mask = RFLAGS()->{uc $tag})) {  # special tag
+        # to avoid warnings when making numeric comps
+	return ($self->flag & $mask) == 0 ? 0 : 1; 
+    } elsif ($tag eq 'FLAGS') {
+	$self->flag_str;
+    } else {
+	$self->aux_get($tag);
+    }
+}
+
+sub has_tag {
+    my $self = shift;
+    my $tag  = shift;
+    defined $tag or return;
+    if ($self->expand_flags && 
+	(my $mask = RFLAGS()->{uc $tag})) {  # special tag
+	return 1;
+    } elsif ($tag eq 'FLAGS') {
+	return 1;
+    } else {
+	my %keys = map {$_=>1} $self->aux_keys;
+	return exists $keys{uc $tag};
+    }
+}
+
+#########################################################################################
+#
+#########################################################################################
+package Bio::DB::Bam::Query;
+
+use constant CIGAR_SKIP      => {Bio::DB::Bam::Alignment::BAM_CREF_SKIP  => 1,
+				 Bio::DB::Bam::Alignment::BAM_CSOFT_CLIP => 1,
+				 Bio::DB::Bam::Alignment::BAM_CHARD_CLIP => 1};
+
+sub new {
+    my $self      = shift;
+    my $alignment = shift;
+    bless \$alignment,ref $self || $self;
+}
+
+sub seq_id {
+    my $self = shift;
+    $$self->qname;
+}
+
+sub abs_ref   { shift->seq_id }
+sub abs_start { shift->start  }
+sub abs_end   { shift->end    }
+
+sub start {
+    my $self = shift;
+    return $self->low;
+}
+
+sub end {
+    my $self = shift;
+    return $self->high;
+}
+
+sub low {
+    my $self       = shift;
+    my $cigar_arry = $$self->cigar_array;
+    my $start      = 1;
+    for my $c (@$cigar_arry) {
+	last unless CIGAR_SKIP->{$c->[0]};
+	$start += $c->[1];
+    }
+    $start;
+}
+
+sub high {
+    my $self      = shift;
+    my $len       = $$self->cigar2qlen;
+    my $cigar_arry = $$self->cigar_array;
+
+    # alignment stops at first non-clip CIGAR position
+    my $i = $len - 1;
+    for my $c (reverse @$cigar_arry) {
+	last unless CIGAR_SKIP->{$c->[0]};
+	$len -= $c->[1];
+    }
+    return $len;
+}
+
+
+sub length {
+    my $self = shift;
+    $$self->cigar2qlen;
+}
+
+sub name {
+    my $self = shift;
+    $$self->qname;
+}
+
+sub display_name {shift->name}
+
+sub seq {
+    my $self = shift;
+    my $dna  = $self->strand > 0 ? $$self->qseq : reversec($$self->qseq);
+    return Bio::PrimarySeq->new(-seq => $dna,
+				-id  => $$self->qname);
+}
+
+sub dna {
+    my $self = shift;
+    return $$self->qseq;
+}
+
+sub strand { 
+    my $self = shift;
+    return $$self->reversed ? -1 : 1;
+}
+sub abs_strand { shift->strand }
+
+sub reversec {
+    my $dna = shift;
+    $dna =~ tr/gatcGATC/ctagCTAG/;
+    return scalar reverse $dna;
+}
+
+
+package Bio::DB::Bam::Target;
+
+our @ISA=qw(Bio::DB::Bam::Query);
+
+sub start {
+    my $self = shift;
+    return $self->strand > 0 ? $self->low : $self->high;
+}
+
+sub end {
+    my $self = shift;
+    return $self->strand > 0 ? $self->high : $self->low;
+}
+
+
 package Bio::DB::Sam::ReadIterator;
 sub new {
     my $self = shift;
@@ -668,8 +868,6 @@ sub next_seq {
 }
 
 package Bio::DB::Sam::Segment;
-
-use Bio::PrimarySeq;
 
 sub new {
     my $class                   = shift;

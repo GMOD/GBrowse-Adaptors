@@ -343,6 +343,23 @@ CODE:
 OUTPUT:
     RETVAL
 
+SV*
+bam_qseq(b)
+Bio::DB::Bam::Alignment b
+PROTOTYPE: $
+PREINIT:
+    char* seq;
+    int   i;
+CODE:
+    seq = Newxz(seq,b->core.l_qseq+1,char);
+    for (i=0;i<b->core.l_qseq;i++) {
+      seq[i]=bam_nt16_rev_table[bam1_seqi(bam1_seq(b),i)];
+    }
+    RETVAL = newSVpv(seq,b->core.l_qseq);
+    Safefree(seq);
+OUTPUT:
+    RETVAL
+
 int
 bam_mtid(b)
     Bio::DB::Bam::Alignment b

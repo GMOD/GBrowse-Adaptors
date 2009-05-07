@@ -8,7 +8,7 @@ use strict;
 use ExtUtils::MakeMaker;
 use Bio::Root::IO;
 use FindBin '$Bin';
-use constant TEST_COUNT => 43;
+use constant TEST_COUNT => 56;
 
 use lib "$Bin/../lib","$Bin/../blib/lib","$Bin/../blib/arch";
 
@@ -92,7 +92,8 @@ use Bio::DB::Sam;
 # high level tests (defined in lib/Bio/DB/Sam.pm)
 {
     my $sam = Bio::DB::Sam->new(-fasta=>"$Bin/data/ex1.fa",
-			        -bam  =>"$Bin/data/ex1.bam"
+			        -bam  =>"$Bin/data/ex1.bam",
+				-expand_flags => 1,
 	);
     ok($sam);
     ok($sam->targets,2);
@@ -108,7 +109,7 @@ use Bio::DB::Sam;
     ok(length $seq->seq,1575);
 
     my $dummy = eval {Bio::DB::Sam->new(-fasta=>"invalid_path.txt",
-				    -bam  =>"invalid_path.txt")};
+					-bam  =>"invalid_path.txt")};
     ok($dummy,undef);
     ok($@ =~ /does not exist/);
     
@@ -121,6 +122,7 @@ use Bio::DB::Sam;
     ok(scalar @alignments,442);
     ok($alignments[0]->seq_id,'seq2');
 
+
     my @keys = $alignments[0]->get_all_tags;
     ok(scalar @keys,17);
     ok($alignments[0]->get_tag_values('MF'),18);
@@ -128,6 +130,21 @@ use Bio::DB::Sam;
     my %att  = $alignments[0]->attributes;
     ok(scalar(keys %att),17);
     ok($alignments[0]->cigar_str,'M35');
+
+    $sam->expand_flags(0);
+    my @keys = $alignments[0]->get_all_tags;
+    ok(scalar @keys,7);
+
+    my $query = $alignments[0]->query;
+    ok($query);
+    ok($query->start,1);
+    ok($query->end,35);
+    ok($query->length,35);
+    ok($query->dna,$alignments[0]->dna);
+    ok($alignments[0]->strand,1);
+    ok($query->strand,-1);
+
+    ok($alignments[0]->get_tag_values('FLAGS'),$alignments[0]->flag_str);
 
     my @f = $sam->features(-name=>'EAS114_45:2:1:1140:1206');
     ok(scalar @f,2);
