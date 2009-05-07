@@ -113,7 +113,7 @@ sub new {
   }
 
   $self->srcfeature_id($parent->srcfeature_id() ) 
-           if (defined $parent && $parent->can('srcfeature_id'));
+           if (ref $parent && $parent->can('srcfeature_id'));
 
   return $self;
 }

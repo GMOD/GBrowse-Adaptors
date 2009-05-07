@@ -1,4 +1,4 @@
-# $Id: Segment.pm,v 1.1.1.1 2009-04-23 14:06:54 scottcain Exp $
+# $Id: Segment.pm,v 1.2 2009-05-07 15:15:46 scottcain Exp $
 
 =head1 NAME
 
@@ -98,12 +98,12 @@ use Bio::DB::GFF::Typename;
 use Data::Dumper;
 #dgg;not working# use Bio::Species;
 
-use constant DEBUG => 0;
+use constant DEBUG => 1;
 
 use vars '@ISA';
 @ISA = qw(Bio::Root::Root Bio::SeqI Bio::Das::SegmentI Bio::DB::Das::Chado);
 
-use overload '""' => 'asString';
+#use overload '""' => 'asString';
 
 # construct a virtual segment that works in a lazy way
 sub new {
@@ -328,7 +328,9 @@ sub new {
             $self->start($base_start);
             $self->end($stop);
             $self->{'length'} = $length;
-            $self->srcfeature_id($srcfeature_id);
+        #    cluck "i'm in new";
+        #    $self->srcfeature_id($srcfeature_id);
+            $self->{'srcfeature_id'} = $srcfeature_id;
             $self->class($type);
             $self->name($name);
             $self->strand($strand);
@@ -843,9 +845,9 @@ sub features {
     }
   }
 
-  my ($types,$type_placeholder,$attributes,$rangetype,$iterator,$callback,$base_start,$stop);
+  my ($types,$type_placeholder,$attributes,$rangetype,$iterator,$callback,$base_start,$stop,$seq_id,$end);
   if (ref($self) and $sub_args[0] and $sub_args[0] =~ /^-/) {
-    ($types,$type_placeholder,$attributes,$rangetype,$iterator,$callback,$base_start,$stop,) =
+    ($types,$type_placeholder,$attributes,$rangetype,$iterator,$callback,$base_start,$stop,$seq_id,$end) =
       $self->_rearrange([qw(TYPES 
                             TYPE
                             ATTRIBUTES 
@@ -853,11 +855,13 @@ sub features {
                             ITERATOR 
                             CALLBACK 
                             START
-                            STOP)],@sub_args);
+                            STOP
+                            SEQ_ID
+                            END )],@sub_args);
     warn "type and types after calling _rearrange:$type_placeholder,$types" if DEBUG;
   } 
   elsif (defined $factory and $sub_args[0] and $sub_args[0] =~ /^-/) { 
-    ($types,$type_placeholder,$attributes,$rangetype,$iterator,$callback,$base_start,$stop,) =
+    ($types,$type_placeholder,$attributes,$rangetype,$iterator,$callback,$base_start,$stop,$seq_id,$end) =
       $factory->_rearrange([qw(TYPES 
                             TYPE
                             ATTRIBUTES 
@@ -865,7 +869,9 @@ sub features {
                             ITERATOR 
                             CALLBACK 
                             START
-                            STOP)],@sub_args);
+                            STOP
+                            SEQ_ID
+                            END )],@sub_args);
     warn "type and types after calling factory->_rearrange:$type_placeholder,$types" if DEBUG;
  
   }
@@ -899,9 +905,10 @@ sub features {
 
     # set range variable
 
-    $base_start = $self->start;
+    $base_start = defined $base_start ? $base_start : $self->start;
     $interbase_start = $base_start -1;
-    $rend       = $self->end;
+    $end ||= $stop;
+    $rend       = defined $end ? $end : $self->end;
     #    my $sql_range;
     #    if ($rangetype eq 'contains') {
     #
@@ -976,6 +983,17 @@ sub features {
     #  $factory->dbh->trace(1) if DEBUG;
 
     $srcfeature_id = $self->{srcfeature_id} if ref $self;
+    if (!$srcfeature_id && defined($seq_id)) {
+      #if the seq_id arg was passed in, we should only look on that feature
+      my $srcfeature_query = "SELECT feature_id FROM feature where lower(uniquename) = ? ";
+      $srcfeature_query .= "and organism_id = ".$factory->organism_id 
+          if $factory->organism_id;
+      my $srcf_query_handle= $factory->dbh->prepare($srcfeature_query);
+      $srcf_query_handle->execute(lc($seq_id));
+      ($srcfeature_id) = $srcf_query_handle->fetchrow_array;
+      warn "found srcfeature_id:$srcfeature_id" if DEBUG; 
+    }
+
 
   }
   my $select_part = "select distinct f.name,fl.fmin,fl.fmax,fl.strand,fl.phase,"
@@ -1029,6 +1047,7 @@ sub features {
        && defined $interbase_start 
        && defined $rend){
       $featureslice = "featureloc_slice($srcfeature_id,$interbase_start, $rend)";
+      warn "using featureloc_slice" if DEBUG;
     }elsif (defined $interbase_start && defined $rend){
       $featureslice = "featureslice($interbase_start, $rend)";
     }else {
@@ -1044,7 +1063,6 @@ sub features {
          if defined ($sql_types);
     $where_part  .= " and fl.srcfeature_id = $srcfeature_id " 
          if defined($srcfeature_id);
-
   }
 
   #the ref $self check had to be added here to make gbrowse_details work
@@ -1071,6 +1089,7 @@ sub features {
   $factory->dbh->do("set enable_seqscan=0");
   #  $factory->dbh->do("set enable_hashjoin=0");
 
+  cluck "how did I get here?";
   warn "Segement->features query:$query" if DEBUG;
 
   my $feature_query = $factory->dbh->prepare($query);
@@ -1079,7 +1098,10 @@ sub features {
   #   $factory->dbh->do("set enable_hashjoin=1");
    $factory->dbh->do("set enable_seqscan=1");
 
-  if ($feature_query->rows < 1 and $sql_types and !defined($interbase_start) and !defined($rend)) {
+  if ($feature_query->rows < 1 
+      and $sql_types 
+      and !defined($interbase_start) 
+      and !defined($rend)) {
     #standard feature query failed to find anything
     #try looking for srcfeatures:
     my $srcfeature_query = "SELECT f.name,f.type_id,f.uniquename,f.feature_id, fd.dbxref_id,f.is_obsolete,f.seqlen FROM feature f left join feature_dbxref fd ON (f.feature_id = fd.feature_id AND fd.dbxref_id in (select dbxref_id from dbxref where db_id=2)) WHERE $sql_types order by f.type_id";
@@ -1686,7 +1708,7 @@ the segment was originally generated.
 =cut
 
 sub factory {my $self = shift;
-             confess unless ref $self;
+             confess "self is not an object" unless ref $self;
              return $self->{factory} } 
 
 =head2 srcfeature_id
@@ -1704,6 +1726,8 @@ sub srcfeature_id {
   my $self = shift;
 
   return $self->{'srcfeature_id'} = shift if @_;
+ 
+  confess "how did I get into srcfeature_id method" if (DEBUG and !ref $self); 
   return $self->{'srcfeature_id'};
 }
 
@@ -1801,6 +1825,7 @@ sub species {
 
   my $sth = $self->factory->dbh->prepare( "select genus,species from organism 
     where organism_id = (select organism_id from feature where feature_id = ?) ");
+  cluck "i'm in species";
   $sth->execute( $self->srcfeature_id );
   my $hashref = $sth->fetchrow_hashref();
   $sth->finish;
@@ -1877,6 +1902,8 @@ sub sourceseq {
   my $dbh  = $self->factory->dbh;
   my $sourceseq_query  = $dbh->prepare("
       select name from feature where feature_id = ?");
+
+  cluck "i'm in sourceseq";
   $sourceseq_query->execute($self->srcfeature_id)
       or $self->throw("getting sourceseq name query failed"); 
 
@@ -1961,6 +1988,10 @@ is:
 
 sub asString {
   my $self = shift;
+  unless (ref $self) {
+      warn "in asString with no self";
+      return unless ref $self;
+  }
   my $label = $self->refseq;
   my $start = $self->start;
   my $stop  = $self->stop;

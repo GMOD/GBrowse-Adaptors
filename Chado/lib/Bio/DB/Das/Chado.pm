@@ -1,4 +1,4 @@
-# $Id: Chado.pm,v 1.3 2009-05-04 14:36:09 scottcain Exp $
+# $Id: Chado.pm,v 1.4 2009-05-07 15:15:45 scottcain Exp $
 
 =head1 NAME
 
@@ -643,8 +643,8 @@ interrupted.  When a callback is provided, the method returns undef.
 
 sub features {
   my $self = shift;
-  my ($type,$types,$callback,$attributes,$iterator,$feature_id) = 
-       $self->_rearrange([qw(TYPE TYPES CALLBACK ATTRIBUTES ITERATOR FEATURE_ID)],
+  my ($type,$types,$callback,$attributes,$iterator,$feature_id,$seq_id,$start,$end) = 
+       $self->_rearrange([qw(TYPE TYPES CALLBACK ATTRIBUTES ITERATOR FEATURE_ID SEQ_ID START END)],
 			@_);
 
   $type ||= $types; #GRRR
@@ -656,14 +656,18 @@ sub features {
                                             -iterator => $iterator,
                                             -factory  => $self,
                                             -feature_id=>$feature_id,
+                                            -seq_id    =>$seq_id,
+                                            -start     =>$start,
+                                            -end       =>$end,
                                            );
   return @features;
 }
 
 sub get_seq_stream {
     my $self = shift;
-    my ($type,$types,$callback,$attributes,$iterator,$feature_id) =
-     $self->_rearrange([qw(TYPE TYPES CALLBACK ATTRIBUTES ITERATOR FEATURE_ID)],
+    warn "get_seq_stream args:@_";
+    my ($type,$types,$callback,$attributes,$iterator,$feature_id,$seq_id,$start,$end) =
+     $self->_rearrange([qw(TYPE TYPES CALLBACK ATTRIBUTES ITERATOR FEATURE_ID SEQ_ID START END)],
                         @_);
 
     my @features = $self->_segclass->features(-type => $type,
@@ -672,6 +676,9 @@ sub get_seq_stream {
                                             -iterator => $iterator,
                                             -factory  => $self,
                                             -feature_id=>$feature_id,
+                                            -seq_id    =>$seq_id,
+                                            -start     =>$start,
+                                            -end       =>$end,
                                            );
 
     return Bio::DB::Das::ChadoIterator->new(\@features);
