@@ -1,4 +1,4 @@
-# $Id: Segment.pm,v 1.2 2009-05-07 15:15:46 scottcain Exp $
+# $Id: Segment.pm,v 1.3 2009-05-08 13:08:34 scottcain Exp $
 
 =head1 NAME
 
@@ -98,7 +98,7 @@ use Bio::DB::GFF::Typename;
 use Data::Dumper;
 #dgg;not working# use Bio::Species;
 
-use constant DEBUG => 1;
+use constant DEBUG => 0;
 
 use vars '@ISA';
 @ISA = qw(Bio::Root::Root Bio::SeqI Bio::Das::SegmentI Bio::DB::Das::Chado);
@@ -1089,7 +1089,6 @@ sub features {
   $factory->dbh->do("set enable_seqscan=0");
   #  $factory->dbh->do("set enable_hashjoin=0");
 
-  cluck "how did I get here?";
   warn "Segement->features query:$query" if DEBUG;
 
   my $feature_query = $factory->dbh->prepare($query);
@@ -1903,7 +1902,6 @@ sub sourceseq {
   my $sourceseq_query  = $dbh->prepare("
       select name from feature where feature_id = ?");
 
-  cluck "i'm in sourceseq";
   $sourceseq_query->execute($self->srcfeature_id)
       or $self->throw("getting sourceseq name query failed"); 
 

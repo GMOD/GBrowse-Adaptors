@@ -1243,7 +1243,7 @@ sub _do_the_inferring {
         #this exon needs to be split into two features (CDS & UTR)
             my $utr = $feat->clone;
             #check for left utr/CDS split
-            if ( $feat->start < $start and $feat->end > $start  ) {
+            if ( $feat->start < $start and $feat->end >= $start  ) {
             #this on stradles the left end
                 if ( $utr->strand ) {
                     if ( $utr->strand > 0 ) {
@@ -1261,7 +1261,7 @@ sub _do_the_inferring {
                 $feat->type->method('CDS');
                 $feat->start($start);
             }
-            elsif ( $feat->start > $start and $feat->end > $stop  ) {
+            elsif ( $feat->start >= $start and $feat->end > $stop  ) {
             #this one stradles the right end
                 if ( $utr->strand ) {
                     if ( $feat->strand > 0 ) {

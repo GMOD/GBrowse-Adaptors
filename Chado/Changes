@@ -1,6 +1,9 @@
 Revision history for Perl module Bio::DB::Das::Chado
 
-1.0 Wed Apr 22 14:47:52 2009
+0.2 Wed Apr 22 14:47:52 2009
     - Stand alone module moved out of the GBrowse package
 
-
+0.21 Thu May  7 20:17:33 EDT 2009
+    - Fixed Segment features method to support API needed for GBrowse2
+    - Fixed a bug that caused CDS inferrence to fail for single exon
+      genes that have either a 5' or 3' UTR (but not both) to fail
