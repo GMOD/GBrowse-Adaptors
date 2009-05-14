@@ -122,19 +122,23 @@ int coverage_from_pileup_fun (uint32_t tid,
 }
 
 /* copied from bam_aux.c because "we need it" */
-KHASH_MAP_INIT_INT(aux, uint8_t*)
-static uint8_t *bam_aux_get_core(bam1_t *b, const char tag[2])
+uint8_t *bam_aux_get_core(bam1_t *b, const char tag[2])
 {
-  uint32_t x = (uint32_t)tag[0]<<8 | tag[1];
-  khint_t k;
-  uint8_t* r;
-  khash_t(aux) *h;
-  if (b->hash == 0) bam_aux_init(b);
-  h = (khash_t(aux)*)b->hash;
-  k = kh_get(aux, h, x);
-  if (k == kh_end(h)) return 0;
-  r = kh_value(h, k);
-  return --r;
+       uint8_t *s;
+       int y = tag[0]<<8 | tag[1];
+       s = bam1_aux(b);
+       while (s < b->data + b->data_len) {
+               int type, x = (int)s[0]<<8 | s[1];
+               s += 2;
+               if (x == y) return s;
+               type = toupper(*s); ++s;
+               if (type == 'C') ++s;
+               else if (type == 'S') s += 2;
+               else if (type == 'I' || type == 'F') s += 4;
+               else if (type == 'D') s += 8;
+               else if (type == 'Z' || type == 'H') { while (*s) putchar(*s++); ++s; }
+       }
+       return 0;
 }
 
 MODULE = Bio::DB::Sam PACKAGE = Bio::DB::Sam::Fai PREFIX=fai_
