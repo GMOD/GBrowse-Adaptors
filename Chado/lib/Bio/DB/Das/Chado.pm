@@ -1,4 +1,4 @@
-# $Id: Chado.pm,v 1.5 2009-05-08 13:08:34 scottcain Exp $
+# $Id: Chado.pm,v 1.6 2009-05-15 17:54:55 scottcain Exp $
 
 =head1 NAME
 
@@ -97,7 +97,7 @@ use constant SEGCLASS => 'Bio::DB::Das::Chado::Segment';
 use constant MAP_REFERENCE_TYPE => 'MapReferenceType'; #dgg
 use constant DEBUG => 0;
 
-$VERSION = 0.21;
+$VERSION = 0.22;
 @ISA = qw(Bio::Root::Root Bio::DasI);
 
 =head2 new
@@ -839,7 +839,7 @@ sub _by_alias_by_name {
   my @temp_array = split /:/, $name;
   if (scalar @temp_array == 2) {
     if ($self->source2dbxref($temp_array[0]) > 0) {
-      warn "assuming that the name with a colon ($name) is coming from a multiple hit search result (ie, is of the form 'source:name'";
+      warn "assuming that the name with a colon ($name) is coming from a multiple hit search result (ie, is of the form 'source:name')" if DEBUG;
       $name = $temp_array[1];
     }
   }
