@@ -7,3 +7,8 @@ Revision history for Perl module Bio::DB::Das::Chado
     - Fixed Segment features method to support API needed for GBrowse2
     - Fixed a bug that caused CDS inferrence to fail for single exon
       genes that have either a 5' or 3' UTR (but not both) to fail
+
+0.22 Thu May 28 15:53:03 EDT 2009
+    - Added a rel2abs method to the Segment feature so that uploaded
+      annotations will work correctly.
+

@@ -1,4 +1,4 @@
-# $Id: Segment.pm,v 1.3 2009-05-08 13:08:34 scottcain Exp $
+# $Id: Segment.pm,v 1.4 2009-05-28 20:02:39 scottcain Exp $
 
 =head1 NAME
 
@@ -1994,6 +1994,11 @@ sub asString {
   my $start = $self->start;
   my $stop  = $self->stop;
   return "$label:$start,$stop";
+}
+
+sub rel2abs {
+  shift;
+  return @_;
 }
 
 
