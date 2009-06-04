@@ -12,3 +12,9 @@ Revision history for Perl module Bio::DB::Das::Chado
     - Added a rel2abs method to the Segment feature so that uploaded
       annotations will work correctly.
 
+0.23 Thu Jun  4 11:55:24 EDT 2009
+    - Fixes to accomidate changes to the Chado GFF3 loader; there is still
+      an outstanding bug associated with searching when the same ID
+      is used in different GFF3 files.  While this will be solved soon,
+      a release is needed for a demo.
+
