@@ -1,4 +1,4 @@
-# $Id: Segment.pm,v 1.4 2009-05-28 20:02:39 scottcain Exp $
+# $Id: Segment.pm,v 1.5 2009-06-04 15:33:30 scottcain Exp $
 
 =head1 NAME
 
@@ -171,6 +171,8 @@ sub new {
     $where_part .= " and srcf.organism_id = ".$self->factory->organism_id
          if $self->factory->organism_id;
 
+    warn $where_part if DEBUG;
+
     my $srcfeature_query = $factory->dbh->prepare( "
         select srcfeature_id from featureloc fl
           join feature srcf on (fl.srcfeature_id = srcf.feature_id) 
@@ -236,7 +238,7 @@ sub new {
             next if (!defined ($base_start) or !defined($stop) or !defined($db_id));
 
             warn "calling factory->segment with name:$name, start:$base_start, stop:$stop, db_id:$db_id, srcfeature_id:$srcf_id\n" if DEBUG;
-            push @segments, $factory->segment(-name=>$name,-start=>$base_start,-stop=>$stop,-db_id=>$db_id,-srcfeature_id=>$srcf_id);
+            push @segments, $factory->segment(-name=>$name,-start=>$base_start,-stop=>$stop,-db_id=>$db_id,-feature_id=>$feature_id,-srcfeature_id=>$srcf_id);
 
             warn "segments array in constructor:@segments" if DEBUG;
 

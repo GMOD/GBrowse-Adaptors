@@ -1,4 +1,4 @@
-# $Id: Chado.pm,v 1.6 2009-05-15 17:54:55 scottcain Exp $
+# $Id: Chado.pm,v 1.7 2009-06-04 15:33:30 scottcain Exp $
 
 =head1 NAME
 
@@ -97,7 +97,7 @@ use constant SEGCLASS => 'Bio::DB::Das::Chado::Segment';
 use constant MAP_REFERENCE_TYPE => 'MapReferenceType'; #dgg
 use constant DEBUG => 0;
 
-$VERSION = 0.22;
+$VERSION = 0.21;
 @ISA = qw(Bio::Root::Root Bio::DasI);
 
 =head2 new
@@ -587,7 +587,7 @@ Otherwise, the method must throw a "multiple segment exception".
 
 sub segment {
   my $self = shift;
-  my ($name,$base_start,$stop,$end,$class,$version,$db_id,$feature_id) 
+  my ($name,$base_start,$stop,$end,$class,$version,$db_id,$feature_id,$srcfeature_id) 
                                          = $self->_rearrange([qw(NAME
 								 START
                  STOP
@@ -595,11 +595,12 @@ sub segment {
 								 CLASS
 								 VERSION
                  DB_ID
-                 FEATURE_ID )],@_);
+                 FEATURE_ID
+                 SRCFEATURE_ID )],@_);
   # lets the Segment class handle all the lifting.
 
   $end ||= $stop;
-  return $self->_segclass->new($name,$self,$base_start,$end,$db_id,0,$feature_id);
+  return $self->_segclass->new($name,$self,$base_start,$end,$db_id,0,$feature_id,$srcfeature_id);
 }
 
 =head2 features
@@ -839,7 +840,7 @@ sub _by_alias_by_name {
   my @temp_array = split /:/, $name;
   if (scalar @temp_array == 2) {
     if ($self->source2dbxref($temp_array[0]) > 0) {
-      warn "assuming that the name with a colon ($name) is coming from a multiple hit search result (ie, is of the form 'source:name')" if DEBUG;
+      warn "assuming that the name with a colon ($name) is coming from a multiple hit search result (ie, is of the form 'source:name'";
       $name = $temp_array[1];
     }
   }
