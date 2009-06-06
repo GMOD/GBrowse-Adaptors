@@ -72,7 +72,7 @@ use Bio::DB::Sam;
     my $print_region = sub {
 	my($alignment,$data) = @_;
 	push @a,$alignment;
-	return 1;
+	return;
     };
 
     $index->fetch($bam,$header->parse_region('seq2'),$print_region,"foobar");
@@ -132,7 +132,7 @@ use Bio::DB::Sam;
     ok($alignments[0]->cigar_str,'M35');
 
     $sam->expand_flags(0);
-    my @keys = $alignments[0]->get_all_tags;
+    @keys = $alignments[0]->get_all_tags;
     ok(scalar @keys,7);
 
     my $query = $alignments[0]->query;

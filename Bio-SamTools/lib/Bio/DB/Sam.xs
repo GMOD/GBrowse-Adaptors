@@ -81,15 +81,17 @@ int bam_fetch_fun (const bam1_t *b, void *data) {
   XPUSHs(callbackdata);
   PUTBACK;
 
-
   /* execute the call */
-  count = call_sv(callback,G_SCALAR);
+  count = call_sv(callback,G_ARRAY);
+
+  if (count == 0) {
+    returnval = 0;
+  } else if (count == 1) {
+    returnval = POPi;
+  } else
+    croak("bam_fetch() callback must return empty or a scalar integer");
+
   SPAGAIN;
-
-  if (count != 1)
-    croak("bam_fetch() callback must return a scalar integer");
-
-  returnval = POPi;
 
   PUTBACK;
   FREETMPS;

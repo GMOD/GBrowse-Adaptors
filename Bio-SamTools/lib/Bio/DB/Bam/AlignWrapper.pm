@@ -36,6 +36,16 @@ sub expand_flags {
 }
 
 sub primary_tag { return 'match' }
+sub primary_id {
+    my $self = shift;
+    return join ';',
+       map {s/;/%3B/g; $_}
+       ($self->display_name,
+	$self->seq_id,
+	$self->start,
+	$self->end,
+	$self->strand);
+}
 sub abs_ref    { shift->seq_id }
 sub abs_start  { shift->start  }
 sub abs_end    { shift->end    }

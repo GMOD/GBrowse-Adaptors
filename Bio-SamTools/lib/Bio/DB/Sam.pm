@@ -7,7 +7,7 @@ use Bio::SeqFeature::Lite;
 use Bio::PrimarySeq;
 
 use base 'DynaLoader';
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 bootstrap Bio::DB::Sam;
 
 use Bio::DB::Bam::Alignment;
@@ -175,6 +175,20 @@ sub get_feature_by_name {
 
 sub get_features_by_name { shift->get_feature_by_name(@_) }
 
+sub get_feature_by_id {
+    my $self = shift;
+    my $id   = shift;
+    my ($name,$seqid,$start,$end,$strand) = map {s/%3B/;/ig;$_} split ';',$id;
+    return unless $name && $seqid;
+    my @features = $self->features(-name=>$name,
+				   -seq_id=>$seqid,
+				   -start=>$start,
+				   -end=>$end,
+				   -strand=>$strand);
+    return unless @features;
+    return $features[0];
+}
+
 
 sub get_seq_stream {
     my $self = shift;
@@ -237,7 +251,7 @@ sub features {
 	die $@ if $@;
 	return Bio::DB::Bam::ReadIterator->new($self->{bam},$code);
     }
-    
+
     # otherwise we're going to do a little magic
     my ($features,@result);
 
@@ -285,8 +299,9 @@ sub _features {
 sub {
     my \$a = shift;
     $filter
-    return 0 unless defined \$a->start;
+    return unless defined \$a->start;
     push \@result,Bio::DB::Bam::AlignWrapper->new(\$a,\$self);
+    return 1;
 }
 INDEXED
 sub {
@@ -415,10 +430,12 @@ sub _filter_by_name {
     my $self = shift;
     my $name = shift;
 
+    my $frag = "my \$name=\$a->qname; defined \$name or return; ";
+
     if (my $regexp = $self->_glob_match($name)) {
-	return "return unless \$a->qname =~ /^$regexp\$/i;\n";
+	$frag .= "return unless \$name =~ /^$regexp\$/i;\n";
     } else {
-	return "return unless lc \$a->qname eq '$name';\n";
+	$frag .= "return unless lc \$name eq '$name';\n";
     }
 }
 

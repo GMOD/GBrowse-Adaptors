@@ -50,6 +50,11 @@ sub display_name {
     return shift->qname;
 }
 
+sub primary_id {
+    my $self = shift;
+    return join ':',$self->display_name,$self->seq_id,$self->start,$self->end,$self->strand;
+}
+
 sub cigar_str {
     my $self   = shift;
     my $cigar  = $self->cigar;
