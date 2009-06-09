@@ -1,4 +1,58 @@
 package Bio::DB::Sam;
+# $Id: Sam.pm,v 1.6 2009-06-09 13:16:35 lstein Exp $
+
+=head1 NAME
+
+Bio::DB::Sam -- Read SAM/BAM database files
+
+=head1 SYNOPSIS
+
+ use Bio::DB::Sam;
+ my $sam = Bio::DB::Sam->new(-fasta=>"data/ex1.fa",
+			     -bam  =>"data/ex1.bam");
+
+ my @targets    = $sam->targets;
+ my @alignments = $sam->get_features_by_location(-seq_id => 'seq2',
+                                                 -start  => 500,
+                                                 -end    => 800);
+ for my $a (@alignments) {
+    my $seqid  = $a->seq_id;
+    my $start  = $a->start;
+    my $end    = $a->end;
+    my $strand = $a->strand;
+    my $cigar  = $a->cigar_str;
+    my $paired = $a->get_tag_values('PAIRED');
+    my $ref_dna   = $a->dna;        # reference sequence
+    my $query_dna = $a->query->dna; # query sequence
+    my @scores    = $a->qscore;     # per-base quality scores
+    my $match_qual= $a->qual;       # quality of the match
+ }
+
+ my @pairs = $sam->get_features_by_location(-type   => 'read_pair',
+                                            -seq_id => 'seq2',
+                                            -start  => 500,
+                                            -end    => 800);
+
+ for my $pair (@pairs) {
+    my $length                    = $pair->length;   # insert length
+    my ($first_mate,$second_mate) = $pair->get_SeqFeatures;
+    my $f_start = $first_mate->start;
+    my $s_start = $second_mate->start;
+ }
+
+=head1 DESCRIPTION
+
+This module provides read-only access to indexed BAM sequence
+alignment databases. It provides support for retrieving information on
+individual alignments, read pairs, and alignment coverage information
+across large regions. It also provides callback functionality for
+calling SNPs and performing other base-by-base functions. Most
+operations are compatible with the BioPerl Bio::SeqFeatureI interface.
+
+=head1 METHODS
+
+=cut
+
 use strict;
 use warnings;
 
@@ -17,20 +71,22 @@ use Bio::DB::Bam::FetchIterator;
 use Bio::DB::Bam::ReadIterator;
 
 sub new {
-    my $class        = shift;
-    my %args         = @_;
-    my $fa_path      = $args{-fasta} or croak "-fasta argument required";
-    my $bam_path     = $args{-bam}   or croak "-bam argument required";
-    my $expand_flags = $args{-expand_flags};
+    my $class         = shift;
+    my %args          = @_;
+    my $fa_path       = $args{-fasta} or croak "-fasta argument required";
+    my $bam_path      = $args{-bam}   or croak "-bam argument required";
+    my $expand_flags  = $args{-expand_flags};
+    my $split_splices = $args{-split} || $args{-split_splices};
     -e $fa_path  && -r _  or croak "$fa_path does not exist or is not readable";
     -e $bam_path && -r _  or croak "$fa_path does not exist or is not readable";
     my $fai = Bio::DB::Sam::Fai->open($fa_path)  or croak "$fa_path open: $!";
     my $bam = Bio::DB::Bam->open($bam_path)      or croak "$bam_path open: $!";
     my $self =  bless {
-	fai          => $fai,
-	bam          => $bam,
-	bam_path     => $bam_path,
-	expand_flags => $expand_flags,
+	fai           => $fai,
+	bam           => $bam,
+	bam_path      => $bam_path,
+	expand_flags  => $expand_flags,
+	split_splices => $split_splices,
     },ref $class || $class;
     $self->header;  # catch it
     return $self;
@@ -47,6 +103,13 @@ sub expand_flags {
     my $self = shift;
     my $d    = $self->{expand_flags};
     $self->{expand_flags} = shift if @_;
+    $d;
+}
+
+sub split_splices {
+    my $self = shift;
+    my $d    = $self->{split_splices};
+    $self->{split_splices} = shift if @_;
     $d;
 }
 
@@ -301,7 +364,7 @@ sub {
     $filter
     return unless defined \$a->start;
     push \@result,Bio::DB::Bam::AlignWrapper->new(\$a,\$self);
-    return 1;
+    return;
 }
 INDEXED
 sub {
@@ -482,3 +545,24 @@ sub _glob_match {
 
 1;
 __END__
+
+
+=head1 SEE ALSO
+
+L<Bio::Perl>
+
+=head1 AUTHOR
+
+Lincoln Stein E<lt>lincoln.stein@oicr.on.caE<gt>.
+E<lt>lincoln.stein@bmail.comE<gt>
+
+Copyright (c) 2009 Ontario Institute for Cancer Research.
+
+This package and its accompanying libraries is free software; you can
+redistribute it and/or modify it under the terms of the GPL (either
+version 1, or at your option, any later version) or the Artistic
+License 2.0.  Refer to LICENSE for the full license text. In addition,
+please see DISCLAIMER.txt for disclaimers of warranty.
+
+=cut
+

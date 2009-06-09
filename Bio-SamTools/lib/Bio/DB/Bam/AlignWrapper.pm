@@ -9,8 +9,14 @@ our $AUTOLOAD;
 sub new {
     my $package = shift;
     my ($align,$sam) = @_;
-    return bless {sam   => $sam,
-		  align => $align},ref $package || $package;
+
+    my $self = bless {sam   => $sam,
+		      align => $align},ref $package || $package;
+
+    $self->add_segment($self->split_splices)
+	if $sam->split_splices && $align->cigar_str =~ /N/;
+
+    return $self; 
 }
 
 sub AUTOLOAD {
@@ -25,6 +31,58 @@ sub can {
     return 1 if $self->SUPER::can(@_);
     return $self->{align}->can(@_);
 }
+
+sub add_segment {
+    my $self     = shift;
+    my @subfeat  = @_;
+    $self->{segments} ||= [];
+    push @{$self->{segments}},@subfeat;
+}
+
+sub get_SeqFeatures {
+    my $self = shift;
+    return unless $self->{segments};
+    return @{$self->{segments}};
+}
+
+sub split_splices {
+    my $self  = shift;
+    my $cigar = $self->cigar_array;
+    my @results;
+
+    my $start    = 0;
+    my $end      = 0;
+    my $skip     = 0;
+    for my $op (@$cigar,['N',0]) {
+	my ($operation,$count) = @$op;
+	if ($operation eq 'N') {
+	    my $s = $self->start + $start   + $skip;
+	    my $e = $self->start + $end - 1 + $skip;
+	    my $f = Bio::DB::Bam::SplitAlignmentPart->new(-name   => $self->display_name,
+							  -start  => $s,
+							  -end    => $e,
+							  -seq_id => $self->seq_id,
+							  -strand => +1,
+							  -seq    => substr($self->dna,
+									    $start+$skip,
+									    $end-$start),
+							  -type   => $self->type);
+	    $f->hit(-name   => $self->display_name,
+		    -seq_id => $self->display_name,
+		    -start  => $start+1,
+		    -end    => $end,
+		    -strand => $self->strand,
+		    -seq    => substr($self->qseq,$start,$end-$start),
+		);
+	    push @results,$f;
+	    $start += $end-$start;
+	}
+	$end  += $count if $operation =~ /^[MDSHP]/i;
+	$skip  = $count if $operation eq 'N';
+    }
+    return @results;
+}
+
 sub seq_id {
     my $self = shift;
     my $tid  = $self->tid;
@@ -33,6 +91,12 @@ sub seq_id {
 
 sub expand_flags {
     shift->{sam}->expand_flags(@_);
+}
+
+sub qscore {
+    my $self   = shift;
+    my $scores = $self->{align}->qscore;
+    return wantarray ? unpack('C*',$scores) : $scores;
 }
 
 sub primary_tag { return 'match' }
@@ -59,7 +123,7 @@ sub name       { shift->qname }
 sub class      { shift->primary_tag }
 
 # required by API
-sub get_SeqFeatures { return }
+# sub get_SeqFeatures { return }
 
 sub seq      {
     my $self   = shift;
@@ -129,6 +193,17 @@ sub has_tag {
 	my %keys = map {$_=>1} $self->aux_keys;
 	return exists $keys{uc $tag};
     }
+}
+
+package Bio::DB::Bam::SplitAlignmentPart;
+
+use base 'Bio::SeqFeature::Lite';
+
+sub hit {
+    my $self = shift;
+    my $d    = $self->{hit};
+    $self->{hit} = Bio::SeqFeature::Lite->new(@_) if @_;
+    return $d;
 }
 
 1;

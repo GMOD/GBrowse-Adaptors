@@ -8,7 +8,7 @@ use strict;
 use ExtUtils::MakeMaker;
 use Bio::Root::IO;
 use FindBin '$Bin';
-use constant TEST_COUNT => 56;
+use constant TEST_COUNT => 57;
 
 use lib "$Bin/../lib","$Bin/../blib/lib","$Bin/../blib/arch";
 
@@ -122,6 +122,7 @@ use Bio::DB::Sam;
     ok(scalar @alignments,442);
     ok($alignments[0]->seq_id,'seq2');
 
+    ok(length scalar $alignments[0]->qscore,length $alignments[0]->dna);
 
     my @keys = $alignments[0]->get_all_tags;
     ok(scalar @keys,17);

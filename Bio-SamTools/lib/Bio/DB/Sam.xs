@@ -60,7 +60,6 @@ int bam_fetch_fun (const bam1_t *b, void *data) {
   SV* callback;
   SV* callbackdata;
   SV* alignment_obj;
-  int returnval;
   bam1_t *b2;
 
   fcp          = (fetch_callback_dataptr) data;
@@ -76,28 +75,19 @@ int bam_fetch_fun (const bam1_t *b, void *data) {
   /* set up subroutine stack for the call */
   ENTER;
   SAVETMPS;
+
   PUSHMARK(SP);
   XPUSHs(sv_2mortal(alignment_obj));
   XPUSHs(callbackdata);
   PUTBACK;
 
   /* execute the call */
-  count = call_sv(callback,G_ARRAY);
+  count = call_sv(callback,G_SCALAR|G_DISCARD);
 
-  if (count == 0) {
-    returnval = 0;
-  } else if (count == 1) {
-    returnval = POPi;
-  } else
-    croak("bam_fetch() callback must return empty or a scalar integer");
-
-  SPAGAIN;
-
-  PUTBACK;
   FREETMPS;
   LEAVE;
 
-  return returnval;
+  return 1;
 }
 
 int add_pileup_line (const bam1_t *b, void *data) {
@@ -363,6 +353,15 @@ CODE:
     }
     RETVAL = newSVpv(seq,b->core.l_qseq);
     Safefree(seq);
+OUTPUT:
+    RETVAL
+
+SV*
+bam_qscore(b)
+Bio::DB::Bam::Alignment b
+PROTOTYPE: $
+CODE:
+    RETVAL = newSVpv(bam1_qual(b),b->core.l_qseq);
 OUTPUT:
     RETVAL
 
