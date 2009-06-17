@@ -222,7 +222,13 @@ sub srcfeature_id {
   my $self = shift;
 
   return $self->{'srcfeature_id'} = shift if @_;
-  return $self->{'srcfeature_id'};
+
+  my $feature_id = $self->feature_id;
+  my $sf_query = $self->factory->dbh->prepare("select srcfeature_id from featureloc where feature_id = ? and rank=0");
+  $sf_query->execute($feature_id);
+  my ($sf) = $sf_query->fetchrow_array;
+
+  return $self->{'srcfeature_id'} = $sf;
 }
 
 =head2 strand()
