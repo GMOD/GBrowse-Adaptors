@@ -13,6 +13,22 @@ sub new {
 
 sub db       { shift->{db}    };
 
+sub features {
+    my $self = shift;
+    my $db   = $self->db;
+    my @args;
+
+    if (@_ && $_[0] !~ /^-/) { # type list
+	@args = (-types=>\@_);
+    } else {
+	@args = @_;
+    }
+    return $db->features(-seq_id => $self->seq_id,
+			 -start  => $self->start,
+			 -end    => $self->end,
+			 @args);
+}
+
 # required by api
 sub seq_id   { shift->{seqid} };
 # required by api
@@ -29,9 +45,7 @@ sub length   {
 # required by api
 sub seq      {
     my $self   = shift;
-    my $db     = $self->db;
-    my $region = $self->seq_id.':'.$self->start.'-'.$self->end;
-    return Bio::PrimarySeq->new(-seq => $db->fai->fetch($region),
+    return Bio::PrimarySeq->new(-seq => $self->dna,
 				-id  => $self->seq_id);
 }
 # required by api
@@ -39,14 +53,20 @@ sub primary_tag {
     my $self = shift;
     return 'region';
 }
+sub dna {
+    my $self = shift;
+    my $db     = $self->db;
+    my $region = $self->seq_id.':'.$self->start.'-'.$self->end;
+    return $db->fai->fetch($region);
+}
 # required by api
 sub source_tag { return 'sam/bam' }
 # required by api
 sub name    { shift->seq_id }
 # required by api
-sub factory { shift->db  }
+sub display_name    { shift->seq_id }
 # required by api
-sub display_name { shift->name  }
+sub factory { shift->db  }
 # required by api
 sub get_SeqFeatures { return;   }
 # required by api

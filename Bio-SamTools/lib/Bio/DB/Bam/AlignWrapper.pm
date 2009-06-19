@@ -53,8 +53,11 @@ sub split_splices {
     my $start    = 0;
     my $end      = 0;
     my $skip     = 0;
+    my $partial_cigar = '';
+
     for my $op (@$cigar,['N',0]) {
 	my ($operation,$count) = @$op;
+
 	if ($operation eq 'N') {
 	    my $s = $self->start + $start   + $skip;
 	    my $e = $self->start + $end - 1 + $skip;
@@ -74,8 +77,13 @@ sub split_splices {
 		    -strand => $self->strand,
 		    -seq    => substr($self->qseq,$start,$end-$start),
 		);
+	    $f->cigar_str($partial_cigar);
+	    $partial_cigar = '';
+
 	    push @results,$f;
 	    $start += $end-$start;
+	} else {
+	    $partial_cigar .= "$operation$count";
 	}
 	$end  += $count if $operation =~ /^[MDSHP]/i;
 	$skip  = $count if $operation eq 'N';
@@ -121,9 +129,6 @@ sub source_tag { return 'sam/bam'; }
 sub source     { return shift->source_tag; }
 sub name       { shift->qname }
 sub class      { shift->primary_tag }
-
-# required by API
-# sub get_SeqFeatures { return }
 
 sub seq      {
     my $self   = shift;
@@ -204,6 +209,24 @@ sub hit {
     my $d    = $self->{hit};
     $self->{hit} = Bio::SeqFeature::Lite->new(@_) if @_;
     return $d;
+}
+
+sub Bio::SeqFeature::Lite::subseq {
+    my $self = shift;
+    my ($start,$end) = @_;
+    $start = 1 if $start < 1;
+    $end   = $self->high if $end > $self->high;
+    return Bio::PrimarySeq->new(-seq=>substr($self->dna,
+					     $start-1,
+					     $end-$start+1)
+				);
+}
+
+sub cigar_str {
+    my $self = shift;
+    my $d    = $self->{cigar_str};
+    $self->{cigar_str} = shift if @_;
+    $d;
 }
 
 1;

@@ -24,11 +24,13 @@
 /* stolen from bam_aux.c */
 #define MAX_REGION 1<<29
 
-typedef faidx_t*      Bio__DB__Sam__Fai;
-typedef bamFile       Bio__DB__Bam;
-typedef bam_header_t* Bio__DB__Bam__Header;
-typedef bam1_t*       Bio__DB__Bam__Alignment;
-typedef bam_index_t*  Bio__DB__Bam__Index;
+typedef tamFile         Bio__DB__Tam;
+typedef faidx_t*        Bio__DB__Sam__Fai;
+typedef bamFile         Bio__DB__Bam;
+typedef bam_header_t*   Bio__DB__Bam__Header;
+typedef bam1_t*         Bio__DB__Bam__Alignment;
+typedef bam_index_t*    Bio__DB__Bam__Index;
+typedef bam_pileup1_t*  Bio__DB__Bam__Pileup;
 typedef struct {
   SV* callback;
   SV* data;
@@ -67,8 +69,8 @@ int bam_fetch_fun (const bam1_t *b, void *data) {
   callbackdata = fcp->data;
 
   /* turn the bam1_t into an appropriate object */
+  /* need to dup it here so that the C layer doesn't reuse the address under Perl */
   b2 = bam_dup1(b);
-  // b2->hash = b->hash;
 
   alignment_obj = sv_setref_pv(newSV(sizeof(bam1_t)),"Bio::DB::Bam::Alignment",(void*) b2);
 
@@ -90,9 +92,61 @@ int bam_fetch_fun (const bam1_t *b, void *data) {
   return 1;
 }
 
+int invoke_pileup_callback_fun(uint32_t tid, 
+			       uint32_t pos, 
+			       int n, 
+			       const bam_pileup1_t *pl,
+			       void *data) {
+  dSP;
+  int count,i;
+  fetch_callback_dataptr fcp;
+  SV* callback;
+  SV* callbackdata;
+  AV* pileup;
+  SV* pileup_obj;
+
+  fcp          = (fetch_callback_dataptr) data;
+  callback     = fcp->callback;
+  callbackdata = fcp->data;
+
+  /* turn the bam_pileup1_t into the appropriate object */
+  pileup = newAV();
+  av_extend(pileup,n);
+  for (i=0;i<n;i++) {
+    pileup_obj = sv_setref_pv(newSV(sizeof(bam_pileup1_t)),
+			      "Bio::DB::Bam::Pileup",
+			      (void*) &pl[i]);
+    av_push(pileup,pileup_obj);
+  }
+  
+    /* set up subroutine stack for the call */
+  ENTER;
+  SAVETMPS;
+
+  PUSHMARK(SP);
+  XPUSHs(sv_2mortal(newSViv(tid)));
+  XPUSHs(sv_2mortal(newSViv(pos)));
+  XPUSHs(sv_2mortal(newRV_noinc((SV*)pileup)));
+  XPUSHs(callbackdata);
+  PUTBACK;
+
+  /* execute the call */
+  count = call_sv(callback,G_SCALAR|G_DISCARD);
+
+  FREETMPS;
+  LEAVE;
+
+}
+
 int add_pileup_line (const bam1_t *b, void *data) {
   bam_plbuf_t *pileup = (bam_plbuf_t*) data;
   bam_plbuf_push(b,pileup);
+  return 0;
+}
+
+int add_lpileup_line (const bam1_t *b, void *data) {
+  bam_lplbuf_t *pileup = (bam_lplbuf_t*) data;
+  bam_lplbuf_push(b,pileup);
   return 0;
 }
 
@@ -132,6 +186,46 @@ uint8_t *bam_aux_get_core(bam1_t *b, const char tag[2])
        }
        return 0;
 }
+
+
+MODULE = Bio::DB::Sam PACKAGE = Bio::DB::Tam PREFIX=tam_
+
+Bio::DB::Tam
+tam_open(packname="Bio::DB::Tam", filename)
+   char * packname
+   char * filename
+ PROTOTYPE: $$
+ CODE:
+    RETVAL = sam_open(filename);
+ OUTPUT:
+    RETVAL
+
+void
+tam_DESTROY(tam)
+  Bio::DB::Tam tam
+  PROTOTYPE: $
+  CODE:
+     sam_close(tam);
+
+Bio::DB::Bam::Header
+tam_header_read2(packname="Bio::DB::Tam", filename)
+    char * packname
+    char * filename
+    PROTOTYPE: $$
+    CODE:
+      RETVAL = sam_header_read2(filename);
+    OUTPUT:
+      RETVAL
+
+int
+tam_read1(tam,header,alignment)
+    Bio::DB::Tam            tam
+    Bio::DB::Bam::Header    header
+    Bio::DB::Bam::Alignment alignment
+    CODE:
+       RETVAL = sam_read1(tam,header,alignment);
+    OUTPUT:
+       RETVAL
 
 MODULE = Bio::DB::Sam PACKAGE = Bio::DB::Sam::Fai PREFIX=fai_
 
@@ -173,12 +267,13 @@ fai_fetch(fai,reg)
 MODULE = Bio::DB::Sam PACKAGE = Bio::DB::Bam PREFIX=bam_
 
 Bio::DB::Bam
-bam_open(packname="Bio::DB::Bam", filename)
+bam_open(packname, filename, mode="r")
       char * packname
       char * filename
-      PROTOTYPE: $$
+      char * mode
+      PROTOTYPE: $$$
       CODE:
-        RETVAL = bam_open(filename,"r");
+        RETVAL = bam_open(filename,mode);
       OUTPUT:
       RETVAL
 
@@ -190,13 +285,24 @@ CODE:
    bam_close(bam);
 
 int
-bam_index_build(packname="Bio::DB::Bam", filename)
+bam_index_build(packname, filename)
    char *      packname
    const char * filename
   CODE:
      RETVAL = bam_index_build(filename);
   OUTPUT:
      RETVAL
+
+void
+bam_sort_core(packname, is_by_qname=0, filename, prefix, max_mem=500000000)
+   char * packname
+   int    is_by_qname
+   char * filename
+   char * prefix
+   int    max_mem
+ PROTOTYPE: $$$$$
+ CODE:
+   bam_sort_core(is_by_qname,filename,prefix,max_mem);
 
 Bio::DB::Bam::Index
 bam_index_open(packname="Bio::DB::Bam", filename)
@@ -218,6 +324,17 @@ bam_header(bam)
       bgzf_seek(bam,0,0);
       bh = bam_header_read(bam);
       RETVAL = bh;
+    OUTPUT:
+      RETVAL
+
+int
+bam_header_write(bam,header)
+    Bio::DB::Bam         bam
+    Bio::DB::Bam::Header header
+    PROTOTYPE: $$
+    CODE:
+      bgzf_seek(bam,0,0);
+      RETVAL= bam_header_write(bam,header);
     OUTPUT:
       RETVAL
 
@@ -258,17 +375,36 @@ bam_read1(bam)
   OUTPUT:
     RETVAL      
 
-MODULE = Bio::DB::Sam PACKAGE = Bio::DB::Bam::Alignment PREFIX=bam_
+int
+bam_write1(bam,align)
+    Bio::DB::Bam            bam
+    Bio::DB::Bam::Alignment align
+   PROTOTYPE: $$
+   CODE:
+      RETVAL = bam_write1(bam,align);
+   OUTPUT:
+      RETVAL
+
+MODULE = Bio::DB::Sam PACKAGE = Bio::DB::Bam::Alignment PREFIX=bama_
+
+Bio::DB::Bam::Alignment
+bama_new(package="Bio::DB::Bam::Alignment")
+   char * package
+   PROTOTYPE: $
+   CODE:
+      RETVAL = bam_init1();
+   OUTPUT:
+      RETVAL
 
 void
-bam_DESTROY(b)
+bama_DESTROY(b)
   Bio::DB::Bam::Alignment b
 PROTOTYPE: $
 CODE:
     bam_destroy1(b);
 
 int
-bam_tid(b)
+bama_tid(b)
     Bio::DB::Bam::Alignment b
 PROTOTYPE: $
 CODE:
@@ -277,7 +413,7 @@ OUTPUT:
     RETVAL
 
 int
-bam_pos(b)
+bama_pos(b)
     Bio::DB::Bam::Alignment b
 PROTOTYPE: $
 CODE:
@@ -286,7 +422,7 @@ OUTPUT:
     RETVAL
 
 int
-bam_calend(b)
+bama_calend(b)
   Bio::DB::Bam::Alignment b
 PROTOTYPE: $
 CODE:
@@ -295,7 +431,7 @@ OUTPUT:
    RETVAL    
 
 int
-bam_cigar2qlen(b)
+bama_cigar2qlen(b)
   Bio::DB::Bam::Alignment b
 PROTOTYPE: $
 CODE:
@@ -304,7 +440,7 @@ OUTPUT:
    RETVAL    
 
 int
-bam_qual(b)
+bama_qual(b)
     Bio::DB::Bam::Alignment b
 PROTOTYPE: $
 CODE:
@@ -313,7 +449,7 @@ OUTPUT:
     RETVAL
 
 int
-bam_flag(b)
+bama_flag(b)
     Bio::DB::Bam::Alignment b
 PROTOTYPE: $
 CODE:
@@ -322,7 +458,7 @@ OUTPUT:
     RETVAL
 
 int
-bam_n_cigar(b)
+bama_n_cigar(b)
     Bio::DB::Bam::Alignment b
 PROTOTYPE: $
 CODE:
@@ -331,7 +467,7 @@ OUTPUT:
     RETVAL
 
 int
-bam_l_qseq(b)
+bama_l_qseq(b)
     Bio::DB::Bam::Alignment b
 PROTOTYPE: $
 CODE:
@@ -340,7 +476,7 @@ OUTPUT:
     RETVAL
 
 SV*
-bam_qseq(b)
+bama_qseq(b)
 Bio::DB::Bam::Alignment b
 PROTOTYPE: $
 PREINIT:
@@ -357,7 +493,7 @@ OUTPUT:
     RETVAL
 
 SV*
-bam_qscore(b)
+bama_qscore(b)
 Bio::DB::Bam::Alignment b
 PROTOTYPE: $
 CODE:
@@ -366,7 +502,7 @@ OUTPUT:
     RETVAL
 
 int
-bam_mtid(b)
+bama_mtid(b)
     Bio::DB::Bam::Alignment b
 PROTOTYPE: $
 CODE:
@@ -375,7 +511,7 @@ OUTPUT:
     RETVAL
 
 int
-bam_mpos(b)
+bama_mpos(b)
     Bio::DB::Bam::Alignment b
 PROTOTYPE: $
 CODE:
@@ -384,7 +520,7 @@ OUTPUT:
     RETVAL
 
 int
-bam_isize(b)
+bama_isize(b)
     Bio::DB::Bam::Alignment b
 PROTOTYPE: $
 CODE:
@@ -393,7 +529,7 @@ OUTPUT:
     RETVAL
 
 int
-bam_l_aux(b)
+bama_l_aux(b)
     Bio::DB::Bam::Alignment b
 PROTOTYPE: $
 CODE:
@@ -402,7 +538,7 @@ OUTPUT:
     RETVAL
 
 SV*
-bam_aux_get(b,tag)
+bama_aux_get(b,tag)
    Bio::DB::Bam::Alignment b
    char*               tag
 PROTOTYPE: $$
@@ -432,7 +568,7 @@ OUTPUT:
    RETVAL
 
 void
-bam_aux_keys(b)
+bama_aux_keys(b)
 Bio::DB::Bam::Alignment b
 PROTOTYPE: $
 PREINIT:
@@ -458,7 +594,7 @@ PPCODE:
    }
 
 SV*
-bam_data(b)
+bama_data(b)
     Bio::DB::Bam::Alignment b
 PROTOTYPE: $
 CODE:
@@ -467,7 +603,7 @@ OUTPUT:
     RETVAL
 
 int
-bam_data_len(b)
+bama_data_len(b)
     Bio::DB::Bam::Alignment b
 PROTOTYPE: $
 CODE:
@@ -476,7 +612,7 @@ OUTPUT:
     RETVAL
 
 int
-bam_m_data(b)
+bama_m_data(b)
     Bio::DB::Bam::Alignment b
 PROTOTYPE: $
 CODE:
@@ -485,7 +621,7 @@ OUTPUT:
     RETVAL
 
 SV*
-bam_qname(b)
+bama_qname(b)
   Bio::DB::Bam::Alignment b
 PROTOTYPE: $
 CODE:
@@ -494,7 +630,7 @@ OUTPUT:
     RETVAL
 
 int
-bam_paired(b)
+bama_paired(b)
   Bio::DB::Bam::Alignment b
 PROTOTYPE: $
 CODE:
@@ -503,7 +639,7 @@ OUTPUT:
   RETVAL
 
 int
-bam_proper_pair(b)
+bama_proper_pair(b)
   Bio::DB::Bam::Alignment b
 PROTOTYPE: $
 CODE:
@@ -512,7 +648,7 @@ OUTPUT:
   RETVAL
 
 int
-bam_unmapped(b)
+bama_unmapped(b)
   Bio::DB::Bam::Alignment b
 PROTOTYPE: $
 CODE:
@@ -521,7 +657,7 @@ OUTPUT:
   RETVAL
 
 int
-bam_munmapped(b)
+bama_munmapped(b)
   Bio::DB::Bam::Alignment b
 PROTOTYPE: $
 CODE:
@@ -530,7 +666,7 @@ OUTPUT:
   RETVAL
 
 int
-bam_reversed(b)
+bama_reversed(b)
   Bio::DB::Bam::Alignment b
 PROTOTYPE: $
 CODE:
@@ -539,7 +675,7 @@ OUTPUT:
   RETVAL
 
 int
-bam_mreversed(b)
+bama_mreversed(b)
   Bio::DB::Bam::Alignment b
 PROTOTYPE: $
 CODE:
@@ -548,7 +684,7 @@ OUTPUT:
   RETVAL
 
 SV*
-bam_cigar(b)
+bama_cigar(b)
   Bio::DB::Bam::Alignment b
 PROTOTYPE: $
 PREINIT:
@@ -565,6 +701,14 @@ OUTPUT:
   RETVAL
 
 MODULE = Bio::DB::Sam PACKAGE = Bio::DB::Bam::Header PREFIX=bam_
+
+Bio::DB::Bam::Header
+bam_new(packname=Bio::DB::Bam::Header)
+PROTOTYPE: $
+CODE:
+    RETVAL = bam_header_init();
+OUTPUT:
+    RETVAL
 
 int
 bam_n_targets(bamh)
@@ -637,16 +781,24 @@ bam_parse_region(bamh,region)
     }
 
 void
+bam_view1(bamh,alignment)
+     Bio::DB::Bam::Header     bamh
+     Bio::DB::Bam::Alignment  alignment
+     PROTOTYPE: $$
+     CODE:
+       bam_view1(bamh,alignment);
+
+void
 bam_DESTROY(bamh)
   Bio::DB::Bam::Header bamh
   PROTOTYPE: $
   CODE:
     bam_header_destroy(bamh);
 
-MODULE = Bio::DB::Sam PACKAGE = Bio::DB::Bam::Index PREFIX=bam_
+MODULE = Bio::DB::Sam PACKAGE = Bio::DB::Bam::Index PREFIX=bami_
 
 int
-bam_fetch(bai,bfp,ref,start,end,callback,callbackdata)
+bami_fetch(bai,bfp,ref,start,end,callback,callbackdata=&PL_sv_undef)
   Bio::DB::Bam::Index bai
   Bio::DB::Bam        bfp
   int   ref
@@ -665,8 +817,28 @@ CODE:
 OUTPUT:
     RETVAL
 
+void
+bami_pileup(bai,bfp,ref,start,end,callback,callbackdata=&PL_sv_undef)
+  Bio::DB::Bam::Index bai
+  Bio::DB::Bam        bfp
+  int   ref
+  int   start
+  int   end
+  CV*   callback
+  SV*   callbackdata
+PREINIT:  
+  fetch_callback_data fcd;
+  bam_lplbuf_t        *pileup;
+CODE:
+  fcd.callback = (SV*) callback;
+  fcd.data     = callbackdata;
+  pileup       = bam_lplbuf_init(invoke_pileup_callback_fun,(void*)&fcd);
+  bam_fetch(bfp,bai,ref,start,end,(void*)pileup,add_lpileup_line);
+  bam_lplbuf_push(NULL,pileup);
+  bam_lplbuf_destroy(pileup);
+
 SV*
-bam_coverage(bai,bfp,ref,start,end,bins)
+bami_coverage(bai,bfp,ref,start,end,bins)
     Bio::DB::Bam::Index bai
     Bio::DB::Bam        bfp
     int             ref
@@ -703,8 +875,6 @@ CODE:
       pileup   = bam_plbuf_init(coverage_from_pileup_fun,(void*)&cg);
       bam_fetch(bfp,bai,ref,start,end,(void*)pileup,add_pileup_line);
       bam_plbuf_push(NULL,pileup);
-
-      // is crashing?
       bam_plbuf_destroy(pileup);
 
       /* now normalize to coverage/bp and convert into an array */
@@ -713,9 +883,75 @@ CODE:
       for  (i=0;i<bins;i++)
          av_store(array,i,newSVnv(((float)cg.bin[i])/cg.width));
       Safefree(cg.bin);
-      //Safefree(cg.bin);
 
       RETVAL = (SV*) newRV((SV*)array);
   }
 OUTPUT:
     RETVAL
+
+void
+bami_DESTROY(bai)
+  Bio::DB::Bam::Index bai
+  CODE:
+    bam_index_destroy(bai);
+
+MODULE = Bio::DB::Sam PACKAGE = Bio::DB::Bam::Pileup PREFIX=pl_
+
+int
+pl_qpos(pl)
+  Bio::DB::Bam::Pileup pl
+  CODE:
+    RETVAL = pl->qpos;
+  OUTPUT:
+    RETVAL
+
+int
+pl_indel(pl)
+  Bio::DB::Bam::Pileup pl
+  CODE:
+    RETVAL = pl->indel;
+  OUTPUT:
+    RETVAL
+
+int
+pl_level(pl)
+  Bio::DB::Bam::Pileup pl
+  CODE:
+    RETVAL = pl->level;
+  OUTPUT:
+    RETVAL
+
+int
+pl_is_del(pl)
+  Bio::DB::Bam::Pileup pl
+  CODE:
+    RETVAL = pl->is_del;
+  OUTPUT:
+    RETVAL
+
+int
+pl_is_head(pl)
+  Bio::DB::Bam::Pileup pl
+  CODE:
+    RETVAL = pl->is_head;
+  OUTPUT:
+    RETVAL
+
+int
+pl_is_tail(pl)
+  Bio::DB::Bam::Pileup pl
+  CODE:
+    RETVAL = pl->is_tail;
+  OUTPUT:
+    RETVAL
+
+Bio::DB::Bam::Alignment
+pl_b(pl)
+  Bio::DB::Bam::Pileup pl
+  CODE:
+    RETVAL = bam_dup1(pl->b);
+  OUTPUT:
+     RETVAL
+
+
+
