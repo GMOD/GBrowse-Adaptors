@@ -1,5 +1,5 @@
 package Bio::DB::Sam;
-# $Id: Sam.pm,v 1.7 2009-06-19 20:21:38 lstein Exp $
+# $Id: Sam.pm,v 1.8 2009-06-20 21:01:58 lstein Exp $
 
 =head1 NAME
 
@@ -329,9 +329,9 @@ sequence length.
 
 =head2 Creating and querying segments
 
-The Bio::DB::Sam::Segment object refers to a region on the reference
-sequence. It is used to retrieve the sequence of the reference, as
-well as alignments that overlap with the region.
+Bio::DB::Sam::Segment objects refer regions on the reference
+sequence. They can be used to retrieve the sequence of the reference,
+as well as alignments that overlap with the region.
 
 =over 4
 
@@ -392,8 +392,8 @@ subsequences.
 Return alignments that overlap the segment in the associated BAM
 file. The optional %args list allows you to filter features by name,
 tag or other attributes. See the documentation of the
-Bio::DB::Sam->features() method for the full list of options. Common
-options include:
+Bio::DB::Sam->features() method for the full list of options. Here are
+some typical examples:
 
  # get all the overlapping alignments
  @all_alignments = $segment->features;  
@@ -413,6 +413,13 @@ options include:
  my ($coverage)       = $segment->features('coverage');
  my @data_points      = $coverage->coverage;
 
+ # grep through features using a coderef
+ my @reverse_alignments = $segment->features(
+                           -filter => sub {
+                                  my $a = shift;
+                                  return $a->strand < 0;
+                               });
+
 =item $tag = $segment->primary_tag
 
 =item $tag = $segment->source_tag
@@ -425,6 +432,331 @@ Bio::SeqFeatureI objects.
 
 These methods are provided for Bio::SeqFeatureI compatibility and
 don't do anything of interest.
+
+=back
+
+=head2 Retrieving alignments, mate pairs and coverage information
+
+The features() method is an all-purpose tool for retrieving alignment
+information from the SAM/BAM database. In addition, the methods
+get_features_by_name(), get_features_by_location() and others provide
+convenient shortcuts to features().
+
+These methods either return a list of features, an iterator across a
+list of features, or a filehandle opened on a pseudo-TAM file.
+
+=over 4
+
+=item @features   = $sam->features(%options)
+
+=item $iterator   = $sam->features(-iterator=>1,%more_options)
+
+=item $filehandle = $sam->features(-fh=>1,%more_options)
+
+=item @features   = $sam->features('type1','type2'...)
+
+This is the all-purpose interface for fetching alignments and other
+types of features from the database. Arguments are a -name=>value
+option list selected from the following list of options:
+
+  Option         Description
+  ------         -------------
+
+  -type          Filter on features of a given type. You may provide
+  		 either a scalar typename, or a reference to an 
+                 array of desired feature types. Valid types are
+                 "match", "read_pair", "coverage" and "chromosome."
+		 See below for a full explanation of feature types.
+
+  -name          Filter on reads with the designated name. Note that
+                 this can be a slow operation unless accompanied by
+                 the feature location as well.
+
+  -seq_id        Filter on features that align to seq_id between start
+  -start         and end. -start and -end must be used in conjunction
+  -end           with -seq_id. If -start and/or -end are absent, they
+                 will default to 1 and the end of the reference
+		 sequence, respectively.
+
+  -flags         Filter features that match a list of one or more
+                 flags. See below for the format.
+
+  -attributes    The same as -flags, for compatibility with other
+  -tags          APIs.
+ 
+  -filter        Filter on features with a coderef. The coderef will
+                 receive a single argument consisting of the feature
+                 and should return true to keep the feature, or false
+                 to discard it.
+
+  -iterator      Instead of returning a list of features, return an
+                 iterator across the results. To retrieve the results,
+		 call the iterator's next_seq() method repeatedly
+                 until it returns undef to indicate that no more
+		 matching features remain.
+
+  -fh            Instead of returning a list of features, return a
+                 filehandle. Read from the filehandle to retrieve 
+                 each of the results in TAM format, one alignment
+                 per line read. This only works for features of type
+                 "match."
+
+The high-level API introduces the concept of a B<feature "type"> in order
+to provide several convenience functions. You specify types by using
+the optional B<-type> argument. The following types are currently
+supported:
+
+B<match>. The "match" type corresponds to the unprocessed SAM
+alignment. It will retrieve single reads, either mapped or
+unmapped. Each match feature's primary_tag() method will return the
+string "match."
+
+B<read_pair>. The "paired_end" type causes the sam interface to find
+and merge together mate pairs. Fetching this type of feature will
+yield a series of Bio::SeqFeatureI objects, each as long as the total
+distance on the reference sequence spanned by the mate pairs. Call
+get_SeqFeatures() to get the two individual reads. Example:
+
+ my @pairs    = $sam->features(-type=>'read_pair');
+ my $p        = $pairs[0];
+ my $i_length = $p->length;
+ my @ends     = $p->get_SeqFeatures;
+ my $left     = $ends[0]->start;
+ my $right    = $ends[1]->end;
+ 
+B<coverage>. The "coverage" type causes the sam interface to calculate
+coverage across the designated region. It only works properly if
+accompanied by the desired location of the coverage graph; -seq_id is
+a mandatory argument for coverage calculation, and -start and -end are
+optional. The call will return a single Bio::SeqFeatureI object whose
+primary_tag() is "coverage." To recover the coverage data, call the
+object's coverage() method to obtain an array (list context) or
+arrayref (scalar context) of coverage counts across the region of
+interest:
+
+ my ($coverage) = $sam->features(-type=>'coverage',-seq_id=>'seq1');
+ my @data       = $coverage->coverage;
+ my $total;
+ for (@data) { $total += $_ }
+ my $average_coverage = $total/@data;
+
+By default the coverage graph will be at the base pair level. So for a
+region 5000 bp wide, coverage() will return an array or arrayref with
+exactly 5000 elements. However, you also have the option of
+calculating the coverage across larger bins. Simply append the number
+of intervals you are interested to the "coverage" typename. For
+example, fetching "coverage:500" will return an array or arrayref with
+exactly 500 equal-size intervals.
+
+B<chromosome> or B<region>. The "chromosome" or "region" type are
+interchangeable. They ask the sam interface to construct
+Bio::DB::Sam::Segment representing the reference sequences. These two
+calls give similar results:
+
+ my $segment = $sam->segment('seq2',1=>500);
+ my ($seg)   = $sam->features(-type=>'chromosome',
+		              -seq_id=>'seq2',-start=>1,-end=>500);
+
+Due to an unresolved bug, you cannot fetch chromosome features and
+matches and other features in the same call. This works:
+
+ my @chromosomes = $sam->features (-type=>'chromosome');
+
+This doesn't (as of 18 June 2009):
+
+ my @chromosomes_and_matches = $sam->features
+ (-type=>['match','chromosome']);
+
+If no -type argument is provided, then features() defaults to finding
+features of type "match."
+
+You may call features() with a plain list of strings (positional
+arguments, not -type=>value arguments). This will be interpreted as a
+list of feature types to return:
+
+ my ($coverage) = $sam->features('coverage')
+
+You can B<filter> "match" and "read_pair" features by name, location
+and/or flags. The name and flag filters are not very efficient. Unless
+they are combined with a location filter, they will initiate an
+exhaustive search of the BAM database.
+
+Name filters are case-insensitive, and allow you to use shell-style
+"*" and "?"  wildcards. Flag filters created with the B<-flag>,
+B<-attribute> or B<-tag> options have the following syntax:
+
+ -flag => { FLAG_NAME_1 => ['list','of','possible','values'],
+            FLAG_NAME_2 => ['list','of','possible','values'],
+            ...
+          }
+
+The value of B<-flag> is a hash reference in which the keys are flag
+names and the values are array references containing lists of
+acceptable values. The list of values are OR'd with each other, and
+the flag names are AND'd with each other.
+
+The B<-filter> option provides a completely generic filtering
+interface. Provide a reference to a subroutine. It will be called
+once for each potential feature. Return true to keep the feature, or
+false to discard it. Here is an example of how to find all matches
+whose alignment quality scores are greater than 80.
+
+ @features = $sam->features(-filter=>sub {shift->qual > 80} );
+
+By default, features() returns a list of all matching features. You
+may instead request an iterator across the results list by passing
+-iterator=>1. This will give you an object that has a single method,
+next_seq():
+
+  my $high_qual  = $sam->features(-filter  => sub {shift->qual > 80},
+                                  -iterator=> 1 );
+  while (my $feature = $high_qual->next_seq) {
+    # do something with the alignment
+  }
+
+Similarly, by passing a true value to the argument B<-fh>, you can
+obtain a filehandle to a virtual TAM file. This only works with the
+"match" feature type:
+
+  my $high_qual  = $sam->features(-filter  => sub {shift->qual > 80},
+                                  -fh      => 1 );
+  while (my $tam_line = <$high_qual>) {
+    chomp($tam_line);
+    # do something with it
+  }
+
+=item @features   = $sam->get_features_by_name($name)
+
+Convenience method. The same as calling $sam->features(-name=>$name);
+
+=item $feature    = $sam->get_feature_by_name($name)
+
+Convenience method. The same as ($sam->features(-name=>$name))[0].
+
+=item @features   = $sam->get_features_by_location($seqid,$start,$end)
+
+Convenience method. The same as calling
+$sam->features(-seq_id=>$seqid,-start=>$start,-end=>$end).
+
+=item @features   = $sam->get_features_by_flag(%flags)
+
+Convenience method. The same as calling
+$sam->features(-flags=>\%flags). This method is also called
+get_features_by_attribute() and get_features_by_tag(). Example:
+
+ @features = $sam->get_features_by_flag(H0=>1)
+
+=item $feature    = $sam->get_feature_by_id($id)
+
+The high-level API assigns each feature a unique ID composed of its
+read name, position and strand and returns it when you call the
+feature's primary_id() method. Given that ID, this method returns the
+feature.
+
+=item $iterator   = $sam->get_seq_stream(%options)
+
+Convenience method. This is the same as calling
+$sam->features(%options,-iterator=>1).
+
+=item $fh         = $sam->get_seq_fh(%options)
+
+Convenience method. This is the same as calling
+$sam->features(%options,-fh=>1).
+
+=item $fh         = $sam->tam_fh
+
+Convenience method. It is the same as calling $sam->features(-fh=>1).
+
+=item @types      = $sam->types
+
+This method returns the list of feature types (e.g. "read_pair")
+returned by the current version of the interface.
+
+=back
+
+=head2 The generic fetch() and pileup() methods
+
+Lastly, the high-level API supports two methods for rapidly traversing
+indexed BAM databases.
+
+=over 4
+
+=item $sam->fetch($region,$callback)
+
+This method, which is named after the native bam_fetch() function in
+the C interface, traverses the indicated region and invokes a callback
+code reference on each match. Specify a region using the BAM syntax
+"seqid:start-end", or either of the alternative syntaxes
+"seqid:start..end" and "seqid:start,end". If start and end are absent,
+then the entire reference sequence is traversed. If end is absent,
+then the end of the reference sequence is assumed.
+
+The callback will be called repeatedly with a
+Bio::DB::Bam::AlignWrapper on the argument list.
+
+Example:
+
+  $sam->fetch('seq1:600-700',
+              sub {
+                my $a = shift;
+                print $a->display_name,' ',$a->cigar_str,"\n";
+              });
+
+Note that the fetch() operation works on reads that B<overlap> the
+indicated region. Therefore the callback may be called for reads that
+align to the reference at positions that start before or end after the
+indicated region.
+
+=item $sam->pileup($region,$callback)
+
+This method, which is named after the native bam_lpileupfile()
+function in the C interfaces, traverses the indicated region and
+generates a "pileup" of all the mapped reads that cover it. The
+user-provided callback function is then invoked on each position of
+the alignment along with a data structure that provides access to the
+individual aligned reads.
+
+As with fetch(), the region is specified as a string in the format
+"seqid:start-end", "seqid:start..end" or "seqid:start,end".
+
+The callback is a coderef that will be invoked with three arguments:
+the seq_id of the reference sequence, the current position on the
+reference, and a reference to an array of Bio::DB::Bam::Pileup
+objects. Here is the typical call signature:
+
+  sub {
+       my ($seqid,$pos,$pileup) = @_;
+       # do something
+  }
+
+For example, if you call pileup on the region "seq1:501-600", then the
+callback will be invoked for all reads that overlap the indicated
+region. The first invocation of the callback will typically have a
+$pos argument somewhat to the left of the desired region and the last
+call will be somewhat to the right. You may wish to ignore positions
+that are outside of the requested region.
+
+The size of the $pileup array reference indicates the read coverage
+at that position. Here is a simple average coverage calculator:
+
+ my $depth      = 0;
+ my $positions  = 0;
+ my $callback = sub {
+         my ($seqid,$pos,$pileup) = @_;
+         next unless $pos >= 501 && $pos <= 600;
+         $positions++;
+         $depth += @$pileup;
+ }
+ $sam->pileup('seq1:501-600',$callback);
+ print "coverage = ",$depth/$positions;
+
+Each Bio::DB::Bam::Pileup object is described in full detail in
+L<Bio::DB::Bam::Pileup>. Briefly, it has the following methods:
+
+ $pileup->b()     The alignment at this level (a
+                   Bio::DB::Bam::AlignWrapper object).
+ 
+ $pileup->
 
 =back
 
@@ -540,6 +872,7 @@ sub _fetch {
     my $callback = shift;
 
     my $header              = $self->{bam}->header;
+    $region                 =~ s/\.\.|,/-/;
     my ($seqid,$start,$end) = $header->parse_region($region);
     return unless defined $seqid;
     my $index  = $self->bam_index;
@@ -563,6 +896,7 @@ sub pileup {
     my ($region,$callback) = @_;
 
     my $header   = $self->header;
+    $region      =~ s/\.\.|,/-/;
     my ($seqid,$start,$end) = $header->parse_region($region);
     return unless defined $seqid;
 
@@ -628,6 +962,10 @@ sub get_features_by_tag {
     shift->get_features_by_attribute(@_);
 }
 
+sub get_features_by_flag {
+    shift->get_features_by_attribute(@_);
+}
+
 sub get_feature_by_name {
     my $self = shift;
     my %args;
@@ -658,16 +996,16 @@ sub get_feature_by_id {
 
 sub get_seq_stream {
     my $self = shift;
-    $self->features(-iterator=>1,@_);
+    $self->features(@_,-iterator=>1);
 }
 
 sub get_seq_fh {
     my $self = shift;
-    $self->features(-fh=>1,@_);
+    $self->features(@_,-fh=>1);
 }
 
 sub types {
-    return qw(match read_pair coverage region);
+    return qw(match read_pair coverage region chromosome);
 }
 
 sub features {
@@ -720,7 +1058,7 @@ sub features {
     }
 
     # Special cases for unmunged data
-    if (@types == 1 && $types[0] =~ /^match/) {
+        if (@types == 1 && $types[0] =~ /^match/) {
 
 	# if iterator is requested, and no indexing is possible,
 	# then we directly iterate through the database using read1()
@@ -979,7 +1317,7 @@ sub _filter_by_attribute {
 	my @matches;
 	for my $c (@comps) {
 	    if ($c =~ /^[+-]?[\deE.]+$/) { # numeric-looking argument
-		push @matches,"\$value == $c";
+		push @matches,"CORE::length \$value && \$value == $c";
 	    }
 	    elsif (my $regexp = $self->_glob_match($c)) {
 		push @matches,"\$value =~ /^$regexp\$/i";
