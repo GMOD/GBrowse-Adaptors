@@ -1,5 +1,5 @@
 package Bio::DB::Sam;
-# $Id: Sam.pm,v 1.8 2009-06-20 21:01:58 lstein Exp $
+# $Id: Sam.pm,v 1.9 2009-06-21 21:08:41 lstein Exp $
 
 =head1 NAME
 
@@ -509,13 +509,17 @@ supported:
 B<match>. The "match" type corresponds to the unprocessed SAM
 alignment. It will retrieve single reads, either mapped or
 unmapped. Each match feature's primary_tag() method will return the
-string "match."
+string "match." The features returned by this call are of type
+Bio::DB::Bam::AlignWrapper.
 
 B<read_pair>. The "paired_end" type causes the sam interface to find
 and merge together mate pairs. Fetching this type of feature will
 yield a series of Bio::SeqFeatureI objects, each as long as the total
-distance on the reference sequence spanned by the mate pairs. Call
-get_SeqFeatures() to get the two individual reads. Example:
+distance on the reference sequence spanned by the mate pairs. The
+top-level feature is of type Bio::SeqFeature::Lite; it contains two
+Bio::DB::Bam::AlignWrapper subparts. 
+
+Call get_SeqFeatures() to get the two individual reads. Example:
 
  my @pairs    = $sam->features(-type=>'read_pair');
  my $p        = $pairs[0];
@@ -545,8 +549,8 @@ region 5000 bp wide, coverage() will return an array or arrayref with
 exactly 5000 elements. However, you also have the option of
 calculating the coverage across larger bins. Simply append the number
 of intervals you are interested to the "coverage" typename. For
-example, fetching "coverage:500" will return an array or arrayref with
-exactly 500 equal-size intervals.
+example, fetching "coverage:500" will return a feature whose
+coverage() method will return the coverage across 500 intervals.
 
 B<chromosome> or B<region>. The "chromosome" or "region" type are
 interchangeable. They ask the sam interface to construct
@@ -557,15 +561,15 @@ calls give similar results:
  my ($seg)   = $sam->features(-type=>'chromosome',
 		              -seq_id=>'seq2',-start=>1,-end=>500);
 
-Due to an unresolved bug, you cannot fetch chromosome features and
-matches and other features in the same call. This works:
+Due to an unresolved bug, you cannot fetch chromosome features in the
+same call with matches and other feature types call. Specifically,
+this works as expected:
 
  my @chromosomes = $sam->features (-type=>'chromosome');
 
-This doesn't (as of 18 June 2009):
+But this doesn't (as of 18 June 2009):
 
- my @chromosomes_and_matches = $sam->features
- (-type=>['match','chromosome']);
+ my @chromosomes_and_matches = $sam->features(-type=>['match','chromosome']);
 
 If no -type argument is provided, then features() defaults to finding
 features of type "match."
@@ -575,6 +579,10 @@ arguments, not -type=>value arguments). This will be interpreted as a
 list of feature types to return:
 
  my ($coverage) = $sam->features('coverage')
+
+For a description of the methods available in the features returned
+from this call, please see L<Bio::SeqfeatureI> and
+L<Bio::DB::Bam::Alignment>.
 
 You can B<filter> "match" and "read_pair" features by name, location
 and/or flags. The name and flag filters are not very efficient. Unless
@@ -721,8 +729,8 @@ As with fetch(), the region is specified as a string in the format
 
 The callback is a coderef that will be invoked with three arguments:
 the seq_id of the reference sequence, the current position on the
-reference, and a reference to an array of Bio::DB::Bam::Pileup
-objects. Here is the typical call signature:
+reference (in 1-based coordinates!), and a reference to an array of
+Bio::DB::Bam::Pileup objects. Here is the typical call signature:
 
   sub {
        my ($seqid,$pos,$pileup) = @_;
@@ -734,7 +742,10 @@ callback will be invoked for all reads that overlap the indicated
 region. The first invocation of the callback will typically have a
 $pos argument somewhat to the left of the desired region and the last
 call will be somewhat to the right. You may wish to ignore positions
-that are outside of the requested region.
+that are outside of the requested region. Also be aware that the
+reference sequence position uses 1-based coordinates, which is
+different from the C and low-level interfaces, which use 0-based
+coordinates.
 
 The size of the $pileup array reference indicates the read coverage
 at that position. Here is a simple average coverage calculator:
@@ -750,13 +761,137 @@ at that position. Here is a simple average coverage calculator:
  $sam->pileup('seq1:501-600',$callback);
  print "coverage = ",$depth/$positions;
 
-Each Bio::DB::Bam::Pileup object is described in full detail in
-L<Bio::DB::Bam::Pileup>. Briefly, it has the following methods:
+Each Bio::DB::Bam::Pileup object describes the position of a read in
+the alignment. Briefly, Bio::DB::Bam::Pileup has the following
+methods:
 
- $pileup->b()     The alignment at this level (a
-                   Bio::DB::Bam::AlignWrapper object).
+ $pileup->b      The alignment at this level (a
+                 Bio::DB::Bam::AlignWrapper object).
  
- $pileup->
+ $pileup->qpos   The position of the read base at the pileup site,
+                 in 0-based coordinates.
+
+ $pileup->pos    The position of the read base at the pileup site,
+                 in 1-based coordinates;
+
+ $pileup->level  The level of the read in the multiple alignment
+                 view.
+
+ $pileup->indel  Length of the indel at this position: 0 for no indel, positive
+                 for an insertion (relative to the reference), negati)ve for a
+                 deletion (relative to the reference.
+
+ $pileup->is_del True if the base on the padded read is a deletion.
+
+ $pileup->is_head Undocumented field in the bam.h header file.
+
+ $pileup->is_tail Undocumented field in the bam.h header file.
+
+For illustrative purposes only, here is an extremely stupid SNP caller
+that tallies up bases that are q>20 and calls a SNP if there are at
+least 4 non-N/non-indel bases at the position and at least 25% of them
+are an non-reference base.
+
+ my @SNPs;  # this will be list of SNPs
+ my $snp_caller = sub {
+	my ($seqid,$pos,$p) = @_;
+	my $refbase = $sam->segment($seqid,$pos,$pos)->dna;
+        my ($total,$different);
+	for my $pileup (@$p) {
+	    my $b     = $pileup->b;
+            next if $pileup->indel;  # don't deal with these ;-)
+
+            my $qbase  = substr($b->qseq,$pileup->qpos,1);
+            next if $qbase =~ /[nN]/;
+
+            my $qscore = substr($b->qscore,$pileup->qpos,1);
+            next unless $qscore > 25;
+
+            $total++;
+            $different++ if $refbase ne $qbase;
+	}
+        if ($total >= 4 && $different/$total >= 0.25) {
+           push @SNPs,"$seqid:$pos";
+        }
+    };
+
+ $sam->pileup('seq1',$snp_caller);
+ print "Found SNPs: @SNPs\n";
+
+=back
+
+The next sections correspond to the low-level API, which let you
+create and manipulate Perl objects that correspond directly to data
+structures in the C interface.
+
+=head2 Indexed Fasta Files
+
+These methods relate to the BAM library's indexed Fasta (".fai")
+files.
+
+=over 4
+
+=item $fai = Bio::DB::Sam::Fai->load('/path/to/file.fa')
+
+Load an indexed Fasta file and return the object corresponding to
+it. If the index does not exist, it will be created
+automatically. Note that you pass the path to the Fasta file, not the
+index.
+
+For consistency with Bio::DB::Bam->open() this method is also called
+open().
+
+=item $dna_string = $fai->fetch("seqid:start-end")
+
+Given a sequence ID contained in the Fasta file and optionally a
+subrange in the form "start-end", finds the indicated subsequence and
+returns it as a string.
+
+=back
+
+=head2 TAM Files
+
+These methods provide interfaces to the "TAM" text version of SAM
+files; they often have a .sam extension.
+
+=over 4
+
+=item $tam = Bio::DB::Tam->open('/path/to/file.sam')
+
+Given the path to a SAM file, opens it for reading. The file can be
+compressed with gzip if desired.
+
+=item $header = $tam->header_read2('/path/to/file.fa.fai')
+
+Create and return a Bio::DB::Bam::Header object from the information
+contained within the indexed Fasta file of the reference
+sequences. Note that you have to pass the path to the .fai file, and
+not the .fa file. The header object contains information on the
+reference sequence names and lengths.
+
+=item $status_code = $tam->read1($header,$alignment)
+
+Given a Bio::DB::Bam::Header object, such as the one created by
+header_read2(), and a Bio::DB::Bam::Alignment object created by
+Bio::DB::Bam::Alignmnt->new(), reads one line of alignment information
+into the alignment object from the TAM file and returns a status
+code. The code will be zero if the operation was successful, negative
+otherwise.
+
+=back
+
+=head2 BAM Files
+
+These methods provide interfaces to the "BAM" binary version of
+SAM. They usually have a .bam extension.
+
+=over 4
+
+=item $bam = Bio::DB::Bam->open('/path/to/file.bam' [,$mode])
+
+Open up the BAM file at the indicated path. Mode, if present, must be
+one of the file stream open flags ("r", "w", "a", "r+", etc.). If
+absent, mode defaults to "r".
 
 =back
 
@@ -1341,6 +1476,10 @@ sub _glob_match {
     $term =~ s/(^|[^\\])\?/$1./g;
     return $term;
 }
+
+package Bio::DB::Sam::Fai;
+
+sub open { shift->load(@_) }
 
 package Bio::SeqFeature::Coverage;
 

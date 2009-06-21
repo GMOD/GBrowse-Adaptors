@@ -230,7 +230,7 @@ tam_read1(tam,header,alignment)
 MODULE = Bio::DB::Sam PACKAGE = Bio::DB::Sam::Fai PREFIX=fai_
 
 Bio::DB::Sam::Fai
-fai_open(packname="Bio::DB::Sam::Fai", filename)
+fai_load(packname="Bio::DB::Sam::Fai", filename)
   char * packname
   char * filename
  PROTOTYPE: $$
@@ -493,7 +493,7 @@ OUTPUT:
     RETVAL
 
 SV*
-bama_qscore(b)
+bama__qscore(b)
 Bio::DB::Bam::Alignment b
 PROTOTYPE: $
 CODE:
@@ -902,6 +902,14 @@ pl_qpos(pl)
   Bio::DB::Bam::Pileup pl
   CODE:
     RETVAL = pl->qpos;
+  OUTPUT:
+    RETVAL
+
+int
+pl_pos(pl)
+  Bio::DB::Bam::Pileup pl
+  CODE:
+    RETVAL = pl->qpos+1;
   OUTPUT:
     RETVAL
 

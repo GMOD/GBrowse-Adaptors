@@ -210,7 +210,7 @@ use Bio::DB::Sam;
     ok(scalar @alignments,442);
     ok($alignments[0]->seq_id,'seq2');
 
-    ok(length scalar $alignments[0]->qscore,length $alignments[0]->dna);
+    ok(scalar @{$alignments[0]->qscore},length $alignments[0]->dna);
 
     my @keys = $alignments[0]->get_all_tags;
     ok(scalar @keys,17);

@@ -50,6 +50,12 @@ sub display_name {
     return shift->qname;
 }
 
+sub qscore {
+    my $self   = shift;
+    my $qscore = $self->_qscore;
+    return [unpack('C*',$qscore)];
+}
+
 sub primary_id {
     my $self = shift;
     return join ':',$self->display_name,$self->seq_id,$self->start,$self->end,$self->strand;
