@@ -1,5 +1,5 @@
 package Bio::DB::Sam;
-# $Id: Sam.pm,v 1.10 2009-06-23 08:30:38 lstein Exp $
+# $Id: Sam.pm,v 1.11 2009-06-23 23:10:07 lstein Exp $
 
 =head1 NAME
 
@@ -870,14 +870,13 @@ sequences. Note that you have to pass the path to the .fai file, and
 not the .fa file. The header object contains information on the
 reference sequence names and lengths.
 
-=item $status_code = $tam->read1($header,$alignment)
+=item $bytes = $tam->read1($header,$alignment)
 
 Given a Bio::DB::Bam::Header object, such as the one created by
 header_read2(), and a Bio::DB::Bam::Alignment object created by
 Bio::DB::Bam::Alignmnt->new(), reads one line of alignment information
 into the alignment object from the TAM file and returns a status
-code. The code will be zero if the operation was successful, negative
-otherwise.
+code. The result code will be the number of bytes read.
 
 =back
 

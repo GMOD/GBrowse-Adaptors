@@ -169,6 +169,7 @@ int coverage_from_pileup_fun (uint32_t tid,
 }
 
 /* copied from bam_aux.c because "we need it" */
+/* no longer needed with 0.1.4
 uint8_t *bam_aux_get_core(bam1_t *b, const char tag[2])
 {
        uint8_t *s;
@@ -187,7 +188,7 @@ uint8_t *bam_aux_get_core(bam1_t *b, const char tag[2])
        }
        return 0;
 }
-
+*/
 
 MODULE = Bio::DB::Sam PACKAGE = Bio::DB::Tam PREFIX=tam_
 
