@@ -100,24 +100,25 @@ int invoke_pileup_callback_fun(uint32_t tid,
   dSP;
   int count,i;
   fetch_callback_dataptr fcp;
-  SV* callback;
-  SV* callbackdata;
-  AV* pileup;
-  SV* pileup_obj;
+  SV*  callback;
+  SV*  callbackdata;
+  SV*  pileup_obj;
+  SV** pileups;
+  AV*  pileup;
 
   fcp          = (fetch_callback_dataptr) data;
   callback     = fcp->callback;
   callbackdata = fcp->data;
 
   /* turn the bam_pileup1_t into the appropriate object */
-  pileup = newAV();
-  av_extend(pileup,n);
-  for (i=0;i<n;i++) {
-    pileup_obj = sv_setref_pv(newSV(sizeof(bam_pileup1_t)),
+  /* this causs a compiler warning -- ignore it */
+  Newxz(pileups,n,SV*);
+  for (i=0;i<n;i++)
+    pileups[i] = sv_setref_pv(newSV(sizeof(bam_pileup1_t)),
 			      "Bio::DB::Bam::Pileup",
 			      (void*) &pl[i]);
-    av_push(pileup,pileup_obj);
-  }
+  pileup = av_make(n,pileups);
+  Safefree(pileups);
   
     /* set up subroutine stack for the call */
   ENTER;
@@ -404,10 +405,12 @@ CODE:
     bam_destroy1(b);
 
 int
-bama_tid(b)
+bama_tid(b,...)
     Bio::DB::Bam::Alignment b
-PROTOTYPE: $
+PROTOTYPE: $;$
 CODE:
+    if (items > 1)
+      b->core.tid = SvIV(ST(1));
     RETVAL=b->core.tid;
 OUTPUT:
     RETVAL
@@ -483,6 +486,7 @@ PREINIT:
     char* seq;
     int   i;
 CODE:
+    /* this causs a compiler warning -- ignore it */
     seq = Newxz(seq,b->core.l_qseq+1,char);
     for (i=0;i<b->core.l_qseq;i++) {
       seq[i]=bam_nt16_rev_table[bam1_seqi(bam1_seq(b),i)];
@@ -818,7 +822,7 @@ OUTPUT:
     RETVAL
 
 void
-bami_pileup(bai,bfp,ref,start,end,callback,callbackdata=&PL_sv_undef)
+bami_lpileup(bai,bfp,ref,start,end,callback,callbackdata=&PL_sv_undef)
   Bio::DB::Bam::Index bai
   Bio::DB::Bam        bfp
   int   ref
@@ -837,8 +841,28 @@ CODE:
   bam_lplbuf_push(NULL,pileup);
   bam_lplbuf_destroy(pileup);
 
+void
+bami_pileup(bai,bfp,ref,start,end,callback,callbackdata=&PL_sv_undef)
+  Bio::DB::Bam::Index bai
+  Bio::DB::Bam        bfp
+  int   ref
+  int   start
+  int   end
+  CV*   callback
+  SV*   callbackdata
+PREINIT:  
+  fetch_callback_data fcd;
+  bam_plbuf_t        *pileup;
+CODE:
+  fcd.callback = (SV*) callback;
+  fcd.data     = callbackdata;
+  pileup       = bam_plbuf_init(invoke_pileup_callback_fun,(void*)&fcd);
+  bam_fetch(bfp,bai,ref,start,end,(void*)pileup,add_pileup_line);
+  bam_plbuf_push(NULL,pileup);
+  bam_plbuf_destroy(pileup);
+
 SV*
-bami_coverage(bai,bfp,ref,start,end,bins)
+bami_coverage(bai,bfp,ref,start,end,bins=0)
     Bio::DB::Bam::Index bai
     Bio::DB::Bam        bfp
     int             ref
@@ -860,7 +884,7 @@ CODE:
           end = bh->target_len[ref];
           bam_header_destroy(bh);
       }
-      if (bins > (end-start))
+      if ((bins==0) || (bins > (end-start)))
          bins = end-start;
 
       /* coverage graph used to communicate to our callback
@@ -868,8 +892,7 @@ CODE:
       cg.start = start;
       cg.end   = end;
       cg.width = ((double)(end-start))/bins;
-      cg.bin   = calloc(bins+1,sizeof(int));
-      // Newxz(cg.bin,bins,int); /* gives compile warnings? */
+      Newxz(cg.bin,bins,int);
 
       /* accumulate coverage into the coverage graph */
       pileup   = bam_plbuf_init(coverage_from_pileup_fun,(void*)&cg);
@@ -955,6 +978,14 @@ pl_is_tail(pl)
 
 Bio::DB::Bam::Alignment
 pl_b(pl)
+  Bio::DB::Bam::Pileup pl
+  CODE:
+    RETVAL = bam_dup1(pl->b);
+  OUTPUT:
+     RETVAL
+
+Bio::DB::Bam::Alignment
+pl_alignment(pl)
   Bio::DB::Bam::Pileup pl
   CODE:
     RETVAL = bam_dup1(pl->b);

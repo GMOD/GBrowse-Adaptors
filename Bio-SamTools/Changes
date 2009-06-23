@@ -1,0 +1,7 @@
+Thu May  7 09:47:02 EDT 2009
+    * See t/01sam.t for a demonstration of the API.
+    * Essentially all of the API is fleshed out, with the exception of the ability to generate
+      padded alignment itself.
+    * The $alignment->query() interface is the one to use for retrieving start, end and sequence
+      of the query sequence. The $alignment->target() interface flips the meaning of start and
+      end when the alignment is reversed, to accomodate old AceDB/GFF2 scripts.

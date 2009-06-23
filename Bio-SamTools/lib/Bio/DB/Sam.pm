@@ -1,5 +1,5 @@
 package Bio::DB::Sam;
-# $Id: Sam.pm,v 1.9 2009-06-21 21:08:41 lstein Exp $
+# $Id: Sam.pm,v 1.10 2009-06-23 08:30:38 lstein Exp $
 
 =head1 NAME
 
@@ -208,7 +208,7 @@ follows:
 
   -expand_flags  A boolean value. If true then the standard
                    alignment flags will be broken out as 
-                   individual tags such as 'UNMAPPED' (default
+                   individual tags such as 'M_UNMAPPED' (default
                    false).
 
   -split_splices A boolean value. If true, then alignments that
@@ -715,7 +715,7 @@ indicated region. Therefore the callback may be called for reads that
 align to the reference at positions that start before or end after the
 indicated region.
 
-=item $sam->pileup($region,$callback)
+=item $sam->pileup($region,$callback [,$keep_level])
 
 This method, which is named after the native bam_lpileupfile()
 function in the C interfaces, traverses the indicated region and
@@ -744,8 +744,12 @@ $pos argument somewhat to the left of the desired region and the last
 call will be somewhat to the right. You may wish to ignore positions
 that are outside of the requested region. Also be aware that the
 reference sequence position uses 1-based coordinates, which is
-different from the C and low-level interfaces, which use 0-based
-coordinates.
+different from the low-level interface, which use 0-based coordinates.
+
+The optional $keep_level argument, if true, asks the BAM library to
+keep track of the level of the read in the multiple alignment, an
+operation that generates some overhead. This is mostly useful for text
+alignment viewers, and so is off by default.
 
 The size of the $pileup array reference indicates the read coverage
 at that position. Here is a simple average coverage calculator:
@@ -765,8 +769,8 @@ Each Bio::DB::Bam::Pileup object describes the position of a read in
 the alignment. Briefly, Bio::DB::Bam::Pileup has the following
 methods:
 
- $pileup->b      The alignment at this level (a
-                 Bio::DB::Bam::AlignWrapper object).
+ $pileup->alignment  The alignment at this level (a
+                     Bio::DB::Bam::AlignWrapper object).
  
  $pileup->qpos   The position of the read base at the pileup site,
                  in 0-based coordinates.
@@ -775,11 +779,12 @@ methods:
                  in 1-based coordinates;
 
  $pileup->level  The level of the read in the multiple alignment
-                 view.
+                 view. Note that this field is only valid when
+                 $keep_level is true.
 
  $pileup->indel  Length of the indel at this position: 0 for no indel, positive
-                 for an insertion (relative to the reference), negati)ve for a
-                 deletion (relative to the reference.
+                 for an insertion (relative to the reference), negative for a
+                 deletion (relative to the reference.)
 
  $pileup->is_del True if the base on the padded read is a deletion.
 
@@ -787,42 +792,38 @@ methods:
 
  $pileup->is_tail Undocumented field in the bam.h header file.
 
-For illustrative purposes only, here is an extremely stupid SNP caller
-that tallies up bases that are q>20 and calls a SNP if there are at
-least 4 non-N/non-indel bases at the position and at least 25% of them
-are an non-reference base.
+See L</Examples> for a very simple SNP caller.
 
- my @SNPs;  # this will be list of SNPs
- my $snp_caller = sub {
-	my ($seqid,$pos,$p) = @_;
-	my $refbase = $sam->segment($seqid,$pos,$pos)->dna;
-        my ($total,$different);
-	for my $pileup (@$p) {
-	    my $b     = $pileup->b;
-            next if $pileup->indel;  # don't deal with these ;-)
+=item $sam->fast_pileup($region,$callback [,$keep_level])
 
-            my $qbase  = substr($b->qseq,$pileup->qpos,1);
-            next if $qbase =~ /[nN]/;
+This is identical to pileup() except that the pileup object returns
+low-level Bio::DB::Bam::Alignment objects rather than the higher-level
+Bio::DB::Bam::AlignWrapper objects. This makes it roughly 50% faster,
+but you lose the align objects' seq_id() and get_tag_values()
+methods. As a compensation, the callback receives an additional
+argument corresponding to the Bio::DB::Sam object. You can use this to
+create AlignWrapper objects on an as needed basis:
 
-            my $qscore = substr($b->qscore,$pileup->qpos,1);
-            next unless $qscore > 25;
-
-            $total++;
-            $different++ if $refbase ne $qbase;
-	}
-        if ($total >= 4 && $different/$total >= 0.25) {
-           push @SNPs,"$seqid:$pos";
-        }
-    };
-
- $sam->pileup('seq1',$snp_caller);
- print "Found SNPs: @SNPs\n";
+ my $callback = sub {
+    my($seqid,$pos,$pileup,$sam) = @_;
+    for my $p (@$pileup) {
+       my $alignment = $p->b;
+       my $wrapper   = Bio::DB::Bam::AlignWrapper->new($alignment,$sam);
+       my $has_mate  = $wrapper->get_tag_values('PAIRED');
+    }
+  };
 
 =back
 
 The next sections correspond to the low-level API, which let you
 create and manipulate Perl objects that correspond directly to data
-structures in the C interface.
+structures in the C interface. A major difference between the high and
+low level APIs is that in the high-level API, the reference sequence
+is identified using a human-readable seq_id. However, in the low-level
+API, the reference is identified using a numeric target ID
+("tid"). The target ID is established during the creation of the BAM
+file and is a small 0-based integer index. The Bio::DB::Bam::Header
+object provides methods for converting from seq_ids to tids.
 
 =head2 Indexed Fasta Files
 
@@ -893,7 +894,297 @@ Open up the BAM file at the indicated path. Mode, if present, must be
 one of the file stream open flags ("r", "w", "a", "r+", etc.). If
 absent, mode defaults to "r".
 
+=item $header = $bam->header()
+
+Given an open BAM file, return a Bio::DB::Bam::Header object
+containing information about the reference sequence(s).
+
+=item $status_code = $bam->header_write($header)
+
+Given a Bio::DB::Bam::Header object and a BAM file opened in write
+mode, write the header to the file. If the write fails the process
+will be terminated at the C layer. The result code is (currently)
+always zero.
+
+=item $integer = $bam->tell()
+
+Return the current position of the BAM file read/write pointer.
+
+=item $bam->seek($integer)
+
+Set the current position of the BAM file read/write pointer.
+
+=item $alignment = $bam->read1()
+
+Read one alignment from the BAM file and return it as a
+Bio::DB::Bam::Alignment object.
+
+=item $bytes = $bam->write1($alignment)
+
+Given a BAM file that has been opened in write mode and a
+Bio::DB::Bam::Alignment object, write the alignment to the BAM file
+and return the number of bytes successfully written.
+
+=item Bio::DB::Bam->sort_core($by_qname,$path,$prefix,$max_mem)
+
+Attempt to sort a BAM file by chromosomal location or name and create a
+new sorted BAM file. Arguments are as follows:
+
+ Argument      Description
+ --------      -----------
+
+ $by_qname     If true, sort by read name rather than chromosomal
+               location.
+
+ $path         Path to the BAM file
+
+ $prefix       Prefix to use for the new sorted file. For example,
+               passing "foo" will result in a BAM file named 
+	       "foo.bam".
+
+ $max_mem      Maximum core memory to use for the sort. If the sort
+               requires more than this amount of memory, intermediate
+               sort files will be written to disk. The default, if not
+               provided is 500M.
+
 =back
+
+=head2 BAM index methods
+
+The Bio::DB::Bam::Index object provides access to BAM index (.bai)
+files.
+
+=over 4
+
+=item $status_code = Bio::DB::Bam->index_build('/path/to/file.bam')
+
+Given the path to a .bam file, this function attempts to build a
+".bai" index. The process in which the .bam file exists must be
+writable by the current process and there must be sufficient disk
+space for the operation or the process will be terminated in the C
+library layer. The result code is currently always zero, but in the
+future may return a negative value to indicate failure.
+
+=item $index = Bio::DB::Bam->index_open('/path/to/file.bam')
+
+Attempt to open the index file for a BAM file, returning a
+Bio::DB::Bam::Index object. The filename path to use is the .bam file,
+not the .bai file.
+
+=item $code = $index->fetch($bam,$tid,$start,$end,$callback [,$callback_data])
+
+This is the low-level equivalent of the $sam->fetch() function
+described for the high-level API. Given a open BAM file object, the
+numeric ID of the reference sequence, start and end ranges on the
+reference, and a coderef, this function will traverse the region and
+repeatedly invoke the coderef with each Bio::DB::Bam::Alignment
+object that overlaps the region.
+
+Arguments:
+
+ Argument      Description
+ --------      -----------
+
+ $bam          The Bio::DB::Bam object that corresponds to the
+               index object.
+
+ $tid          The target ID of the reference sequence. This can
+               be obtained by calling $header->parse_region() with
+               an appropriate opened Bio::DB::Bam::Header object.
+
+ $start        The start and end positions of the desired range on
+               the reference sequence given by $tid, in 0-based 
+ $end          coordinates. Like the $tid, these can be obtained from
+               $header->parse_region().
+
+ $callback     A coderef that will be called for each read overlapping
+               the designated region.
+
+ $callback_data  Any arbitrary Perl data that you wish to pass to the
+               $callback (optional).
+
+The coderef's call signature should look like this:
+
+  my $callback = sub {
+                    my ($alignment,$data) = @_;
+                    ...
+                 }
+
+The first argument is a Bio::DB::Bam::Alignment object. The second is
+the callback data (if any) passed to fetch().
+
+Fetch() returns an integer code, but its meaning is not described in
+the SAM/BAM C library documentation.
+
+=item $index->pileup($bam,$tid,$start,$end,$callback [,$callback_data])
+
+This is the low-level version of the pileup() method, which allows you
+to invoke a coderef for every position in a BAM alignment. Arguments
+are:
+
+ Argument      Description
+ --------      -----------
+
+ $bam          The Bio::DB::Bam object that corresponds to the
+               index object.
+
+ $tid          The target ID of the reference sequence. This can
+               be obtained by calling $header->parse_region() with
+               an appropriate opened Bio::DB::Bam::Header object.
+
+ $start        The start and end positions of the desired range on
+               the reference sequence given by $tid, in 0-based 
+ $end          coordinates. Like the $tid, these can be obtained from
+               $header->parse_region().
+
+ $callback     A coderef that will be called for each position of the
+               alignment across the designated region.
+
+ $callback_data  Any arbitrary Perl data that you wish to pass to the
+               $callback (optional).
+
+The callback will be invoked with four arguments corresponding to the
+numeric sequence ID of the reference sequence, the B<zero-based>
+position on the alignment, an arrayref of Bio::DB::Bam::Pileup
+objects, and the callback data, if any. A typical call signature will
+be this:
+
+ $callback = sub {
+       my ($tid,$pos,$pileups,$callback_data) = @_;
+       for my $pileup (@$pileups) {
+          # do something
+       };
+
+Note that the position argument is zero-based rather than 1-based, as
+it is in the high-level API.
+
+The Bio::DB::Bam::Pileup object was described earlier in the
+description of the high-level pileup() method.
+
+=item $coverage = $index->coverage($bam,$tid,$start,$end [,$bins])
+
+Calculate coverage for the region on the target sequence given by $tid
+between positions $start and $end (zero-based coordinates). This
+method will return an array reference equal to the size of the region
+(by default). Each element of the array will be an integer indicating
+the number of reads aligning over that position. If you provide an
+option binsize in $bins, the array will be $bins elements in length,
+and each element will contain the average coverage over that region as
+a floating point number.
+
+=back
+
+=head2 BAM header methods
+
+The Bio::DB::Bam::Header object contains information regarding the
+reference sequence(s) used to construct the corresponding TAM or BAM
+file. It is most frequently used to translate between numeric target
+IDs and human-readable seq_ids. Headers can be created either from
+reading from a .fai file with the Bio::DB::Tam->header_read2() method,
+or by reading from a BAM file using Bio::DB::Bam->header(). You can
+also create header objects from scratch, although there is not much
+that you can do with such objects at this point.
+
+=over 4
+
+=item $header = Bio::DB::Bam::Header->new()
+
+Return a new, empty, header object.
+
+=item $n_targets = $header->n_targets
+
+Return the number of reference sequences in the database.
+
+=item $name_arrayref = $header->target_name
+
+Return a reference to an array of reference sequence names,
+corresponding to the high-level API's seq_ids.
+
+To convert from a target ID to a seq_id, simply index into this array:
+
+ $seq_id = $header->target_name->[$tid];
+
+=item $length_arrayref = $header->target_len
+
+Return a reference to an array of reference sequence lengths. To get
+the length of the sequence corresponding to $tid, just index into the
+array returned by target_len():
+
+ $length = $header->target_len->[$tid];
+
+=item $text = $header->text
+
+Return the text portion of the BAM header.
+
+=item ($tid,$start,$end) = $header->parse_region("seq_id:start-end")
+
+Given a string in the format "seqid:start-end" (using a human-readable
+seq_id and 1-based start and end coordinates), parse the string and
+return the target ID and start and end positions in 0-based
+coordinates. If the range is omitted, then the start and end
+coordinates of the entire sequence is returned. If only the end
+position is omitted, then the end of the sequence is assumed.
+
+=item $header->view1($alignment)
+
+This method will accept a Bio::DB::Bam::Alignment object, convert it
+to a line of TAM output, and write the output to STDOUT. In the
+low-level API there is currently no way to send the output to a
+different filehandle or capture it as a string.
+
+=back
+
+=head2 Bio::DB::Bam::Pileup methods
+
+An array of Bio::DB::Bam::Pileup object is passed to the pileup()
+callback for each position of a multi-read alignment. Each pileup
+object contains information about the alignment of a single read at a
+single position.
+
+=over 4
+
+=item $alignment = $pileup->b
+
+Return the Bio::DB::Bam::Alignment object at this level. This provides
+you with access to the aligning read.
+
+=item $pos = $pileup->qpos
+
+The position of the aligning base in the read in zero-based
+coordinates.
+
+=item $pos = $pileup->pos
+
+The position of the aligning base in 1-based coordinates.
+
+=item $level = $pileup->level
+
+The "level" of the read in the BAM-generated text display of the
+alignment.
+
+=item $indel = $pileup->indel
+
+Length of the indel at this position: 0 for no indel, positive for an
+insertion (relative to the reference), negative for a deletion
+(relative to the reference sequence.)
+
+=item $flag = $pileup->is_del
+
+True if the base on the padded read is a deletion.
+
+=item $flag = $pileup->is_head
+
+=item $flag = $pileup->is_del
+
+These fields are undocumented in the BAM documentation, but are
+exported to the Perl API just in case.
+
+=back
+
+=head2 The alignment objects
+
+Please see L<Bio::DB::Bam::Alignment> for documentation of the
+Bio::DB::Bam::Alignment and Bio::DB::Bam::AlignWrapper objects.
 
 =cut
 
@@ -911,6 +1202,7 @@ bootstrap Bio::DB::Sam;
 use Bio::DB::Bam::Alignment;
 use Bio::DB::Sam::Segment;
 use Bio::DB::Bam::AlignWrapper;
+use Bio::DB::Bam::PileupWrapper;
 use Bio::DB::Bam::FetchIterator;
 use Bio::DB::Bam::ReadIterator;
 
@@ -1028,7 +1320,7 @@ sub fetch {
 
 sub pileup {
     my $self   = shift;
-    my ($region,$callback) = @_;
+    my ($region,$callback,$keep_level) = @_;
 
     my $header   = $self->header;
     $region      =~ s/\.\.|,/-/;
@@ -1040,11 +1332,43 @@ sub pileup {
     my $code = sub {
 	my ($tid,$pos,$pileup) = @_;
 	my $seqid = $refnames->[$tid];
-	$callback->($seqid,$pos+1,$pileup);
+	my @p = map {
+	      Bio::DB::Bam::PileupWrapper->new($_,$self)
+	      } @$pileup;
+	$callback->($seqid,$pos+1,\@p);
     };
 
     my $index  = $self->bam_index;
-    $index->pileup($self->{bam},$seqid,$start,$end,$code);
+    if ($keep_level) {
+	$index->lpileup($self->{bam},$seqid,$start,$end,$code);
+    } else {
+	$index->pileup($self->{bam},$seqid,$start,$end,$code);
+    }
+}
+
+sub fast_pileup {
+    my $self   = shift;
+    my ($region,$callback,$keep_level) = @_;
+
+    my $header   = $self->header;
+    $region      =~ s/\.\.|,/-/;
+    my ($seqid,$start,$end) = $header->parse_region($region);
+    return unless defined $seqid;
+
+    my $refnames = $self->header->target_name;
+
+    my $code = sub {
+	my ($tid,$pos,$pileup) = @_;
+	my $seqid = $refnames->[$tid];
+	$callback->($seqid,$pos+1,$pileup,$self);
+    };
+
+    my $index  = $self->bam_index;
+    if ($keep_level) {
+	$index->lpileup($self->{bam},$seqid,$start,$end,$code);
+    } else {
+	$index->pileup($self->{bam},$seqid,$start,$end,$code);
+    }
 }
 
 # segment returns a segment across the reference
@@ -1533,10 +1857,103 @@ __END__
 
 =head1 EXAMPLES
 
+For illustrative purposes only, here is an extremely stupid SNP caller
+that tallies up bases that are q>20 and calls a SNP if there are at
+least 4 non-N/non-indel bases at the position and at least 25% of them
+are an non-reference base.
+
+ my @SNPs;  # this will be list of SNPs
+ my $snp_caller = sub {
+	my ($seqid,$pos,$p) = @_;
+	my $refbase = $sam->segment($seqid,$pos,$pos)->dna;
+        my ($total,$different);
+	for my $pileup (@$p) {
+	    my $b     = $pileup->b;
+            next if $pileup->indel;  # don't deal with these ;-)
+
+            my $qbase  = substr($b->qseq,$pileup->qpos,1);
+            next if $qbase =~ /[nN]/;
+
+            my $qscore = substr($b->qscore,$pileup->qpos,1);
+            next unless $qscore > 25;
+
+            $total++;
+            $different++ if $refbase ne $qbase;
+	}
+        if ($total >= 4 && $different/$total >= 0.25) {
+           push @SNPs,"$seqid:$pos";
+        }
+    };
+
+ $sam->pileup('seq1',$snp_caller);
+ print "Found SNPs: @SNPs\n";
+
+=head1 GBrowse Compatibility
+
+The Bio::DB::Sam interface can be used as a backend to GBrowse
+(gmod.sourceforge.net/gbrowse). GBrowse can calculate and display
+coverage graphs across large regions, alignment cartoons across
+intermediate size regions, and detailed base-pair level alignments
+across small regions.
+
+Here is a typical configuration for a BAM database that contains
+information from a shotgun genomic sequencing project. Some notes:
+
+ * It is important to set "search options = none" in order to avoid
+   GBrowse trying to scan through the BAM database to match read
+   names. This is a time-consuming operation.
+
+ * The callback to "bgcolor" renders pairs whose mates are unmapped in
+   red.
+
+ * The callback to "balloon hover" causes a balloon to pop up with the
+   read name when the user hovers over each paired read. Otherwise the
+   default behavior would be to provide information about the pair as
+   a whole.
+
+ * When the user zooms out to 1001 bp or greaterp, the track switches
+   to a coverage graph.
+
+ [bamtest:database]
+ db_adaptor    = Bio::DB::Sam
+ db_args       = -fasta /var/www/gbrowse2/databases/bamtest/ex1.fa
+	         -bam   /var/www/gbrowse2/databases/bamtest/ex1.bam
+ search options= none
+
+ [Pair]
+ feature       = read_pair
+ glyph         = segments
+ database      = bamtest
+ draw_target   = 1
+ show_mismatch = 1
+ bgcolor      = sub {
+	     	 my $f = shift;
+		 return $f->get_tag_values('M_UNMAPPED') ? 'red' : 'green';
+	       }
+ fgcolor       = green
+ height        = 3
+ label         = sub {shift->display_name}
+ label density = 50
+ bump          = fast
+ connector     = dashed
+ balloon hover = sub {
+	      	    my $f     = shift;
+		    return '' unless $f->type eq 'match';
+		    return 'Read: '.$f->display_name.' : '.$f->flag_str;
+                }
+ key          = Read Pairs
+
+ [Pair:1000]
+ feature      = coverage:1001
+ glyph        = wiggle_xyplot
+ height       = 50
+ min_score    = 0
+ autoscale    = local
+
 
 =head1 SEE ALSO
 
-L<Bio::Perl>
+L<Bio::Perl>, L<Bio::DB::Bam::Alignment>, L<Bio::DBa
 
 =head1 AUTHOR
 

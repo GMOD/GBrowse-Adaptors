@@ -309,9 +309,9 @@ use Bio::DB::Sam;
 	my ($seqid,$pos,$p) = @_;
 	my $r = $sam->segment($seqid,$pos,$pos)->dna;
 	for my $pileup (@$p) {
-	    my $b    = $pileup->b;
+	    my $a    = $pileup->alignment;
 	    my $qpos = $pileup->qpos;
-	    my $base = $pileup->indel == 0 ? substr($b->qseq,$qpos,1)
+	    my $base = $pileup->indel == 0 ? substr($a->query->dna,$qpos,1)
                       :$pileup->indel >  0 ? '*'
                       : '-';
 	    $matches{matched}++ if $r eq $base;

@@ -20,7 +20,16 @@ my $build = Module::Build->new(
     license            => 'perl',
     include_dirs       => [$SAMTOOLS],
     extra_linker_flags => ["-L$SAMTOOLS",'-lbam','-lz'],
-    extra_compiler_flags=>['-D_IOLIB=2','-D_FILE_OFFSET_BITS=64'],
+
+    extra_compiler_flags=>[
+
+        # must match DFLAGS in Samtools Makefile
+	'-D_IOLIB=2','-D_FILE_OFFSET_BITS=64', 
+
+	# turn off warnings originating in Perl's Newx* calls
+	'-Wformat=0'
+    ],
+
     build_requires => {
       'ExtUtils::CBuilder' => 0,
     },

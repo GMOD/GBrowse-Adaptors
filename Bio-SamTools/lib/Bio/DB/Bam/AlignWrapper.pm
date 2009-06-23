@@ -5,6 +5,7 @@ use strict;
 *RFLAGS = \&Bio::DB::Bam::Alignment::RFLAGS;
 
 our $AUTOLOAD;
+use Carp 'croak';
 
 sub new {
     my $package = shift;
@@ -19,11 +20,25 @@ sub new {
     return $self; 
 }
 
+# sub AUTOLOAD {
+#   my($pack,$func_name) = $AUTOLOAD=~/(.+)::([^:]+)$/;
+#   return if $func_name eq 'DESTROY';
+#   my $self = shift or die "autoload called for non-object symbol $func_name";
+#   $self->{align}->$func_name(@_);
+# }
+
 sub AUTOLOAD {
   my($pack,$func_name) = $AUTOLOAD=~/(.+)::([^:]+)$/;
   return if $func_name eq 'DESTROY';
-  my $self = shift or die "autoload called for non-object symbol $func_name";
-  $self->{align}->$func_name(@_);
+
+  no strict 'refs';
+  $_[0] or die "autoload called for non-object symbol $func_name";
+  croak qq(Can't locate object method "$func_name" via package "$pack")
+      unless $_[0]->{align}->can($func_name);
+
+  *{"${pack}::${func_name}"} = sub { shift->{align}->$func_name(@_) };
+
+  shift->$func_name(@_);
 }
 
 sub can {
@@ -91,33 +106,16 @@ sub split_splices {
     return @results;
 }
 
+sub expand_flags {
+    shift->{sam}->expand_flags(@_);
+}
+
 sub seq_id {
     my $self = shift;
     my $tid  = $self->tid;
     $self->{sam}->target_name($tid);
 }
 
-sub expand_flags {
-    shift->{sam}->expand_flags(@_);
-}
-
-sub qscore {
-    my $self   = shift;
-    my $scores = $self->{align}->qscore;
-    return wantarray ? unpack('C*',$scores) : $scores;
-}
-
-sub primary_tag { return 'match' }
-sub primary_id {
-    my $self = shift;
-    return join ';',
-       map {s/;/%3B/g; $_}
-       ($self->display_name,
-	$self->seq_id,
-	$self->start,
-	$self->end,
-	$self->strand);
-}
 sub abs_ref    { shift->seq_id }
 sub abs_start  { shift->start  }
 sub abs_end    { shift->end    }
@@ -125,7 +123,6 @@ sub low        { shift->start  }
 sub high       { shift->end    }
 sub type       { shift->primary_tag }
 sub method     { shift->primary_tag }
-sub source_tag { return 'sam/bam'; }
 sub source     { return shift->source_tag; }
 sub name       { shift->qname }
 sub class      { shift->primary_tag }
@@ -153,6 +150,10 @@ sub dna {
     return $self->{sam}->fai->fetch($region);
 }
 
+sub tseq {
+    shift->dna(@_);
+}
+
 sub attributes {
     my $self = shift;
     my $tag  = shift;
@@ -165,20 +166,19 @@ sub attributes {
 
 sub get_all_tags {
     my $self      = shift;
-    my @aux_tags  = $self->aux_keys;
-    my @flag_tags = $self->expand_flags ? keys %{RFLAGS()} : 'FLAGS';
-    return (@aux_tags,@flag_tags);
+    return $self->{align}->get_all_tags(@_)
+	if $self->expand_flags;
+    return ($self->aux_keys,'FLAGS');
 }
 
 sub get_tag_values {
     my $self = shift;
     my $tag  = shift;
     defined $tag or return;
-    if ($self->expand_flags && 
-	(my $mask = RFLAGS()->{uc $tag})) {  # special tag
-        # to avoid warnings when making numeric comps
-	return ($self->flag & $mask) == 0 ? 0 : 1; 
-    } elsif ($tag eq 'FLAGS') {
+
+    return $self->{align}->get_tag_values($tag) 
+	if $self->expand_flags;
+    if ($tag eq 'FLAGS') {
 	$self->flag_str;
     } else {
 	$self->aux_get($tag);
@@ -189,10 +189,9 @@ sub has_tag {
     my $self = shift;
     my $tag  = shift;
     defined $tag or return;
-    if ($self->expand_flags && 
-	(my $mask = RFLAGS()->{uc $tag})) {  # special tag
-	return 1;
-    } elsif ($tag eq 'FLAGS') {
+    $self->{align}->get_tag_values($tag) 
+	if $self->expand_flags;
+    if ($tag eq 'FLAGS') {
 	return 1;
     } else {
 	my %keys = map {$_=>1} $self->aux_keys;

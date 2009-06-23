@@ -88,6 +88,11 @@ sub seq {
 				-id  => $$self->qname);
 }
 
+sub score {
+    my $self = shift;
+    return $$self->qscore;
+}
+
 sub dna {
     my $self = shift;
     return $$self->qseq;
