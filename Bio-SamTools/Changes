@@ -1,3 +1,8 @@
+Tue Jun 23 23:47:28 BST 2009
+    * Many documentation improvements
+    * Improved performance of high-level interface for fetch() and pileup() functions.
+    * Added information to README about how to compile with samtools 0.1.4
+
 Thu May  7 09:47:02 EDT 2009
     * See t/01sam.t for a demonstration of the API.
     * Essentially all of the API is fleshed out, with the exception of the ability to generate
