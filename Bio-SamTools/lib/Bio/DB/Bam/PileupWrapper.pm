@@ -1,5 +1,40 @@
 package Bio::DB::Bam::PileupWrapper;
-#$Id: PileupWrapper.pm,v 1.1 2009-06-23 08:30:38 lstein Exp $
+#$Id: PileupWrapper.pm,v 1.2 2009-06-25 16:15:36 lstein Exp $
+
+=head1 NAME
+
+Bio::DB::Bam::PileupWrapper -- Add high-level methods to Bio::DB::Bam::Pileup
+
+=head1 SYNOPSIS
+
+See L<Bio::DB::Sam/The generic fetch() and pileup() methods> for usage of the pileup() method.
+
+=head1 DESCRIPTION
+
+See L<Bio::DB::Bam::Pileup> for documentation of this object's
+methods. This class is used by the high-level API to return
+Bio::DB::Bam::AlignWrapper objects from the call to alignment() rather
+than Bio::DB::Bam::Alignment.
+
+=head1 SEE ALSO
+
+L<Bio::Perl>, L<Bio::DB::Sam>, L<Bio::DB::Bam::Constants>
+
+=head1 AUTHOR
+
+Lincoln Stein E<lt>lincoln.stein@oicr.on.caE<gt>.
+E<lt>lincoln.stein@bmail.comE<gt>
+
+Copyright (c) 2009 Ontario Institute for Cancer Research.
+
+This package and its accompanying libraries is free software; you can
+redistribute it and/or modify it under the terms of the GPL (either
+version 1, or at your option, any later version) or the Artistic
+License 2.0.  Refer to LICENSE for the full license text. In addition,
+please see DISCLAIMER.txt for disclaimers of warranty.
+
+=cut
+
 use strict;
 use Bio::DB::Bam::AlignWrapper;
 

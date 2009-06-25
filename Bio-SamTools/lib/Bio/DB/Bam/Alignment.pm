@@ -1,6 +1,6 @@
 package Bio::DB::Bam::Alignment;
 
-# $Id: Alignment.pm,v 1.4 2009-06-23 08:30:38 lstein Exp $
+# $Id: Alignment.pm,v 1.5 2009-06-25 16:15:36 lstein Exp $
 
 =head1 NAME
 
@@ -21,12 +21,18 @@ Bio::DB::Bam::Alignment -- The SAM/BAM alignment object
     my $start  = $a->start;
     my $end    = $a->end;
     my $strand = $a->strand;
-    my $cigar  = $a->cigar_str;
-    my $paired = $a->get_tag_values('PAIRED');
-    my $ref_dna   = $a->tseq;       # reference (target) sequence
-    my $query_dna = $a->qseq;       # read (query) sequence
+    my $ref_dna= $a->dna;
+
+    my $query_start  = $a->query->start;
+    my $query_end    = $a->query->end;
+    my $query_strand = $a->query->strand;
+    my $query_dna    = $a->query->dna;
+   
+    my $cigar     = $a->cigar_str;
     my @scores    = $a->qscore;     # per-base quality scores
     my $match_qual= $a->qual;       # quality of the match
+
+    my $paired = $a->get_tag_values('PAIRED');
  }
 
 =head1 DESCRIPTION
@@ -49,10 +55,10 @@ alignments (the first deals with the alignment of a single read
 against the reference sequence, while the second deals with a multiple
 alignment).
 
-Note that the high-level API always returns Bio::DB::Bam::AlignWrapper
-objects B<except> in the case of the callback to the pileup()
-method. In this case only, the object returned by calling $pileup->b()
-is a Bio::DB::Bam::Alignment object for performance reasons.
+Note that the high-level API return Bio::DB::Bam::AlignWrapper objects
+B<except> in the case of the callback to the fast_pileup() method. In
+this case only, the object returned by calling $pileup->b() is a
+Bio::DB::Bam::Alignment object for performance reasons.
 
 =over 4
 
@@ -71,12 +77,22 @@ coordinates.
 Return the end of the alignment in 1-based reference sequence
 coordinates.
 
+=item $len = $align->length
+
+Return the length of the alignment on the reference sequence.
+
 =item $strand = $align->strand
 
-Return the strand of the alignment (-1,0,+1). Because alignments in
-SAM format are B<always> on the forward strand, this method always
-returns +1. To determine whether the read was reverse complemented
-prior to alignmented, use the low-level method reversed().
+Return the strand of the alignment as -1 for reversed, +1 for
+forward. Because alignments in SAM format are B<always> on the forward
+strand, this method always returns +1. To determine whether the read
+was reverse complemented prior to alignmented, use the low-level
+method reversed().
+
+=item $mstrand = $align->mstrand
+
+If the read has a mate pair, return the strand of the mate in the
+format -1 or +1. 
 
 =item $ref_dna        = $align->dna
 
@@ -110,6 +126,10 @@ L<Bio::Graphics>).
 This returns the end position of the query sequence in 1-based
 coordinates.
 
+=item $q_len     = $align->query->length
+
+Return the length of the alignment on the read.
+
 =item $scores = $align->query->score
 
 Return an array reference containing the unpacked quality scores for
@@ -128,7 +148,8 @@ The read's DNA as a Bio::PrimarySeqI object.
 
 The hit() method is identical to query() and returns information about
 the read. It is present for compatibility with some of the
-Bio::Graphics glyphs, which use hit() to represent aligned sequences.
+Bio::Graphics glyphs, which use hit() to represent the non-reference
+sequence in aligned sequences.
 
 =item $primary_id = $align->primary_id
 
@@ -159,12 +180,46 @@ the "FLAGS" tag, or by using the low-level methods described below.
 
 Return true if the alignment has the indicated tag.
 
+=item $string = $align->cigar_str
+
+Return the CIGAR string for this alignment in conventional human
+readable format (e.g. "M34D1M1").
+
+=item $arrayref = $align->cigar_array
+
+Return a reference to an array representing the CIGAR string. This is
+an array of arrays, in which each subarray consists of a CIGAR
+operation and a count. Example:
+
+ [ ['M',34], ['D',1], ['M1',1] ]
+
+=item $tag = $align->primary_tag
+
+This is provided for Bio::SeqFeatureI compatibility. Return the string
+"match".
+
+=item $tag = $align->source_tag
+
+This is provided for Bio::SeqFeatureI compatibility. Return the string
+"sam/bam".
+
+=item @parts = $align->get_SeqFeatures
+
+Return subfeatures of this alignment. If you have fetched a
+"read_pair" feature, this will be the two mate pair objects (both of
+type Bio::DB::Bam::AlignWrapper). If you have -split_splices set to
+true in the Bio::DB::Sam database, calling get_SeqFeatures() will
+return the components of split alignments. See
+L<Bio::DB::Sam/Bio::DB::Sam Constructor and basic accessors> for an
+example of how to use this.
+
 =back
 
 =head1 Low-level Bio::DB::Bam::Alignment methods
 
-These methods are available in objects of type Bio::DB::Bam::Alignment
-and closely mirror the native C API.
+These methods are available to objects of type Bio::DB::Bam::Alignment
+as well as Bio::DB::Bam::AlignWrapper and closely mirror the native C
+API.
 
 =over 4
 
@@ -289,9 +344,37 @@ aligning.
 Return true if the aligned read's mate was reverse complemented prior
 to aligning.
 
-=item $cigar = $align->cigar
+=item $mstart  = $align->mate_start
 
-Return the CIGAR string for this alignment.
+For paired reads, return the start of the mate's alignment in
+reference sequence coordinates.
+
+
+=item $mend  = $align->mate_end
+
+For paired reads, return the end position of the mate's alignment. in
+reference sequence coordinates.
+
+-item $len   = $align->mate_len
+
+For mate-pairs, retrieve the length of the mate's alignment on the
+reference sequence. 
+
+=item $isize = $align->isize
+
+For mate-pairs, return the computed insert size.
+
+=item $arrayref = $align->cigar
+
+This returns the CIGAR data in its native BAM format. You will receive
+an arrayref in which each operation and count are packed together into
+an 8-bit structure. To decode each element you must use the following
+operations:
+
+ use Bio::DB::Sam::Constants;
+ my $c   = $align->cigar;
+ my $op  = $c->[0] & BAM_CIGAR_MASK;
+ my $len = $c->[0] >> BAM_CIGAR_SHIFT;
 
 =back
 
@@ -307,7 +390,7 @@ sub get_tag_values {
     my $self = shift;
     my $tag  = shift;
     defined $tag or return;
-    if (my $mask = RFLAGS()->{uc $tag}) {  # special tag
+    if (my $mask = RFLAGS->{uc $tag}) {  # special tag
 	# to avoid warnings when making numeric comps
 	return ($self->flag & $mask) == 0 ? 0 : 1; 
     } elsif ($tag eq 'FLAGS') {
@@ -321,7 +404,7 @@ sub has_tag {
     my $self = shift;
     my $tag  = shift;
     defined $tag or return;
-    if (my $mask = RFLAGS()->{uc $tag}) {  # special tag
+    if (my $mask = RFLAGS->{uc $tag}) {  # special tag
 	return 1;
     } elsif ($tag eq 'FLAGS') {
 	return 1;
@@ -380,12 +463,12 @@ sub qscore {
 sub primary_id {
     my $self = shift;
     return join ';',
-       map {s/;/%3B/g; $_}
-       ($self->display_name,
-	$self->seq_id,
-	$self->start,
-	$self->end,
-	$self->strand);
+    map {s/;/%3B/g; $_}
+    ($self->display_name,
+     $self->tid,
+     $self->start,
+     $self->end,
+     $self->strand);
 }
 sub cigar_str {
     my $self   = shift;
@@ -477,3 +560,23 @@ sub hit { shift->query(@_); }
 
 
 1;
+
+=head1 SEE ALSO
+
+L<Bio::Perl>, L<Bio::DB::Sam>, L<Bio::DB::Bam::Constants>
+
+=head1 AUTHOR
+
+Lincoln Stein E<lt>lincoln.stein@oicr.on.caE<gt>.
+E<lt>lincoln.stein@bmail.comE<gt>
+
+Copyright (c) 2009 Ontario Institute for Cancer Research.
+
+This package and its accompanying libraries is free software; you can
+redistribute it and/or modify it under the terms of the GPL (either
+version 1, or at your option, any later version) or the Artistic
+License 2.0.  Refer to LICENSE for the full license text. In addition,
+please see DISCLAIMER.txt for disclaimers of warranty.
+
+=cut
+

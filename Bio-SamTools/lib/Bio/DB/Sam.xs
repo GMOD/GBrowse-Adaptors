@@ -417,10 +417,12 @@ OUTPUT:
     RETVAL
 
 int
-bama_pos(b)
+bama_pos(b,...)
     Bio::DB::Bam::Alignment b
-PROTOTYPE: $
+PROTOTYPE: $;$
 CODE:
+    if (items > 1)
+      b->core.pos = SvIV(ST(1));
     RETVAL=b->core.pos;
 OUTPUT:
     RETVAL
@@ -444,37 +446,45 @@ OUTPUT:
    RETVAL    
 
 int
-bama_qual(b)
+bama_qual(b,...)
     Bio::DB::Bam::Alignment b
-PROTOTYPE: $
+PROTOTYPE: $;$
 CODE:
+    if (items > 1)
+      b->core.qual = SvIV(ST(1));
     RETVAL=b->core.qual;
 OUTPUT:
     RETVAL
 
 int
-bama_flag(b)
+bama_flag(b,...)
     Bio::DB::Bam::Alignment b
-PROTOTYPE: $
+PROTOTYPE: $;$
 CODE:
+    if (items > 1)
+      b->core.flag = SvIV(ST(1));
     RETVAL=b->core.flag;
 OUTPUT:
     RETVAL
 
 int
-bama_n_cigar(b)
+bama_n_cigar(b,...)
     Bio::DB::Bam::Alignment b
-PROTOTYPE: $
+PROTOTYPE: $;$
 CODE:
+  if (items > 1)
+    b->core.n_cigar = SvIV(ST(1));
     RETVAL=b->core.n_cigar;
 OUTPUT:
     RETVAL
 
 int
-bama_l_qseq(b)
+bama_l_qseq(b,...)
     Bio::DB::Bam::Alignment b
-PROTOTYPE: $
+PROTOTYPE: $;$
 CODE:
+    if (items > 1)
+      b->core.l_qseq = SvIV(ST(1));
     RETVAL=b->core.l_qseq;
 OUTPUT:
     RETVAL
@@ -487,7 +497,6 @@ PREINIT:
     char* seq;
     int   i;
 CODE:
-    /* this causs a compiler warning -- ignore it */
     seq = Newxz(seq,b->core.l_qseq+1,char);
     for (i=0;i<b->core.l_qseq;i++) {
       seq[i]=bam_nt16_rev_table[bam1_seqi(bam1_seq(b),i)];
@@ -507,37 +516,45 @@ OUTPUT:
     RETVAL
 
 int
-bama_mtid(b)
+bama_mtid(b,...)
     Bio::DB::Bam::Alignment b
-PROTOTYPE: $
+PROTOTYPE: $;$
 CODE:
+    if (items > 1)
+      b->core.mtid = SvIV(ST(1));
     RETVAL=b->core.mtid;
 OUTPUT:
     RETVAL
 
 int
-bama_mpos(b)
+bama_mpos(b,...)
     Bio::DB::Bam::Alignment b
-PROTOTYPE: $
+PROTOTYPE: $;$
 CODE:
+    if (items > 1)
+      b->core.mpos = SvIV(ST(1));
     RETVAL=b->core.mpos;
 OUTPUT:
     RETVAL
 
 int
-bama_isize(b)
+bama_isize(b,...)
     Bio::DB::Bam::Alignment b
-PROTOTYPE: $
+PROTOTYPE: $;$
 CODE:
+    if (items > 1)
+      b->core.isize = SvIV(ST(1));
     RETVAL=b->core.isize;
 OUTPUT:
     RETVAL
 
 int
-bama_l_aux(b)
+bama_l_aux(b,...)
     Bio::DB::Bam::Alignment b
-PROTOTYPE: $
+PROTOTYPE: $;$
 CODE:
+    if (items > 1)
+      b->l_aux = SvIV(ST(1));
     RETVAL=b->l_aux;
 OUTPUT:
     RETVAL
@@ -599,28 +616,39 @@ PPCODE:
    }
 
 SV*
-bama_data(b)
+bama_data(b,...)
     Bio::DB::Bam::Alignment b
-PROTOTYPE: $
+PROTOTYPE: $;$
+PREINIT:
+    STRLEN  len;
 CODE:
+    if (items > 1) {
+      b->data     = SvPV(ST(1),len);
+      b->data_len = len;
+    }
     RETVAL=newSVpv(b->data,b->data_len);
 OUTPUT:
     RETVAL
 
 int
-bama_data_len(b)
+bama_data_len(b,...)
     Bio::DB::Bam::Alignment b
-PROTOTYPE: $
+PROTOTYPE: $;$
 CODE:
+    if (items > 1)
+      b->data_len = SvIV(ST(1));
     RETVAL=b->data_len;
 OUTPUT:
     RETVAL
 
 int
-bama_m_data(b)
+bama_m_data(b,...)
     Bio::DB::Bam::Alignment b
-PROTOTYPE: $
+PROTOTYPE: $;$
 CODE:
+    if (items > 1) {
+      b->m_data = SvIV(ST(1));
+    }
     RETVAL=b->m_data;
 OUTPUT:
     RETVAL
@@ -893,7 +921,7 @@ CODE:
       cg.start = start;
       cg.end   = end;
       cg.width = ((double)(end-start))/bins;
-      Newxz(cg.bin,bins,int);
+      Newxz(cg.bin,bins+1,int);
 
       /* accumulate coverage into the coverage graph */
       pileup   = bam_plbuf_init(coverage_from_pileup_fun,(void*)&cg);
@@ -905,8 +933,10 @@ CODE:
       array = newAV();
       av_extend(array,bins);
       for  (i=0;i<bins;i++)
-         av_store(array,i,newSVnv(((float)cg.bin[i])/cg.width));
+	av_store(array,i,newSVnv(((float)cg.bin[i])/cg.width));
+
       Safefree(cg.bin);
+
 
       RETVAL = (SV*) newRV((SV*)array);
   }

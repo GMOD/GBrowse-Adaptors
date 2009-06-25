@@ -1,15 +1,77 @@
-use Bio::DB::Sam::Constants;
+package Bio::DB::Sam::Constants;
+
+# $Id: Constants.pm,v 1.2 2009-06-25 16:15:36 lstein Exp $
+
+=head1 NAME
+
+Bio::DB::Sam::Constants -- Constants for use with SAM/BAM
+
+=head1 SYNOPSIS
+
+ use Bio::DB::Sam::Constants;
+ my $pad_flag = BAM_CPAD;
+
+=head1 DESCRIPTION
+
+This module exports several constants for use with the SAM/BAM
+module. See the SAM documentation for their interpretation.
+
+=over 4
+
+=item Cigar operations
+
+  BAM_CIGAR_SHIFT
+  BAM_CIGAR_MASK
+  BAM_CMATCH
+  BAM_CINS
+  BAM_CDEL
+  BAM_CREF_SKIP
+  BAM_CSOFT_CLIP
+  BAM_CHARD_CLIP
+  BAM_CPAD
+
+=item FLAGS
+
+A hashref that maps flag values to human-readable names. For example:
+
+ FLAGS->{0x0008} == 'M_UNMAPPED'
+
+=item RFLAGS
+
+The reverse of FLAGS:
+
+ FLAGS->{M_UNMAPPED} == 0x0008
+
+=back
+
+=head1 SEE ALSO
+
+L<Bio::Perl>, L<Bio::DB::Sam>, L<Bio::DB::Bam::Alignment>
+
+=head1 AUTHOR
+
+Lincoln Stein E<lt>lincoln.stein@oicr.on.caE<gt>.
+E<lt>lincoln.stein@bmail.comE<gt>
+
+Copyright (c) 2009 Ontario Institute for Cancer Research.
+
+This package and its accompanying libraries is free software; you can
+redistribute it and/or modify it under the terms of the GPL (either
+version 1, or at your option, any later version) or the Artistic
+License 2.0.  Refer to LICENSE for the full license text. In addition,
+please see DISCLAIMER.txt for disclaimers of warranty.
+
+=cut
+
 
 use strict;
 
-BEGIN {
-    require Exporter;
-    our @ISA    = qw(Exporter);
-    our @EXPORT = qw(CIGAR_SYMBOLS BAM_CIGAR_SHIFT BAM_CIGAR_MASK
+require Exporter;
+our @ISA    = qw(Exporter);
+our @EXPORT = qw(CIGAR_SYMBOLS BAM_CIGAR_SHIFT BAM_CIGAR_MASK
                  BAM_CMATCH BAM_CINS BAM_CDEL BAM_CREF_SKIP
-                 BAM_CSOFT_CLIP BAM_CHARD_CLIP BAM_CPAD FLAGS);
-    our @EXPORT_OK = (@EXPORT,'RFLAGS');
-}
+                 BAM_CSOFT_CLIP BAM_CHARD_CLIP BAM_CPAD FLAGS RFLAGS);
+our @EXPORT_OK = @EXPORT;
 
 use constant CIGAR_SYMBOLS   => [qw(M I D N S H P)];
 use constant BAM_CIGAR_SHIFT => 4;

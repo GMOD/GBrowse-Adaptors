@@ -1,5 +1,5 @@
 package Bio::DB::Sam;
-# $Id: Sam.pm,v 1.11 2009-06-23 23:10:07 lstein Exp $
+# $Id: Sam.pm,v 1.12 2009-06-25 16:15:36 lstein Exp $
 
 =head1 NAME
 
@@ -1195,7 +1195,7 @@ use Bio::SeqFeature::Lite;
 use Bio::PrimarySeq;
 
 use base 'DynaLoader';
-our $VERSION = '0.03';
+our $VERSION = '1.00';
 bootstrap Bio::DB::Sam;
 
 use Bio::DB::Bam::Alignment;
@@ -1440,8 +1440,9 @@ sub get_features_by_name { shift->get_feature_by_name(@_) }
 sub get_feature_by_id {
     my $self = shift;
     my $id   = shift;
-    my ($name,$seqid,$start,$end,$strand) = map {s/%3B/;/ig;$_} split ';',$id;
-    return unless $name && $seqid;
+    my ($name,$tid,$start,$end,$strand) = map {s/%3B/;/ig;$_} split ';',$id;
+    return unless $name && defined $tid;
+    my $seqid = $self->target_name($tid);
     my @features = $self->features(-name=>$name,
 				   -seq_id=>$seqid,
 				   -start=>$start,
@@ -1952,7 +1953,7 @@ information from a shotgun genomic sequencing project. Some notes:
 
 =head1 SEE ALSO
 
-L<Bio::Perl>, L<Bio::DB::Bam::Alignment>, L<Bio::DBa
+L<Bio::Perl>, L<Bio::DB::Bam::Alignment>, L<Bio::DB::Bam::Constants>
 
 =head1 AUTHOR
 

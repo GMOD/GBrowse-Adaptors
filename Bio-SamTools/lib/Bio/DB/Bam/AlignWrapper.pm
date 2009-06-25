@@ -1,8 +1,56 @@
 package Bio::DB::Bam::AlignWrapper;
 
-use strict;
+# $Id: AlignWrapper.pm,v 1.6 2009-06-25 16:15:36 lstein Exp $
 
-*RFLAGS = \&Bio::DB::Bam::Alignment::RFLAGS;
+=head1 NAME
+
+Bio::DB::Bam::AlignWrapper -- Add high-level methods to Bio::DB::Bam::Alignment
+
+=head1 SYNOPSIS
+
+See L<Bio::DB::Bam::Alignment>.
+
+=head1 DESCRIPTION
+
+This is a wrapper around Bio::DB::Bam::Alignment that adds the
+following high-level methods. These are described in detail in
+L<Bio::DB::Bam::Alignment/High-level Bio::DB::Bam::Alignment methods>.
+
+ add_segment()         add a new subfeature to split alignments
+ get_SeqFeatures()     fetch subfeatures from split alignments
+ split_splices()       process cigar strings to produce split alignments
+ expand_flags()        return true if flags should be expanded into tags
+ seq_id()              return human-readable reference sequence name
+ seq()                 return Bio::PrimarySeq object for reference sequence
+ subseq()              return a subsequence across the indicated range
+ dna()                 return the DNA of the reference sequence
+ attributes()          synonym for get_tag_values()
+ get_all_tags()        return all tag names
+ get_tag_values()      return the values of the given tag
+ has_tag()             return true if the given tag is defined
+
+=head1 SEE ALSO
+
+L<Bio::Perl>, L<Bio::DB::Sam>, L<Bio::DB::Bam::Constants>
+
+=head1 AUTHOR
+
+Lincoln Stein E<lt>lincoln.stein@oicr.on.caE<gt>.
+E<lt>lincoln.stein@bmail.comE<gt>
+
+Copyright (c) 2009 Ontario Institute for Cancer Research.
+
+This package and its accompanying libraries is free software; you can
+redistribute it and/or modify it under the terms of the GPL (either
+version 1, or at your option, any later version) or the Artistic
+License 2.0.  Refer to LICENSE for the full license text. In addition,
+please see DISCLAIMER.txt for disclaimers of warranty.
+
+=cut
+
+
+use strict;
+use Bio::DB::Sam::Constants;
 
 our $AUTOLOAD;
 use Carp 'croak';
@@ -19,13 +67,6 @@ sub new {
 
     return $self; 
 }
-
-# sub AUTOLOAD {
-#   my($pack,$func_name) = $AUTOLOAD=~/(.+)::([^:]+)$/;
-#   return if $func_name eq 'DESTROY';
-#   my $self = shift or die "autoload called for non-object symbol $func_name";
-#   $self->{align}->$func_name(@_);
-# }
 
 sub AUTOLOAD {
   my($pack,$func_name) = $AUTOLOAD=~/(.+)::([^:]+)$/;
