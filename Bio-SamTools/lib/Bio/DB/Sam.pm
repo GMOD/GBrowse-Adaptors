@@ -1,5 +1,5 @@
 package Bio::DB::Sam;
-# $Id: Sam.pm,v 1.12 2009-06-25 16:15:36 lstein Exp $
+# $Id: Sam.pm,v 1.13 2009-06-30 09:56:35 lstein Exp $
 
 =head1 NAME
 
@@ -1195,7 +1195,7 @@ use Bio::SeqFeature::Lite;
 use Bio::PrimarySeq;
 
 use base 'DynaLoader';
-our $VERSION = '1.00';
+our $VERSION = '1.01';
 bootstrap Bio::DB::Sam;
 
 use Bio::DB::Bam::Alignment;

@@ -1,3 +1,9 @@
+Version 1.01
+    * Fixed Build.PL to pick up correct location of bam header files.
+
+Version 1.00
+    * initial release
+
 Tue Jun 23 23:47:28 BST 2009
     * Many documentation improvements
     * Improved performance of high-level interface for fetch() and pileup() functions.
