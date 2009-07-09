@@ -1,5 +1,8 @@
 Version 1.01
     * Fixed Build.PL to pick up correct location of bam header files.
+    * Eliminated several memory leaks that manifested when reading BAM files 
+      with lots of targets.
+    * Made -fasta argument optional when using high-level interface.
 
 Version 1.00
     * initial release

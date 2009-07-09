@@ -9,7 +9,7 @@ use ExtUtils::MakeMaker;
 use File::Temp qw(tempfile);
 use Bio::Root::IO;
 use FindBin '$Bin';
-use constant TEST_COUNT => 90;
+use constant TEST_COUNT => 93;
 
 use lib "$Bin/../lib","$Bin/../blib/lib","$Bin/../blib/arch";
 
@@ -287,6 +287,13 @@ use Bio::DB::Sam;
     $count = 0;
     while ($i->next_seq) { $count++ }
     ok($count,3307);
+
+    $i = $sam->get_seq_stream(-max_features=>200,-seq_id=>'seq1');
+    ok ($i);
+    $count = 0;
+    while ($i->next_seq) { $count++ }
+    ok($count,200);
+    ok($sam->last_feature_count,1482);
 
     # try the read_pair aggregation
     my @pairs = $sam->features(-type=>'read_pair',

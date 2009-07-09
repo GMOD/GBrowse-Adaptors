@@ -1,5 +1,5 @@
 package Bio::DB::Sam;
-# $Id: Sam.pm,v 1.13 2009-06-30 09:56:35 lstein Exp $
+# $Id: Sam.pm,v 1.14 2009-07-09 18:52:45 lstein Exp $
 
 =head1 NAME
 
@@ -10,8 +10,9 @@ Bio::DB::Sam -- Read SAM/BAM database files
  use Bio::DB::Sam;
 
  # high level API
- my $sam = Bio::DB::Sam->new(-fasta=>"data/ex1.fa",
-			     -bam  =>"data/ex1.bam");
+ my $sam = Bio::DB::Sam->new(-bam  =>"data/ex1.bam",
+                             -fasta=>"data/ex1.fa",
+			     );
 
  my @targets    = $sam->seq_ids;
  my @alignments = $sam->get_features_by_location(-seq_id => 'seq2',
@@ -200,11 +201,11 @@ follows:
   Option         Description
   ------         -------------
 
-  -fasta         Path to the Fasta file that contains
-                   the reference sequences (required).
-
   -bam           Path to the BAM file that contains the
                    alignments (required).
+
+  -fasta         Path to the Fasta file that contains
+                   the reference sequences (optional).
 
   -expand_flags  A boolean value. If true then the standard
                    alignment flags will be broken out as 
@@ -224,6 +225,11 @@ An example of a typical new() constructor invocation is:
                            -bam   => '/home/projects/alignments/ej88.bam',
                            -expand_flags  => 1,
                            -split_splices => 1);
+
+If the B<-fasta> argument is present, then you will be able to use the
+interface to fetch the reference sequence's bases. Otherwise, calls
+that return the reference sequence will return sequences consisting
+entirely of "N".
 
 B<-expand_flags> option, if true, has the effect of turning each of
 the standard SAM flags into a separately retrievable B<tag> in the
@@ -1208,14 +1214,20 @@ use Bio::DB::Bam::ReadIterator;
 sub new {
     my $class         = shift;
     my %args          = @_;
-    my $fa_path       = $args{-fasta} or croak "-fasta argument required";
     my $bam_path      = $args{-bam}   or croak "-bam argument required";
+    my $fa_path       = $args{-fasta};
     my $expand_flags  = $args{-expand_flags};
     my $split_splices = $args{-split} || $args{-split_splices};
-    -e $fa_path  && -r _  or croak "$fa_path does not exist or is not readable";
+
     -e $bam_path && -r _  or croak "$fa_path does not exist or is not readable";
-    my $fai = Bio::DB::Sam::Fai->open($fa_path)  or croak "$fa_path open: $!";
     my $bam = Bio::DB::Bam->open($bam_path)      or croak "$bam_path open: $!";
+
+    my $fai;
+    if ($fa_path) {
+	-e $fa_path  && -r _  or croak "$fa_path does not exist or is not readable";
+	$fai = Bio::DB::Sam::Fai->open($fa_path)  or croak "$fa_path open: $!";
+    }
+
     my $self =  bless {
 	fai           => $fai,
 	bam           => $bam,
@@ -1224,6 +1236,7 @@ sub new {
 	split_splices => $split_splices,
     },ref $class || $class;
     $self->header;  # catch it
+
     return $self;
 }
 
@@ -1260,13 +1273,15 @@ sub n_targets {
 sub target_name {
     my $self = shift;
     my $tid  = shift;
-    return $self->header->target_name->[$tid];
+    $self->{target_name} ||= $self->header->target_name;
+    return $self->{target_name}->[$tid];
 }
 
 sub target_len {
     my $self = shift;
     my $tid  = shift;
-    return $self->header->target_len->[$tid];
+    $self->{target_len} ||= $self->header->target_len;
+    return $self->{target_len}->[$tid];
 }
 
 sub seq_ids {
@@ -1485,6 +1500,7 @@ sub features {
     my $iterator  = $args{-iterator};
     my $fh        = $args{-fh};
     my $filter    = $args{-filter};
+    my $max       = $args{-max_features};
 
     $types        = [$types] unless ref $types;
     $types        = [$args{-class}] if !@$types && defined $args{-class};
@@ -1541,9 +1557,9 @@ sub features {
     for my $t (@types) {
 
 	if ($t =~ /^(match|read_pair)/) {
-	    
+
 	    # fetch the features if type is 'match' or 'read_pair'
-	    $features = $self->_filter_features($seqid,$start,$end,$filter);
+	    $features = $self->_filter_features($seqid,$start,$end,$filter,undef,$max);
 
 	    # for "match" just return the alignments
 	    if ($t =~ /^(match)/) {
@@ -1568,17 +1584,17 @@ sub features {
 	
     }
 
-    return $iterator ? Bio::DB::Bam::FetchIterator->new(\@result)
+    return $iterator ? Bio::DB::Bam::FetchIterator->new(\@result,$self->last_feature_count)
 	             : @result;
 }
 
 sub _filter_features {
     my $self = shift;
-    my ($seqid,$start,$end,$filter,$do_tam_fh) = @_;
+    my ($seqid,$start,$end,$filter,$do_tam_fh,$max_features) = @_;
 
     my @result;
     my $action = $do_tam_fh ? '\$self->header->view1($a)'
-                            : 'push @result,Bio::DB::Bam::AlignWrapper->new($a,$self)';
+                            : $self->_push_features($max_features);
 
     my $user_code;
     if (ref ($filter) eq 'CODE') {
@@ -1617,6 +1633,33 @@ NONINDEXED
 
     return \@result;
 }
+
+sub _push_features {
+    my $self = shift;
+    my $max  = shift;
+
+    # simple case -- no max specified. Will push onto an array called
+    # @result.
+
+    return 'push @result,Bio::DB::Bam::AlignWrapper->new($a,$self)'
+	unless $max;
+
+    $self->{_result_count} = 0;
+
+    # otherwise we implement a simple subsampling
+    my $code=<<END;
+    my \$count = ++\$self->{_result_count};
+    if (\@result < $max) {
+	push \@result,Bio::DB::Bam::AlignWrapper->new(\$a,\$self);
+    } else {
+	\$result[rand \@result] = Bio::DB::Bam::AlignWrapper->new(\$a,\$self) 
+	    if rand() < $max/\$count;
+    }
+END
+    return $code;
+}
+
+sub last_feature_count { shift->{_result_count}||0 }
 
 sub _features {
     my $self = shift;

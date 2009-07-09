@@ -48,6 +48,10 @@ sub seq      {
     return Bio::PrimarySeq->new(-seq => $self->dna,
 				-id  => $self->seq_id);
 }
+
+sub primary_id {
+    shift->seq_id;
+}
 # required by api
 sub primary_tag {
     my $self = shift;
@@ -57,7 +61,7 @@ sub dna {
     my $self = shift;
     my $db     = $self->db;
     my $region = $self->seq_id.':'.$self->start.'-'.$self->end;
-    return $db->fai->fetch($region);
+    return $db->fai ? $db->fai->fetch($region) : 'N'x$self->length;
 }
 # required by api
 sub source_tag { return 'sam/bam' }

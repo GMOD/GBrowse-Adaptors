@@ -1,6 +1,6 @@
 package Bio::DB::Bam::AlignWrapper;
 
-# $Id: AlignWrapper.pm,v 1.6 2009-06-25 16:15:36 lstein Exp $
+# $Id: AlignWrapper.pm,v 1.7 2009-07-09 18:52:45 lstein Exp $
 
 =head1 NAME
 
@@ -188,7 +188,8 @@ sub subseq {
 sub dna {
     my $self = shift;
     my $region = $self->seq_id.':'.$self->start.'-'.$self->end;
-    return $self->{sam}->fai->fetch($region);
+    my $fai = $self->{sam}->fai;
+    return $fai ? $self->{sam}->fai->fetch($region) : 'N' x $self->length;
 }
 
 sub tseq {

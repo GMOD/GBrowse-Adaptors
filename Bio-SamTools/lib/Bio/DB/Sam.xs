@@ -111,10 +111,10 @@ int invoke_pileup_callback_fun(uint32_t tid,
   callbackdata = fcp->data;
 
   /* turn the bam_pileup1_t into the appropriate object */
-  /* this causs a compiler warning -- ignore it */
+  /* this causes a compiler warning -- ignore it */
   Newxz(pileups,n,SV*);
   for (i=0;i<n;i++)
-    pileups[i] = sv_setref_pv(newSV(sizeof(bam_pileup1_t)),
+    pileups[i] = sv_setref_pv(sv_2mortal(newSV(sizeof(bam_pileup1_t))),
 			      "Bio::DB::Bam::Pileup",
 			      (void*) &pl[i]);
   pileup = av_make(n,pileups);
@@ -752,15 +752,18 @@ bam_n_targets(bamh)
   OUTPUT:
     RETVAL
 
-char**
+SV*
 bam_target_name(bamh)
   Bio::DB::Bam::Header bamh
   PROTOTYPE: $
   PREINIT:
-    int count_charPtrPtr;
+    int i;
+    AV * avref;
   CODE:
-    count_charPtrPtr=bamh->n_targets;
-    RETVAL = bamh->target_name;
+    avref = (AV*) sv_2mortal((SV*)newAV());
+    for (i=0;i<bamh->n_targets;i++)
+      av_push(avref, newSVpv(bamh->target_name[i],0));
+    RETVAL = (SV*) newRV((SV*)avref); 
   OUTPUT:
     RETVAL
 
@@ -890,7 +893,7 @@ CODE:
   bam_plbuf_push(NULL,pileup);
   bam_plbuf_destroy(pileup);
 
-SV*
+AV*
 bami_coverage(bai,bfp,ref,start,end,bins=0)
     Bio::DB::Bam::Index bai
     Bio::DB::Bam        bfp
@@ -936,9 +939,9 @@ CODE:
 	av_store(array,i,newSVnv(((float)cg.bin[i])/cg.width));
 
       Safefree(cg.bin);
+      RETVAL = array;
+      sv_2mortal((SV*)RETVAL);  /* this fixes a documented bug in perl typemap */
 
-
-      RETVAL = (SV*) newRV((SV*)array);
   }
 OUTPUT:
     RETVAL

@@ -75,9 +75,9 @@ sub find_sam {
 	    my $path = prompt($prompt);
 	    print STDOUT "\n";
 	    last unless $path;
-	    $sam_include = "$path/$HeaderFile"
+	    $sam_include = $path
 		if -e "$path/$HeaderFile";
-	    $sam_lib = "$path/$LibFile"
+	    $sam_lib = $path
 		if -e "$path/$LibFile";
 	    $found = $sam_include && $sam_lib;
 	    unless ($found) {
