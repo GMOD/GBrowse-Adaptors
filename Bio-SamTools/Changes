@@ -1,3 +1,7 @@
+Version 1.02
+    * Fixed bug in parsing of unsigned integer tags that caused some tags to
+      be treated as signed integer.
+
 Version 1.01
     * Fixed Build.PL to pick up correct location of bam header files.
     * Eliminated several memory leaks that manifested when reading BAM files 

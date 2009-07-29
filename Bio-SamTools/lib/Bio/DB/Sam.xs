@@ -572,20 +572,35 @@ CODE:
    if (s==0)
       XSRETURN_EMPTY;
    type = *s++;
-   if (type == 'c')
+   switch (type) {
+   case 'c':
      RETVAL = newSViv((int32_t)*(int8_t*)s);
-   else if (type=='C')
+     break;
+   case 'C':
      RETVAL = newSViv((int32_t)*(uint8_t*)s);
-   else if (type=='s' || type=='S')
+     break;
+   case 's':
      RETVAL = newSViv((int32_t)*(int16_t*)s);
-   else if (type=='i' || type=='I')
+     break;
+   case 'S':
+     RETVAL = newSViv((int32_t)*(uint16_t*)s);
+     break;
+   case 'i':
      RETVAL = newSViv(*(int32_t*)s);
-   else if (type=='f')
+     break;
+   case 'I':
+     RETVAL = newSViv((int32_t)*(uint32_t*)s);
+     break;
+   case 'f':
      RETVAL = newSVnv(*(float*)s);
-   else if (type=='Z' || type=='H')
+     break;
+   case 'Z':
+   case 'H':
      RETVAL = newSVpv((char*)s,0);
-   else
+     break;
+   default:
      XSRETURN_EMPTY;
+   }
 OUTPUT:
    RETVAL
 
