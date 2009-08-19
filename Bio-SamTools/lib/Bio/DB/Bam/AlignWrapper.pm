@@ -1,6 +1,6 @@
 package Bio::DB::Bam::AlignWrapper;
 
-# $Id: AlignWrapper.pm,v 1.7 2009-07-09 18:52:45 lstein Exp $
+# $Id: AlignWrapper.pm,v 1.8 2009-08-19 19:15:04 lstein Exp $
 
 =head1 NAME
 
@@ -81,6 +81,8 @@ sub AUTOLOAD {
 
   shift->$func_name(@_);
 }
+
+sub score {shift->{align}->qual}
 
 sub can {
     my $self = shift;

@@ -1,3 +1,7 @@
+Version 1.03
+    * Fixed documentation on running with GBrowse.
+    * Fixed alignwrapper behavior so that GBrowse searches don't crash.
+  
 Version 1.02
     * Fixed bug in parsing of unsigned integer tags that caused some tags to
       be treated as signed integer.

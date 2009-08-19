@@ -1,5 +1,5 @@
 package Bio::DB::Sam;
-# $Id: Sam.pm,v 1.15 2009-07-29 19:52:06 lstein Exp $
+# $Id: Sam.pm,v 1.16 2009-08-19 19:15:04 lstein Exp $
 
 =head1 NAME
 
@@ -1201,7 +1201,7 @@ use Bio::SeqFeature::Lite;
 use Bio::PrimarySeq;
 
 use base 'DynaLoader';
-our $VERSION = '1.02';
+our $VERSION = '1.03';
 bootstrap Bio::DB::Sam;
 
 use Bio::DB::Bam::Alignment;
@@ -1959,9 +1959,8 @@ information from a shotgun genomic sequencing project. Some notes:
 
  [bamtest:database]
  db_adaptor    = Bio::DB::Sam
- db_args       = -fasta /var/www/gbrowse2/databases/bamtest/ex1.fa
-	         -bam   /var/www/gbrowse2/databases/bamtest/ex1.bam
- search options= none
+ db_args       = -bam   /var/www/gbrowse2/databases/bamtest/ex1.bam
+ search options= default
 
  [Pair]
  feature       = read_pair
@@ -1993,6 +1992,12 @@ information from a shotgun genomic sequencing project. Some notes:
  min_score    = 0
  autoscale    = local
 
+To show alignment data correctly when the user is zoomed in, you
+should also provide a pointer to the FASTA file containing the
+reference genome. In this case, modify the db_args line to read:
+
+ db_args       = -bam   /var/www/gbrowse2/databases/bamtest/ex1.bam
+                 -fasta /var/www/gbrowse2/databases/bamtest/ex1.fa
 
 =head1 SEE ALSO
 

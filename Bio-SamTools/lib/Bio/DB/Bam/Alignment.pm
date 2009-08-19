@@ -1,6 +1,6 @@
 package Bio::DB::Bam::Alignment;
 
-# $Id: Alignment.pm,v 1.5 2009-06-25 16:15:36 lstein Exp $
+# $Id: Alignment.pm,v 1.6 2009-08-19 19:15:04 lstein Exp $
 
 =head1 NAME
 
@@ -509,7 +509,9 @@ sub flag_str {
 
 sub length {
     my $self = shift;
-    return $self->end-$self->start+1;
+    my $end   = $self->end   || 0;
+    my $start = $self->start || 0;
+    return $end-$start+1;
 }
 
 sub mate_start {
