@@ -1,4 +1,4 @@
-# $Id: Chado.pm,v 1.9 2009-06-17 07:31:58 scottcain Exp $
+# $Id: Chado.pm,v 1.10 2009-08-25 17:03:37 scottcain Exp $
 
 =head1 NAME
 
@@ -97,7 +97,7 @@ use constant SEGCLASS => 'Bio::DB::Das::Chado::Segment';
 use constant MAP_REFERENCE_TYPE => 'MapReferenceType'; #dgg
 use constant DEBUG => 0;
 
-$VERSION = 0.24;
+$VERSION = 0.25;
 @ISA = qw(Bio::Root::Root Bio::DasI);
 
 =head2 new
@@ -666,7 +666,7 @@ sub features {
 
 sub get_seq_stream {
     my $self = shift;
-    warn "get_seq_stream args:@_";
+    #warn "get_seq_stream args:@_";
     my ($type,$types,$callback,$attributes,$iterator,$feature_id,$seq_id,$start,$end) =
      $self->_rearrange([qw(TYPE TYPES CALLBACK ATTRIBUTES ITERATOR FEATURE_ID SEQ_ID START END)],
                         @_);
