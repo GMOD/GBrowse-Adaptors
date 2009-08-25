@@ -1,4 +1,4 @@
-# $Id: Chado.pm,v 1.10 2009-08-25 17:03:37 scottcain Exp $
+# $Id: Chado.pm,v 1.11 2009-08-25 19:29:43 scottcain Exp $
 
 =head1 NAME
 
@@ -97,7 +97,7 @@ use constant SEGCLASS => 'Bio::DB::Das::Chado::Segment';
 use constant MAP_REFERENCE_TYPE => 'MapReferenceType'; #dgg
 use constant DEBUG => 0;
 
-$VERSION = 0.25;
+$VERSION = 0.24;
 @ISA = qw(Bio::Root::Root Bio::DasI);
 
 =head2 new
