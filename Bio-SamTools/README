@@ -2,10 +2,10 @@ This is a Perl interface to the SAMtools sequence alignment interface.
 See http://samtools.sourceforge.net/.
 
 To compile this module, you must first download, unpack and compile
-SAMtools 0.1.4 or higher in some accessible directory. AS OF SAMTOOLS
+SAMtools 0.1.4 or higher in some accessible directory. FOR SAMTOOLS
 VERSION 0.1.4, YOU MUST RUN "make -f makefile.generic" IN THE
 DISTRIBUTION DIRECTORY IN ORDER TO CREATE THE REQUIRED libbam.a
-LIBRARY FILE.
+LIBRARY FILE. For other versions, just "make" will usually work.
 
 Then set the environment variable SAMTOOLS to point to this directory
 and run:
