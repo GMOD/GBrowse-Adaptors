@@ -1,3 +1,7 @@
+Version 1.05
+    * Bio::DB::Sam->seq_id() method no longer lower-cases reference names.
+    * Quashed enormous memory leak in the pileup() function.
+
 Version 1.04
     * Updated example BAM file (ex1.bam) to be compatible with 1.06 version
       of samtools.

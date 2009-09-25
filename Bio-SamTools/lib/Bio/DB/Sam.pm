@@ -1201,7 +1201,7 @@ use Bio::SeqFeature::Lite;
 use Bio::PrimarySeq;
 
 use base 'DynaLoader';
-our $VERSION = '1.04';
+our $VERSION = '1.05';
 bootstrap Bio::DB::Sam;
 
 use Bio::DB::Bam::Alignment;
@@ -1286,8 +1286,7 @@ sub target_len {
 
 sub seq_ids {
     my $self    = shift;
-    my $targets = $self->_cache_targets;
-    return keys %{$targets};
+    return @{$self->header->target_name};
 }
 
 sub _cache_targets {

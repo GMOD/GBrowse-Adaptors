@@ -103,6 +103,7 @@ int invoke_pileup_callback_fun(uint32_t tid,
   SV*  callback;
   SV*  callbackdata;
   SV*  pileup_obj;
+  SV* p;
   SV** pileups;
   AV*  pileup;
 
@@ -112,13 +113,23 @@ int invoke_pileup_callback_fun(uint32_t tid,
 
   /* turn the bam_pileup1_t into the appropriate object */
   /* this causes a compiler warning -- ignore it */
+ if (0) {
   Newxz(pileups,n,SV*);
   for (i=0;i<n;i++)
-    pileups[i] = sv_setref_pv(sv_2mortal(newSV(sizeof(bam_pileup1_t))),
+        pileups[i] = sv_setref_pv(sv_2mortal(newSV(sizeof(bam_pileup1_t))),
 			      "Bio::DB::Bam::Pileup",
 			      (void*) &pl[i]);
   pileup = av_make(n,pileups);
   Safefree(pileups);
+} else {
+  pileup = newAV();
+  av_extend(pileup,n);
+  for (i=0;i<n;i++) {
+    p = newSV(sizeof(bam_pileup1_t));	
+    sv_setref_pv(p,"Bio::DB::Bam::Pileup",(void*) &pl[i]);
+    av_push(pileup,p);
+  } 
+}
   
     /* set up subroutine stack for the call */
   ENTER;
@@ -136,7 +147,6 @@ int invoke_pileup_callback_fun(uint32_t tid,
 
   FREETMPS;
   LEAVE;
-
 }
 
 int add_pileup_line (const bam1_t *b, void *data) {
