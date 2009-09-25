@@ -1,0 +1,32 @@
+This is a Perl interface to the SAMtools sequence alignment interface.
+See http://samtools.sourceforge.net/.
+
+To compile this module, you must first download, unpack and compile
+SAMtools 0.1.4 or higher in some accessible directory. FOR SAMTOOLS
+VERSION 0.1.4, YOU MUST RUN "make -f makefile.generic" IN THE
+DISTRIBUTION DIRECTORY IN ORDER TO CREATE THE REQUIRED libbam.a
+LIBRARY FILE. For other versions, just "make" will usually work.
+
+Then set the environment variable SAMTOOLS to point to this directory
+and run:
+
+  perl Build.PL
+  ./Build
+  ./Build test
+  (sudo) ./Build install
+
+If you encounter problems during compiling, you may need to edit
+Build.PL so that extra_compiler_flags matches the CFLAGS and DFLAGS
+settings in the Samtools Makefile. One issue that several people have
+encountered is that 32 bit machines must not have -m64 set, and
+vice-versa. Others have needed to add -fPIC to the Samtools CFLAGS
+line in order for libbam.a to link properly with this module.
+
+AUTHOR: Lincoln D. Stein <lincoln.stein@gmail.com>
+
+Copyright (c) 2009 Ontario Institute for Cancer Research
+
+This package and its accompanying libraries is free software; you can
+redistribute it and/or modify it under the terms of the GPL (either
+version 1, or at your option, any later version) or the Artistic
+License 2.0.  Refer to LICENSE for the full license text.
