@@ -33,6 +33,11 @@ method, at the cost of some performance loss.
 Return the Bio::DB::Bam::Alignment or Bio::DB::Bam::AlignWrapper
 object representing the aligned read.
 
+=item $alignment = $pileup->b
+
+This method is an alias for alignment(). It is available for
+compatibility with the C API.
+
 =item $qpos = $pileup->qpos
 
 Return the position of this aligned column in read coordinates, using
