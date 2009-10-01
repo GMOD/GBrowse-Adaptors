@@ -1219,7 +1219,7 @@ sub new {
     my $expand_flags  = $args{-expand_flags};
     my $split_splices = $args{-split} || $args{-split_splices};
 
-    -e $bam_path && -r _  or croak "$fa_path does not exist or is not readable";
+    -e $bam_path && -r _  or croak "$bam_path does not exist or is not readable";
     my $bam = Bio::DB::Bam->open($bam_path)      or croak "$bam_path open: $!";
 
     my $fai;
