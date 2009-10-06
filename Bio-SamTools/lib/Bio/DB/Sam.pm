@@ -1857,6 +1857,28 @@ sub coverage {
     return wantarray ? @$coverage : $coverage;
 }
 
+sub source {
+    my $self = shift;
+    my $type = $self->type;
+    my ($base,$width) = split ':',$type;
+    return $width;
+}
+
+sub method {
+    my $self = shift;
+    my $type = $self->type;
+    my ($base,$width) = split ':',$type;
+    return $base;
+}
+
+sub gff3_string {
+    my $self = shift;
+    my $gff3 = $self->SUPER::gff3_string;
+    my $coverage = $self->escape(join(',',$self->coverage));
+    $gff3 =~ s/coverage=[^;]+/coverage=$coverage/g;
+    return $gff3;
+}
+
 package Bio::DB::Bam;
 
 sub index {

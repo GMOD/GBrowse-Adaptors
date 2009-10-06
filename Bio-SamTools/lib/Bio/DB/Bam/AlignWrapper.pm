@@ -243,6 +243,65 @@ sub has_tag {
     }
 }
 
+sub gff_string { shift->gff3_string(@_) }
+
+sub gff3_string {
+    my $self = shift;
+    my $recurse   = shift;
+    my $parent_id = shift;
+
+    my $group      = $self->format_attributes($parent_id);
+    my $name       = $self->name;
+    my $id         = $self->primary_id;
+
+    my $class = $self->class;
+    my $strand = ('-','.','+')[$self->strand+1];
+    my $p = join("\t",
+		 $self->seq_id||'.',
+		 $self->source||'.',
+		 $self->method||'.',
+		 $self->start||'.',
+		 $self->stop||'.',
+		 defined($self->score) ? $self->score : '.',
+		 $strand||'.',
+		 defined($self->phase) ? $self->phase : '.',
+		 $group||'');
+    my @rsf = $self->get_SeqFeatures;
+    return join("\n",
+		$p,
+		map {$_->gff3_string($id)} @rsf);
+}
+
+sub phase { return } 
+
+sub escape {
+  my $self     = shift;
+  my $toencode = shift;
+  $toencode    =~ s/([^a-zA-Z0-9_.:?^*\(\)\[\]@!+-])/uc sprintf("%%%02x",ord($1))/eg;
+  $toencode;
+}
+
+
+sub format_attributes {
+  my $self        = shift;
+  my $parent_id   = shift;
+
+  my @tags = $self->get_all_tags;
+  my @result;
+  for my $t (@tags) {
+    my @values = $self->each_tag_value($t);
+    push @result,join '=',$self->escape($t),join(',', map {$self->escape($_)} @values) if @values;
+  }
+  my $id        = $self->escape($self->primary_id);
+
+  my $name = $self->display_name;
+  unshift @result,"ID=".$id                                    if defined $id;
+  unshift @result,"Parent=".$parent_id                         if defined $parent_id;
+  unshift @result,"Name=".$self->escape($name)                 if defined $name;
+  return join ';',@result;
+}
+
+
 package Bio::DB::Bam::SplitAlignmentPart;
 
 use base 'Bio::SeqFeature::Lite';
@@ -271,5 +330,7 @@ sub cigar_str {
     $self->{cigar_str} = shift if @_;
     $d;
 }
+
+
 
 1;

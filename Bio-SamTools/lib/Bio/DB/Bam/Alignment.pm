@@ -386,6 +386,8 @@ use Bio::DB::Bam::Query;
 use Bio::DB::Bam::Target;
 use Bio::DB::Sam::Constants;
 
+sub each_tag_value { shift->get_tag_values(@_)  }
+
 sub get_tag_values {
     my $self = shift;
     my $tag  = shift;

@@ -20,7 +20,9 @@ Build.PL so that extra_compiler_flags matches the CFLAGS and DFLAGS
 settings in the Samtools Makefile. One issue that several people have
 encountered is that 32 bit machines must not have -m64 set, and
 vice-versa. Others have needed to add -fPIC to the Samtools CFLAGS
-line in order for libbam.a to link properly with this module.
+line in order for libbam.a to link properly with this module. After
+modifying the Makefile, please be sure to do a "make clean; make" to
+rebuild the libbam.a file.
 
 AUTHOR: Lincoln D. Stein <lincoln.stein@gmail.com>
 
