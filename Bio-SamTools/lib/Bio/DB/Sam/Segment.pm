@@ -29,8 +29,13 @@ sub features {
 			 @args);
 }
 
+#required by GBrowse1
+*get_feature_stream = \&features;
+
 # required by api
 sub seq_id   { shift->{seqid} };
+# required by GBrowse1
+*ref = *abs_ref = *sourceseq = \&seq_id;
 # required by api
 sub start    { shift->{start} };
 # required by api
@@ -75,6 +80,8 @@ sub factory { shift->db  }
 sub get_SeqFeatures { return;   }
 # required by api
 sub method { shift->primary_tag }
+# required by GBrowse1
+sub type { shift->primary_tag }
 # required by api
 sub get_tag_values {  return; }
 # required by api
