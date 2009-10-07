@@ -15,7 +15,6 @@ lib/Bio/DB/Sam/Constants.pm
 lib/Bio/DB/Sam/Segment.pm
 LICENSE
 MANIFEST			This list of files
-META.yml
 README
 t/01sam.t
 t/data/00README.txt
