@@ -30,7 +30,14 @@ sub features {
 }
 
 #required by GBrowse1
-*get_feature_stream = \&features;
+sub get_feature_stream {
+    my $self = shift;
+    my @args = @_;
+
+    my @features = $self->features(@args);
+
+    return Bio::DB::Sam::Segment::Iterator->new(\@features);
+}
 
 # required by api
 sub seq_id   { shift->{seqid} };
@@ -88,5 +95,22 @@ sub get_tag_values {  return; }
 sub score { return;  }
 # required by api
 sub class { 'sequence'  }
+
+
+
+package Bio::DB::Sam::Segment::Iterator;
+
+sub new {
+  my $package  = shift;
+  my $features = shift;
+  return bless $features,$package;
+}
+
+sub next_seq {
+  my $self = shift;
+  return unless @$self;
+    my $next_feature = shift @$self;
+  return $next_feature;
+}
 
 1;
