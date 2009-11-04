@@ -1,6 +1,13 @@
+<<<<<<< .mine
+Version 1.06
+    * Updated README to be more explicit about how to troubleshoot 
+      compile errors.
+
+=======
 Version 1.06
     * Modifed so that Bio::DB::Sam will work with GBrowse 1.
 
+>>>>>>> .r22228
 Version 1.05
     * Bio::DB::Sam->seq_id() method no longer lower-cases reference names.
     * Quashed enormous memory leak in the pileup() function.
