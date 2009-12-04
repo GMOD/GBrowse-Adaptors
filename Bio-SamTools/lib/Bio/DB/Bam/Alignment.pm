@@ -84,10 +84,10 @@ Return the length of the alignment on the reference sequence.
 =item $strand = $align->strand
 
 Return the strand of the alignment as -1 for reversed, +1 for
-forward. Because alignments in SAM format are B<always> on the forward
-strand, this method always returns +1. To determine whether the read
-was reverse complemented prior to alignmented, use the low-level
-method reversed().
+forward. 
+
+NOTE: In versions 1.00-1.06, this method always returned +1. As of
+version 1.07, this behavior is fixed.
 
 =item $mstrand = $align->mstrand
 
@@ -193,6 +193,15 @@ operation and a count. Example:
 
  [ ['M',34], ['D',1], ['M1',1] ]
 
+=item ($ref,$matches,$query) = $align->padded_alignment
+
+Return three strings that show the alignment between the reference
+sequence (the target) and the query. It will look like this:
+
+ $ref     AGTGCCTTTGTTCA-----ACCCCCTTGCAACAACC
+ $matches ||||||||||||||     |||||||||||||||||
+ $query   AGTGCCTTTGTTCACATAGACCCCCTTGCAACAACC 
+
 =item $tag = $align->primary_tag
 
 This is provided for Bio::SeqFeatureI compatibility. Return the string
@@ -271,7 +280,9 @@ The length of the query sequence (the read).
 
 =item $dna = $align->qseq
 
-The actual DNA sequence of the query.
+The actual DNA sequence of the query. As in the SAM file, reads that
+are aligned to the minus strand of the reference are returned in
+reverse complemented form.
 
 =item $score_str = $align->_qscore
 
@@ -285,7 +296,8 @@ using unpack('C*',$score_str), or use the high-level qscore() method.
 
 In a scalar context return an array reference containing the unpacked
 quality scores for each base of the query sequence. In a list context
-return a list of the scores.
+return a list of the scores. This array is in the same orientation as
+the reference sequence.
 
 =item $length = $align->isize
 
@@ -441,7 +453,8 @@ sub stop { shift->end }
 # in SAM format, alignment is always to the forward strand
 sub strand {
     my $self     = shift;
-    return 1;
+    return $self->reversed ? -1 : 1;
+#     return 1;
 }
 
 sub abs_strand { shift->strand }
@@ -497,6 +510,35 @@ sub cigar_array {
     }
     return \@result;
 
+}
+
+sub padded_alignment {
+    my $self  = shift;
+
+    my $cigar = $self->cigar_array;
+
+    my $sdna  = $self->dna;
+    my $tdna  = $self->hit->dna;
+
+    my ($pad_source,$pad_target,$pad_match);
+    for my $event (@$cigar) {
+	my ($op,$count) = @$event;
+	if ($op eq 'I' || $op eq 'S' || $op eq 'H') {
+	    $pad_source .= '-' x $count;
+	    $pad_target .= substr($tdna,0,$count,'');
+	    $pad_match  .= ' ' x $count;
+	}
+	elsif ($op eq 'D' || $op eq 'N' || $op eq 'P') {
+	    $pad_source .= substr($tdna,0,$count,'');
+	    $pad_target .= '-' x $count;
+	    $pad_match  .= ' ' x $count;
+	} else {  # everything else is assumed to be a match -- revisit
+	    $pad_source .= substr($sdna,0,$count,'');
+	    $pad_target .= substr($tdna,0,$count,'');
+	    $pad_match  .= '|' x $count;
+	}
+    }
+    return ($pad_source,$pad_match,$pad_target);
 }
 
 sub flag_str {

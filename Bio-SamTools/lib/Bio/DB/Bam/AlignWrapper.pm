@@ -172,7 +172,8 @@ sub class      { shift->primary_tag }
 
 sub seq      {
     my $self   = shift;
-    return Bio::PrimarySeq->new(-seq => $self->dna,
+    my $dna    = $self->dna;
+    return Bio::PrimarySeq->new(-seq => $dna,
 				-id  => $self->seq_id);
 }
 
@@ -181,7 +182,8 @@ sub subseq {
     my ($start,$end) = @_;
     $start = 1 if $start < 1;
     $end   = $self->high if $end > $self->high;
-    return Bio::PrimarySeq->new(-seq=>substr($self->dna,
+    my $dna = $self->dna;
+    return Bio::PrimarySeq->new(-seq=>substr($dna,
 					     $start-1,
 					     $end-$start+1)
 				);

@@ -1,13 +1,16 @@
-<<<<<<< .mine
+Version 1.07
+    * IMPORTANT API CHANGE 1: The feature strand now returns +1 or -1 to indicate 
+      whether the query was reverse complemented in the SAM file.
+    * IMPORTANT API CHANGE 2: The $feature->query object's dna() and seq() methods
+      now return the sequence as it was read, rather than the reverse
+      complemented version as represented in the SAM file. $feature->qseq() 
+      returns the reverse complemented version as before.
+
 Version 1.06
     * Updated README to be more explicit about how to troubleshoot 
       compile errors.
-
-=======
-Version 1.06
     * Modifed so that Bio::DB::Sam will work with GBrowse 1.
 
->>>>>>> .r22228
 Version 1.05
     * Bio::DB::Sam->seq_id() method no longer lower-cases reference names.
     * Quashed enormous memory leak in the pileup() function.

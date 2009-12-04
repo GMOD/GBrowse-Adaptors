@@ -151,13 +151,18 @@ sub length {
 
 =item $seq = $query->seq
 
-A Bio::PrimarySeq representing the read sequence.
+A Bio::PrimarySeq representing the read sequence. 
+
+NOTE: As of version 1.07, this method returns the read in the
+orientation in which it was sequenced, not in the orientation in which
+it is represented in the SAM file (in which - strand matches are
+reverse complemented).
 
 =cut
 
-sub seq {
+sub seq { 
     my $self = shift;
-    my $dna  = $self->strand > 0 ? $$self->qseq : reversec($$self->qseq);
+    my $dna  = $$self->strand > 0 ? $$self->qseq : reversec($$self->qseq);
     return Bio::PrimarySeq->new(-seq => $dna,
 				-id  => $$self->qname);
 }
@@ -168,22 +173,34 @@ The read quality scores. In a list context, a list of integers equal
 in length to the read sequence length. In a scalar context, an array
 ref.
 
+NOTE: As of version 1.07, this method returns the qscores in the
+orientation in which the read was sequenced, not in the orientation in
+which it is represented in the SAM file (in which - strand matches are
+reverse complemented).
+
 =cut
 
 sub qscore {
     my $self = shift;
-    return $$self->qscore;
+    my @qscore = $$self->qscore;
+    @qscore    = reverse @qscore = $$self->strand < 0;
+    return wantarray ? @qscore : \@qscore;
 }
 
 =item $dna = $query->dna
 
 The DNA string.
 
+NOTE: As of version 1.07, this method returns the qscores in the
+orientation in which the read was sequenced, not in the orientation in
+which it is represented in the SAM file (in which - strand matches are
+reverse complemented).
+
 =cut
 
 sub dna {
     my $self = shift;
-    return $$self->qseq;
+    return $$self->strand > 0 ? $$self->qseq : reversec($$self->qseq);
 }
 
 =item $strand = $query->strand

@@ -1201,7 +1201,7 @@ use Bio::SeqFeature::Lite;
 use Bio::PrimarySeq;
 
 use base 'DynaLoader';
-our $VERSION = '1.06';
+our $VERSION = '1.07';
 bootstrap Bio::DB::Sam;
 
 use Bio::DB::Bam::Alignment;
@@ -1926,7 +1926,7 @@ __END__
 For illustrative purposes only, here is an extremely stupid SNP caller
 that tallies up bases that are q>20 and calls a SNP if there are at
 least 4 non-N/non-indel bases at the position and at least 25% of them
-are an non-reference base.
+are a non-reference base.
 
  my @SNPs;  # this will be list of SNPs
  my $snp_caller = sub {
