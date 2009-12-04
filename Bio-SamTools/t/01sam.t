@@ -229,8 +229,8 @@ use Bio::DB::Sam;
     ok($query->start,1);
     ok($query->end,35);
     ok($query->length,35);
-    ok($query->dna,$alignments[0]->dna);
-    ok($alignments[0]->strand,1);
+    ok($query->dna,reversec($alignments[0]->dna));
+    ok($alignments[0]->strand,-1);
     ok($query->strand,-1);
 
     ok($alignments[0]->get_tag_values('FLAGS'),$alignments[0]->flag_str);
@@ -318,7 +318,8 @@ use Bio::DB::Sam;
 	for my $pileup (@$p) {
 	    my $a    = $pileup->alignment;
 	    my $qpos = $pileup->qpos;
-	    my $base = $pileup->indel == 0 ? substr($a->query->dna,$qpos,1)
+	    my $dna  = $a->strand > 0 ? $a->query->dna : reversec($a->query->dna);
+	    my $base = $pileup->indel == 0 ? substr($dna,$qpos,1)
                       :$pileup->indel >  0 ? '*'
                       : '-';
 	    $matches{matched}++ if $r eq $base;
@@ -344,4 +345,10 @@ use Bio::DB::Sam;
 	$a->mate_start,'..',$a->mate_end,
 	"\n";
     }
+}
+
+sub reversec {
+    my $dna = shift;
+    $dna    =~ tr/gatcGATC/ctagCTAG/;
+    return scalar reverse $dna;
 }
