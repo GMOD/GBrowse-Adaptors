@@ -332,8 +332,9 @@ bam_header(bam)
     PROTOTYPE: $
     PREINIT:
       bam_header_t *bh;
+      int64_t       result;
     CODE:
-      bgzf_seek(bam,0,0);
+      result = bgzf_seek(bam,0,0);
       bh = bam_header_read(bam);
       RETVAL = bh;
     OUTPUT:

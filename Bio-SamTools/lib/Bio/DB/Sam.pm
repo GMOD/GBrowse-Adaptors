@@ -179,7 +179,6 @@ follows:
  * Bio::DB::Bam::Pileup    -- Methods for manipulating the pileup data structure.
  * Bio::DB::Sam::Fai       -- Methods for creating and reading from indexed Fasta
                               files.
-
 =head1 METHODS
 
 We cover the high-level API first. The high-level API code can be
@@ -296,6 +295,12 @@ process must have write permission to the directory in which the BAM
 file resides in order for this to work.> In case of a permissions
 problem, the Perl library will catch the error and die. You can trap
 it with an eval {}.
+
+=item $sam->clone
+
+Bio::DB::SAM objects are not stable across fork() operations. If you
+fork, you must call clone() either in the parent or the child process
+before attempting to call any methods.
 
 =back
 
@@ -899,6 +904,12 @@ Open up the BAM file at the indicated path. Mode, if present, must be
 one of the file stream open flags ("r", "w", "a", "r+", etc.). If
 absent, mode defaults to "r".
 
+Note that Bio::DB::Bam objects are not stable across fork()
+operations. If you fork, and intend to use the object in both parent
+and child, you must reopen the Bio::DB::Bam in either the child or the
+parent (but not both) before attempting to call any of the object's
+methods.
+
 =item $header = $bam->header()
 
 Given an open BAM file, return a Bio::DB::Bam::Header object
@@ -1201,7 +1212,7 @@ use Bio::SeqFeature::Lite;
 use Bio::PrimarySeq;
 
 use base 'DynaLoader';
-our $VERSION = '1.07';
+our $VERSION = '1.08';
 bootstrap Bio::DB::Sam;
 
 use Bio::DB::Bam::Alignment;
@@ -1234,12 +1245,19 @@ sub new {
 	fai           => $fai,
 	bam           => $bam,
 	bam_path      => $bam_path,
+	fa_path       => $fa_path,
 	expand_flags  => $expand_flags,
 	split_splices => $split_splices,
     },ref $class || $class;
     $self->header;  # catch it
 
     return $self;
+}
+
+sub clone {
+    my $self = shift;
+    $self->{bam} = Bio::DB::Bam->open($self->{bam_path})     if $self->{bam_path};
+    $self->{fai} = Bio::DB::Sam::Fai->open($self->{fa_path}) if $self->{fa_path};
 }
 
 sub header {

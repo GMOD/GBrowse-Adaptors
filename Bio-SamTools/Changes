@@ -1,3 +1,7 @@
+Version 1.08
+    * Implemented a clone() method for use immediately before or after
+      a fork() attempt.
+
 Version 1.07
     * IMPORTANT API CHANGE 1: The feature strand now returns +1 or -1 to indicate 
       whether the query was reverse complemented in the SAM file.
