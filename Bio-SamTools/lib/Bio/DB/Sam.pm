@@ -201,7 +201,8 @@ follows:
   ------         -------------
 
   -bam           Path to the BAM file that contains the
-                   alignments (required).
+                   alignments (required). When using samtools 0.1.6
+                   or higher, an http: or ftp: URL is accepted.
 
   -fasta         Path to the Fasta file that contains
                    the reference sequences (optional).
@@ -253,6 +254,14 @@ relationships:
 Because there is some overhead to splitting up the spliced alignments,
 this option is false by default.
 
+B<Remote access> to BAM files located on an HTTP or FTP server is
+possible when using the Samtools library version 0.1.6 or
+higher. Simply replace the path to the BAM file with the appropriate
+URL. Note that incorrect URLs may lead to a core dump.
+
+It is not currently possible to refer to a remote FASTA file. These
+will have to be downloaded locally and indexed before using.
+
 =item $flag = $sam->expand_flags([$new_value])
 
 Get or set the expand_flags option. This can be done after object
@@ -276,7 +285,7 @@ Returns the Bio::DB::Sam::Fai object associated with the Fasta
 file. You can then manipuate this object with the low-level API.
 
 B<The index will be built automatically for you if it does not already
-exist. If index building is necessarily, the process will need write
+exist.> If index building is necessarily, the process will need write
 privileges to the same directory in which the Fasta file resides.> If
 the process does not have write permission, then the call will fail.
 Unfortunately, the BAM library does not do great error recovery for
@@ -288,7 +297,7 @@ trappable via an eval {}.
 Return the Bio::DB::Bam::Index object associated with the BAM file. 
 
 B<The BAM file index will be built automatically for you if it does
-not already exist. In addition, if the BAM file is not already sorted
+not already exist.> In addition, if the BAM file is not already sorted
 by chromosome and coordinate, it will be sorted automatically, an
 operation that consumes significant time and disk space. The current
 process must have write permission to the directory in which the BAM
@@ -1212,7 +1221,7 @@ use Bio::SeqFeature::Lite;
 use Bio::PrimarySeq;
 
 use base 'DynaLoader';
-our $VERSION = '1.08';
+our $VERSION = '1.09';
 bootstrap Bio::DB::Sam;
 
 use Bio::DB::Bam::Alignment;
@@ -1230,8 +1239,12 @@ sub new {
     my $expand_flags  = $args{-expand_flags};
     my $split_splices = $args{-split} || $args{-split_splices};
 
-    -e $bam_path or croak "$bam_path does not exist";
-    -r _  or croak "is not readable";
+    # file existence checks
+    unless ($class->is_remote($bam_path)) {
+	-e $bam_path or croak "$bam_path does not exist";
+	-r _  or croak "is not readable";
+    }
+
     my $bam = Bio::DB::Bam->open($bam_path)      or croak "$bam_path open: $!";
 
     my $fai;
@@ -1252,6 +1265,12 @@ sub new {
     $self->header;  # catch it
 
     return $self;
+}
+
+sub is_remote {
+    my $self = shift;
+    my $path = shift;
+    return $path =~ /^(http|ftp):/;
 }
 
 sub clone {
@@ -1333,7 +1352,9 @@ sub _fetch {
 
     my $header              = $self->{bam}->header;
     $region                 =~ s/\.\.|,/-/;
+
     my ($seqid,$start,$end) = $header->parse_region($region);
+
     return unless defined $seqid;
     my $index  = $self->bam_index;
     $index->fetch($self->{bam},$seqid,$start,$end,$callback,$self);
@@ -1904,6 +1925,9 @@ package Bio::DB::Bam;
 sub index {
     my $self = shift;
     my $path = shift;
+
+    return $self->index_open($path) if Bio::DB::Sam->is_remote($path);
+
     unless (-e "${path}.bai" && (-M $path >= -M "${path}.bai")) {
 	# if bam file is not sorted, then index_build will exit.
 	# we spawn a shell to intercept this eventuality

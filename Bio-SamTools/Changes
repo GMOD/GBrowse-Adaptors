@@ -1,3 +1,8 @@
+Version 1.09
+    * Disabled checks for file readability when path is a remote BAM
+      index. This allows transparent access to BAM databases on
+      http/ftp servers.
+ 
 Version 1.08
     * Implemented a clone() method for use immediately before or after
       a fork() attempt.

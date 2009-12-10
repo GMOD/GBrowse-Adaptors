@@ -1,6 +1,6 @@
 ---
 name: Bio-SamTools
-version: 1.05
+version: 1.09
 author:
   - 'Lincoln Stein <lincoln.stein@gmail.com>'
 abstract: The GMOD Generic Genome Browser
@@ -34,12 +34,14 @@ provides:
     file: lib/Bio/DB/Bam/Target.pm
   Bio::DB::Sam:
     file: lib/Bio/DB/Sam.pm
-    version: 1.05
+    version: 1.09
   Bio::DB::Sam::Constants:
     file: lib/Bio/DB/Sam/Constants.pm
   Bio::DB::Sam::Fai:
     file: lib/Bio/DB/Sam.pm
   Bio::DB::Sam::Segment:
+    file: lib/Bio/DB/Sam/Segment.pm
+  Bio::DB::Sam::Segment::Iterator:
     file: lib/Bio/DB/Sam/Segment.pm
   Bio::SeqFeature::Coverage:
     file: lib/Bio/DB/Sam.pm

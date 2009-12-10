@@ -22,3 +22,4 @@ t/data/ex1.bam
 t/data/ex1.fa
 t/data/ex1.sam.gz
 typemap				Don't delete this!
+META.yml
