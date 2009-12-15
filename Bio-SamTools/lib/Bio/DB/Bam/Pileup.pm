@@ -1,6 +1,6 @@
 package Bio::DB::Bam::Pileup;
 
-# $Id: Pileup.pm,v 1.1 2009-06-25 16:15:36 lstein Exp $
+# $Id$
 
 # documentation only
 

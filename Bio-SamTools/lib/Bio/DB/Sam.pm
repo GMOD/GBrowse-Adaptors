@@ -1,5 +1,5 @@
 package Bio::DB::Sam;
-# $Id: Sam.pm,v 1.17 2009-09-03 18:40:06 lstein Exp $
+# $Id$
 
 =head1 NAME
 
@@ -45,6 +45,7 @@ Bio::DB::Sam -- Read SAM/BAM database files
 
  # low level API
  my $bam          = Bio::DB::Bam->open('/path/to/bamfile');
+ my $bam          = Bio::DB::Bam->open_in_safewd('/path/to/bamfile');
  my $header       = $bam->header;
  my $target_count = $header->n_targets;
  my $target_names = $header->target_name;
@@ -894,7 +895,7 @@ reference sequence names and lengths.
 
 Given a Bio::DB::Bam::Header object, such as the one created by
 header_read2(), and a Bio::DB::Bam::Alignment object created by
-Bio::DB::Bam::Alignmnt->new(), reads one line of alignment information
+Bio::DB::Bam::Alignment->new(), reads one line of alignment information
 into the alignment object from the TAM file and returns a status
 code. The result code will be the number of bytes read.
 
@@ -918,6 +919,23 @@ operations. If you fork, and intend to use the object in both parent
 and child, you must reopen the Bio::DB::Bam in either the child or the
 parent (but not both) before attempting to call any of the object's
 methods.
+
+The path may be an http: or ftp: URL, in which case a copy of the
+index file will be downloaded to the current working directory (see
+below) and all accesses will be performed on the remote BAM file.
+
+Example:
+
+   $bam = Bio::DB::Bam->open('http://some.site.com/nextgen/chr1_bowtie.bam');
+
+=item $bam = Bio::DB::Bam->open_in_safewd('/path/to/file.bam' [,$mode])
+
+When opening a remote BAM file, you may not wish for the index to be
+downloaded to the current working directory. This version of open
+copies the index into the directory indicated by the TMPDIR
+environment variable or the system-defined /tmp directory if not
+present. You may change the environment variable just before the call
+to change its behavior.
 
 =item $header = $bam->header()
 
@@ -1221,7 +1239,7 @@ use Bio::SeqFeature::Lite;
 use Bio::PrimarySeq;
 
 use base 'DynaLoader';
-our $VERSION = '1.09';
+our $VERSION = '1.10';
 bootstrap Bio::DB::Sam;
 
 use Bio::DB::Bam::Alignment;
@@ -1245,7 +1263,7 @@ sub new {
 	-r _  or croak "is not readable";
     }
 
-    my $bam = Bio::DB::Bam->open($bam_path)      or croak "$bam_path open: $!";
+    my $bam = Bio::DB::Bam->open_in_safewd($bam_path)      or croak "$bam_path open: $!";
 
     my $fai;
     if ($fa_path) {
@@ -1275,8 +1293,8 @@ sub is_remote {
 
 sub clone {
     my $self = shift;
-    $self->{bam} = Bio::DB::Bam->open($self->{bam_path})     if $self->{bam_path};
-    $self->{fai} = Bio::DB::Sam::Fai->open($self->{fa_path}) if $self->{fa_path};
+    $self->{bam} = Bio::DB::Bam->open_in_safewd($self->{bam_path})  if $self->{bam_path};
+    $self->{fai} = Bio::DB::Sam::Fai->open($self->{fa_path})        if $self->{fa_path};
 }
 
 sub header {
@@ -1922,6 +1940,9 @@ sub gff3_string {
 
 package Bio::DB::Bam;
 
+use File::Spec;
+use Cwd;
+
 sub index {
     my $self = shift;
     my $path = shift;
@@ -1956,6 +1977,19 @@ sub index {
 	}
     }
     return $self->index_open($path);
+}
+
+# same as open(), but changes current wd to TMPDIR to accomodate
+# the C library when it tries to download the index file from remote
+# locations.
+sub open_in_safewd {
+    my $self = shift;
+    my $dir    = getcwd;
+    my $tmpdir = File::Spec->tmpdir;
+    chdir($tmpdir);
+    my $result = $self->open(@_);
+    chdir $dir;
+    $result;
 }
 
 

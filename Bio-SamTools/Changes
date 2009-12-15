@@ -1,3 +1,7 @@
+Version 1.10
+    * Added a new Bio::DB::Bam method for caching remote files' indices in the
+      temp directory. This is used by default by high-level API.
+
 Version 1.09
     * Disabled checks for file readability when path is a remote BAM
       index. This allows transparent access to BAM databases on
