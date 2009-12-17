@@ -45,7 +45,6 @@ Bio::DB::Sam -- Read SAM/BAM database files
 
  # low level API
  my $bam          = Bio::DB::Bam->open('/path/to/bamfile');
- my $bam          = Bio::DB::Bam->open_in_safewd('/path/to/bamfile');
  my $header       = $bam->header;
  my $target_count = $header->n_targets;
  my $target_names = $header->target_name;
@@ -57,6 +56,8 @@ Bio::DB::Sam -- Read SAM/BAM database files
  }
 
  my $index = Bio::DB::Bam->index_open('/path/to/bamfile');
+ my $index = Bio::DB::Bam->index_open_in_safewd('/path/to/bamfile');
+
  my $callback = sub {
      my $alignment = shift;
      my $start       = $alignment->start;
@@ -928,15 +929,6 @@ Example:
 
    $bam = Bio::DB::Bam->open('http://some.site.com/nextgen/chr1_bowtie.bam');
 
-=item $bam = Bio::DB::Bam->open_in_safewd('/path/to/file.bam' [,$mode])
-
-When opening a remote BAM file, you may not wish for the index to be
-downloaded to the current working directory. This version of open
-copies the index into the directory indicated by the TMPDIR
-environment variable or the system-defined /tmp directory if not
-present. You may change the environment variable just before the call
-to change its behavior.
-
 =item $header = $bam->header()
 
 Given an open BAM file, return a Bio::DB::Bam::Header object
@@ -1013,6 +1005,15 @@ future may return a negative value to indicate failure.
 Attempt to open the index file for a BAM file, returning a
 Bio::DB::Bam::Index object. The filename path to use is the .bam file,
 not the .bai file.
+
+=item $index = Bio::DB::Bam->index_open_in_safewd('/path/to/file.bam' [,$mode])
+
+When opening a remote BAM file, you may not wish for the index to be
+downloaded to the current working directory. This version of index_open
+copies the index into the directory indicated by the TMPDIR
+environment variable or the system-defined /tmp directory if not
+present. You may change the environment variable just before the call
+to change its behavior.
 
 =item $code = $index->fetch($bam,$tid,$start,$end,$callback [,$callback_data])
 
@@ -1263,7 +1264,7 @@ sub new {
 	-r _  or croak "is not readable";
     }
 
-    my $bam = Bio::DB::Bam->open_in_safewd($bam_path)      or croak "$bam_path open: $!";
+    my $bam = Bio::DB::Bam->open($bam_path)      or croak "$bam_path open: $!";
 
     my $fai;
     if ($fa_path) {
@@ -1293,8 +1294,8 @@ sub is_remote {
 
 sub clone {
     my $self = shift;
-    $self->{bam} = Bio::DB::Bam->open_in_safewd($self->{bam_path})  if $self->{bam_path};
-    $self->{fai} = Bio::DB::Sam::Fai->open($self->{fa_path})        if $self->{fa_path};
+    $self->{bam} = Bio::DB::Bam->open($self->{bam_path})     if $self->{bam_path};
+    $self->{fai} = Bio::DB::Sam::Fai->open($self->{fa_path}) if $self->{fa_path};
 }
 
 sub header {
@@ -1947,7 +1948,7 @@ sub index {
     my $self = shift;
     my $path = shift;
 
-    return $self->index_open($path) if Bio::DB::Sam->is_remote($path);
+    return $self->index_open_in_safewd($path) if Bio::DB::Sam->is_remote($path);
 
     unless (-e "${path}.bai" && (-M $path >= -M "${path}.bai")) {
 	# if bam file is not sorted, then index_build will exit.
@@ -1979,15 +1980,15 @@ sub index {
     return $self->index_open($path);
 }
 
-# same as open(), but changes current wd to TMPDIR to accomodate
+# same as index_open(), but changes current wd to TMPDIR to accomodate
 # the C library when it tries to download the index file from remote
 # locations.
-sub open_in_safewd {
+sub index_open_in_safewd {
     my $self = shift;
     my $dir    = getcwd;
     my $tmpdir = File::Spec->tmpdir;
     chdir($tmpdir);
-    my $result = $self->open(@_);
+    my $result = $self->index_open(@_);
     chdir $dir;
     $result;
 }
