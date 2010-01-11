@@ -128,12 +128,17 @@ sub split_splices {
 									    $start+$skip,
 									    $end-$start),
 							  -type   => $self->type);
+
+	    # in case sequence is missing?
+	    my $qseq = $self->qseq;
+	    $qseq  ||= 'N' x $self->length;
+
 	    $f->hit(-name   => $self->display_name,
 		    -seq_id => $self->display_name,
 		    -start  => $start+1,
 		    -end    => $end,
 		    -strand => $self->strand,
-		    -seq    => substr($self->qseq,$start,$end-$start),
+		    -seq    => substr($qseq,$start,$end-$start),
 		);
 	    $f->cigar_str($partial_cigar);
 	    $partial_cigar = '';
