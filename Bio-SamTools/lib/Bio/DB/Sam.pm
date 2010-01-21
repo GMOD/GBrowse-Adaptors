@@ -2017,7 +2017,7 @@ are a non-reference base.
             my $qbase  = substr($b->qseq,$pileup->qpos,1);
             next if $qbase =~ /[nN]/;
 
-            my $qscore = $b->qscore->[$pileup->gpos];
+            my $qscore = $b->qscore->[$pileup->qpos];
             next unless $qscore > 25;
 
             $total++;
