@@ -1,0 +1,6 @@
+TYPEMAP
+Bio::DB::BBIFile		T_PTROBJ
+Bio::DB::BigFile                T_PTROBJ
+Bio::DB::bbiInterval		T_PTROBJ
+Bio::DB::bbiIntervalList	T_PTROBJ
+Bio::DB::BigWigExtendedSummary  T_PTROBJ
