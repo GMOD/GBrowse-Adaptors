@@ -23,13 +23,45 @@ our @EXPORT = @EXPORT_OK;
 
 bootstrap Bio::DB::BigFile;
 
-use constant bbiSumMean => 0;
-use constant bbiSumMax  => 1;
-use constant bbiSumMin  => 2;
-use constant bbiSumCoverage => 3;
+use constant bbiSumMean              => 0;
+use constant bbiSumMax               => 1;
+use constant bbiSumMin               => 2;
+use constant bbiSumCoverage          => 3;
 use constant bbiSumStandardDeviation => 4;
 
-package Bio::DB::BBIFile;
+sub createBigWig {
+    my $self = shift;
+    my ($inFile,$chrom_sizes,$outFile,$args) = @_;
+    my %defaults = (blockSize   =>1024,
+		    itemsPerSlot=>512,
+		    clipDontDie => 1,
+		    compress    => 1);
+    $args ||= {};
+    my %merged_args = (%defaults,%$args);
+    $self->bigWigFileCreate($inFile,$chrom_sizes,
+			    @merged_args{qw(blockSize itemsPerSlot clipDontDie compress)},
+			    $outFile);
+}
+
+sub createBigBed {
+    my $self = shift;
+    my ($inFile,$chrom_sizes,$outFile,$args) = @_;
+    my %defaults = (blockSize   =>1024,
+		    itemsPerSlot=>512,
+		    clipDontDie => 1,
+		    definedFieldCount => 0,
+		    asFileName        => undef,
+	);
+    $args ||= {};
+    my %merged_args = (%defaults,%$args);
+    $self->bigBedFileCreate($inFile,$chrom_sizes,
+			    @merged_args{qw(blockSize itemsPerSlot definedFieldCount asFileName clipDontDie)},
+			    $outFile);
+}
+
+package Bio::DB::bbiFile;
+
+# this method is fun but slow
 
 sub binStats {
     my $self = shift;
@@ -38,6 +70,7 @@ sub binStats {
     tie @tie,'Bio::DB::BigWig::binStats',$extended_summary;
     return \@tie;
 }
+
 
 package Bio::DB::BigWig::binStats;
 
@@ -56,7 +89,6 @@ sub FETCH {
     my $self  = shift;
     my $index = shift;
     return Bio::DB::BigWig::binStatElement->new($$self,$index);
-#    return $$self->validCount($index);
 }
 
 sub FETCHSIZE {

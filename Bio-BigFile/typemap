@@ -1,6 +1,13 @@
 TYPEMAP
-Bio::DB::BBIFile		T_PTROBJ
+Bio::DB::bbiFile		T_PTROBJ
 Bio::DB::BigFile                T_PTROBJ
 Bio::DB::bbiInterval		T_PTROBJ
 Bio::DB::bbiIntervalList	T_PTROBJ
-Bio::DB::BigWigExtendedSummary  T_PTROBJ
+Bio::DB::bbiChromInfoHead       T_PTROBJ
+Bio::DB::bbiChromInfo           T_PTROBJ
+Bio::DB::bbiExtendedSummary     T_PTROBJ
+Bio::DB::bbiExtendedSummaryEl   T_PTROBJ
+Bio::DB::BigBedInterval	        T_PTROBJ
+Bio::DB::BigBedIntervalList	T_PTROBJ
+Bio::DB::asObject               T_PTROBJ
+Bio::DB::asColumn               T_PTROBJ
