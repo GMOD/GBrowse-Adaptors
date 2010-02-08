@@ -604,7 +604,6 @@ PPCODE:
    {
      s = bam1_aux(b);  /* s is a khash macro */
      while (s < b->data + b->data_len) {
-       fprintf(stderr,"tag=%c%c\n",s[0],s[1]);
        XPUSHs(sv_2mortal(newSVpv(s,2)));
        s   += 2; 
        type = *s++;

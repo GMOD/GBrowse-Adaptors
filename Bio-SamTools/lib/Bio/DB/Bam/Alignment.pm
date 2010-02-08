@@ -602,7 +602,7 @@ sub target {
 sub primary_tag { 'match'   }
 sub source_tag  { 'sam/bam' }
 
-sub hit { shift->query(@_); }
+sub hit { shift->target(@_); }
 
 
 1;

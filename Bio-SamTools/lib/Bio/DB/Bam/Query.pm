@@ -17,7 +17,7 @@ Given an alignment retrieved from a Bio::DB::Sam database,
  my $end    = $query->end;
  my $dna    = $query->dna;    # dna string
  my $seq    = $query->seq;    # Bio::PrimarySeq object
- my @scores = $query->qscore; # quality score s
+ my @scores = $query->qscore; # quality score
 
 =head1 DESCRIPTION
 
@@ -147,23 +147,20 @@ The length of the read.
 
 sub length {
     my $self = shift;
-    $$self->cigar2qlen;
+    $self->high-$self->low+1;
+#    $$self->cigar2qlen;
 }
 
 =item $seq = $query->seq
 
-A Bio::PrimarySeq representing the read sequence. 
-
-NOTE: As of version 1.07, this method returns the read in the
-orientation in which it was sequenced, not in the orientation in which
-it is represented in the SAM file (in which - strand matches are
-reverse complemented).
+A Bio::PrimarySeq representing the read sequence in REFERENCE
+orientation.
 
 =cut
 
 sub seq { 
     my $self = shift;
-    my $dna  = $$self->strand > 0 ? $$self->qseq : reversec($$self->qseq);
+    my $dna  = $self->dna;
     return Bio::PrimarySeq->new(-seq => $dna,
 				-id  => $$self->qname);
 }
@@ -172,36 +169,25 @@ sub seq {
 
 The read quality scores. In a list context, a list of integers equal
 in length to the read sequence length. In a scalar context, an array
-ref.
-
-NOTE: As of version 1.07, this method returns the qscores in the
-orientation in which the read was sequenced, not in the orientation in
-which it is represented in the SAM file (in which - strand matches are
-reverse complemented).
+ref. The qscores are in REFERENCE sequence orientation.
 
 =cut
 
 sub qscore {
     my $self = shift;
     my @qscore = $$self->qscore;
-    @qscore    = reverse @qscore = $$self->strand < 0;
     return wantarray ? @qscore : \@qscore;
 }
 
 =item $dna = $query->dna
 
-The DNA string.
-
-NOTE: As of version 1.07, this method returns the qscores in the
-orientation in which the read was sequenced, not in the orientation in
-which it is represented in the SAM file (in which - strand matches are
-reverse complemented).
+The DNA string in reference sequence orientation.
 
 =cut
 
 sub dna {
     my $self = shift;
-    return $$self->strand > 0 ? $$self->qseq : reversec($$self->qseq);
+    return $$self->qseq;
 }
 
 =item $strand = $query->strand
@@ -232,18 +218,6 @@ sub subseq {
 					     $start-1,
 					     $end-$start+1)
 				);
-}
-
-=item $dna = $query->reversec
-
-The reverse complement of the read DNA.
-
-=cut
-
-sub reversec {
-    my $dna = shift;
-    $dna =~ tr/gatcGATC/ctagCTAG/;
-    return scalar reverse $dna;
 }
 
 

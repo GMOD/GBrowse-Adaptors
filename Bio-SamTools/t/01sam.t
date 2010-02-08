@@ -9,7 +9,7 @@ use ExtUtils::MakeMaker;
 use File::Temp qw(tempfile);
 use Bio::Root::IO;
 use FindBin '$Bin';
-use constant TEST_COUNT => 93;
+use constant TEST_COUNT => 98;
 
 use lib "$Bin/../lib","$Bin/../blib/lib","$Bin/../blib/arch";
 
@@ -229,9 +229,16 @@ use Bio::DB::Sam;
     ok($query->start,1);
     ok($query->end,35);
     ok($query->length,35);
-    ok($query->dna,reversec($alignments[0]->dna));
+    ok($query->dna,$alignments[0]->dna);
     ok($alignments[0]->strand,-1);
     ok($query->strand,-1);
+
+    my $target = $alignments[0]->target;
+    ok($target);
+    ok($target->start,35);
+    ok($target->end,1);
+    ok($target->length,35);
+    ok($target->dna,reversec($alignments[0]->dna));
 
     ok($alignments[0]->get_tag_values('FLAGS'),$alignments[0]->flag_str);
 
@@ -318,7 +325,7 @@ use Bio::DB::Sam;
 	for my $pileup (@$p) {
 	    my $a    = $pileup->alignment;
 	    my $qpos = $pileup->qpos;
-	    my $dna  = $a->strand > 0 ? $a->query->dna : reversec($a->query->dna);
+	    my $dna  = $a->query->dna;
 	    my $base = $pileup->indel == 0 ? substr($dna,$qpos,1)
                       :$pileup->indel >  0 ? '*'
                       : '-';
