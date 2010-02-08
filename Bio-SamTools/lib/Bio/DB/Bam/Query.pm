@@ -32,10 +32,11 @@ part of a SAM alignment.
 
 use strict;
 use Bio::DB::Sam;
+use Bio::DB::Sam::Constants qw(CIGAR_SYMBOLS BAM_CREF_SKIP BAM_CSOFT_CLIP BAM_CHARD_CLIP);
 
-use constant CIGAR_SKIP      => {BAM_CREF_SKIP  => 1,
- 				 BAM_CSOFT_CLIP => 1,
- 				 BAM_CHARD_CLIP => 1};
+use constant CIGAR_SKIP      => {CIGAR_SYMBOLS->[BAM_CREF_SKIP]  => 1,
+ 				 CIGAR_SYMBOLS->[BAM_CSOFT_CLIP] => 1,
+ 				 CIGAR_SYMBOLS->[BAM_CHARD_CLIP] => 1};
 
 
 sub new {

@@ -3,7 +3,7 @@ name: Bio-SamTools
 version: 1.10
 author:
   - 'Lincoln Stein <lincoln.stein@gmail.com>'
-abstract: The GMOD Generic Genome Browser
+abstract: Perl interface to SamTools library for DNA sequencing
 license: perl
 resources:
   license: http://dev.perl.org/licenses/
