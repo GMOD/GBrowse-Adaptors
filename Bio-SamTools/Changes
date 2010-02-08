@@ -3,6 +3,8 @@ Version 1.10
       temp directory. This is used by default by high-level API.
     * Fixed bug in soft and hard clipping code; query endpoints should be
       correct now.
+    * Fixed bug in get_all_tags() which was choking on "Z" style tags and giving
+      scrambled results.
 
 Version 1.09
     * Disabled checks for file readability when path is a remote BAM

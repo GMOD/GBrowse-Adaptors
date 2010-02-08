@@ -178,28 +178,6 @@ int coverage_from_pileup_fun (uint32_t tid,
   return 0;
 }
 
-/* copied from bam_aux.c because "we need it" */
-/* no longer needed with 0.1.4
-uint8_t *bam_aux_get_core(bam1_t *b, const char tag[2])
-{
-       uint8_t *s;
-       int y = tag[0]<<8 | tag[1];
-       s = bam1_aux(b);
-       while (s < b->data + b->data_len) {
-               int type, x = (int)s[0]<<8 | s[1];
-               s += 2;
-               if (x == y) return s;
-               type = toupper(*s); ++s;
-               if (type == 'C') ++s;
-               else if (type == 'S') s += 2;
-               else if (type == 'I' || type == 'F') s += 4;
-               else if (type == 'D') s += 8;
-               else if (type == 'Z' || type == 'H') { while (*s) putchar(*s++); ++s; }
-       }
-       return 0;
-}
-*/
-
 MODULE = Bio::DB::Sam PACKAGE = Bio::DB::Tam PREFIX=tam_
 
 Bio::DB::Tam
@@ -626,10 +604,11 @@ PPCODE:
    {
      s = bam1_aux(b);  /* s is a khash macro */
      while (s < b->data + b->data_len) {
+       fprintf(stderr,"tag=%c%c\n",s[0],s[1]);
        XPUSHs(sv_2mortal(newSVpv(s,2)));
        s   += 2; 
        type = *s++;
-       if (type == 'A') { printf("A:%c", *s); ++s; }
+       if      (type == 'A') { ++s; }
        else if (type == 'C') { ++s; }
        else if (type == 'c') { ++s; }
        else if (type == 'S') { s += 2; }
@@ -637,7 +616,7 @@ PPCODE:
        else if (type == 'I') { s += 4; }
        else if (type == 'i') { s += 4; }
        else if (type == 'f') { s += 4; }
-       else if (type == 'Z' || type == 'H') { while (*s) ++s; }
+       else if (type == 'Z' || type == 'H') { while (*s) ++(s); ++(s); }
      }
    }
 
