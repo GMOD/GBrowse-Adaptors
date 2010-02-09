@@ -11,3 +11,4 @@ Bio::DB::BigBedInterval	        T_PTROBJ
 Bio::DB::BigBedIntervalList	T_PTROBJ
 Bio::DB::asObject               T_PTROBJ
 Bio::DB::asColumn               T_PTROBJ
+Bio::DB::asTypeInfo             T_PTROBJ

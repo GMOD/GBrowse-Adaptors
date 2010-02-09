@@ -1,14 +1,22 @@
-This is a Perl interface to the SAMtools sequence alignment interface.
-See http://samtools.sourceforge.net/.
+This is a Perl interface to the UCSC Genome Browser BigWig and BigBed
+files, which are indexed genome feature databases that can be randomly
+accessed across the network. Please see
+http://genome.ucsc.edu/FAQ/FAQformat.html for information about
+creating these files.
 
 To compile this module, you must first download, unpack and compile
-SAMtools 0.1.4 or higher in some accessible directory. FOR SAMTOOLS
-VERSION 0.1.4, YOU MUST RUN "make -f makefile.generic" IN THE
-DISTRIBUTION DIRECTORY IN ORDER TO CREATE THE REQUIRED libbam.a
-LIBRARY FILE. For other versions, just "make" will usually work.
+the Jim Kent source tree, located at
+http://hgdownload.cse.ucsc.edu/admin/jksrc.zip. Please follow the
+instructions contained in the source tree to create the main library
+file jkweb.a
 
-Then set the environment variable SAMTOOLS to point to this directory
-and run:
+Set the environment variable KENT_SRC to point to the "src" directory
+inside the source tree. This directory should contain the
+subdirectories "inc" and "lib". If you do not wish to set this
+environment variable, then this module will prompt you for the
+location the first time you build it.
+
+Then run:
 
   perl Build.PL
   ./Build
@@ -17,38 +25,18 @@ and run:
 
 TROUBLESHOOTING:
 
-If you encounter problems during compiling, you may need to edit
-Build.PL so that extra_compiler_flags matches the CFLAGS and DFLAGS
-settings in the Samtools Makefile.  Here are some common problems:
-
-1. When building this module, you get an error like the following:
-relocation R_X86_64_32 against `a local symbol' can not be used when
-making a shared object; recompile with -fPIC
-
-To fix this, edit the Makefile in the Samtools distribution by adding
-"-fPIC" to the CFLAGS line. It should look like this:
-
-  CFLAGS=	-g -Wall -O2 -fPIC #-m64 #-arch ppc
-
-Then do "make clean; make" in the Samtools directory to recompile the
-library. After this you should be able to build this module without
-errors.
-
-2. When building this module, you get an error about a missing math
-library. 
-
-To fix this, follow the recipe in (1) except add -m64 to CFLAGS so it
-looks like this:
-
-  CFLAGS=	-g -Wall -O2 -fPIC #-m64 #-arch ppc
+If you encounter problems during compiling, you may need to set the
+environment variable MACHTYPE to point to the appropriate architecture
+for your system. This is described in the installation directions for
+the Jim Kent source tree.
 
 AUTHOR: 
 
 Lincoln D. Stein <lincoln.stein@gmail.com>
 
-Copyright (c) 2009 Ontario Institute for Cancer Research
+Copyright (c) 2010 Ontario Institute for Cancer Research
 
-This package and its accompanying libraries is free software; you can
-redistribute it and/or modify it under the terms of the GPL (either
-version 1, or at your option, any later version) or the Artistic
-License 2.0.  Refer to LICENSE for the full license text.
+This package and its accompanying libraries are free software; you can
+redistribute the package and/or modify it under the terms of the GPL
+(either version 1, or at your option, any later version) or the
+Artistic License 2.0.  Refer to LICENSE for the full license text.

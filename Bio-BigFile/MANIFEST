@@ -1,13 +1,20 @@
 Build.PL
 Changes
 DISCLAIMER
-ExampleData/chrom.sizes
 ExampleData/dpy-27-variable.bw
 ExampleData/dpy-27-variable.wig
+ExampleData/hg18.chrom.sizes
+ExampleData/refSeqTest.as
+ExampleData/refSeqTest.flat.bb
+ExampleData/refSeqTest.flat.bed
+ExampleData/WS180.chrom.sizes
 lib/Bio/DB/BigFile.pm
 lib/Bio/DB/BigFile.xs
+lib/Bio/DB/BigFile/Constants.pm
 LICENSE
 MANIFEST			This list of files
+META.yml
 README
 t/01.bigwig.t
+t/02.bigbed.t
 typemap

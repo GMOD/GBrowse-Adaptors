@@ -26,6 +26,7 @@ BEGIN {
 }
 
 use Bio::DB::BigFile;
+use Bio::DB::BigFile::Constants;
 use File::Temp 'tempfile';
 
 # low level tests (defined in lib/Bio/DB/Sam.xs) 
@@ -81,18 +82,18 @@ ok(scalar @$summary,500);
 my $should_fail = $wig->bigWigSummaryArray('chromFoo',1,5000000,bbiSumMean,500);
 ok(!$should_fail);
 
-my $extended_summary = $wig->bigWigSummaryArrayExtended('I',1,5000000,500);
+my $extended_summary = $wig->bigWigSummary('I',1,5000000,500);
 ok ($extended_summary);
 ok ($extended_summary->isa('Bio::DB::bbiExtendedSummary'));
 ok ($extended_summary->validCount(0) > 0);
 ok ($extended_summary->sumData(1)/$extended_summary->validCount(1),$summary->[1]);
 
-my $bin_sum = $wig->binStats('I',1,5000000,500);
+my $bin_sum = $wig->bigWigBinStats('I',1,5000000,500);
 ok ($bin_sum);
 ok (scalar @$bin_sum,500);
 ok($bin_sum->[300]->sumData/$bin_sum->[300]->validCount,$summary->[300]);
 
-my $es_list = $wig->bigWigSummaryArrayExtendedHash('I',1,5000000,500);
+my $es_list = $wig->bigWigSummaryArrayExtended('I',1,5000000,500);
 ok($es_list);
 ok(ref $es_list,'ARRAY');
 ok(scalar @$es_list,500);

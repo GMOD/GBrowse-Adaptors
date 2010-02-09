@@ -9,7 +9,7 @@ use ExtUtils::MakeMaker;
 use File::Temp qw(tempfile);
 use Bio::Root::IO;
 use FindBin '$Bin';
-use constant TEST_COUNT => 12;
+use constant TEST_COUNT => 15;
 
 use lib "$Bin/../lib","$Bin/../blib/lib","$Bin/../blib/arch";
 
@@ -26,6 +26,7 @@ BEGIN {
 }
 
 use Bio::DB::BigFile;
+use Bio::DB::BigFile::Constants;
 
 my $bed = Bio::DB::BigFile->bigBedFileOpen("$Bin/../ExampleData/refSeqTest.flat.bb");
 ok($bed);
@@ -46,10 +47,21 @@ ok(scalar @$summary,500);
 ok(!defined $summary->[0]);
 ok(defined $summary->[-1]);
 
-my $es = $bed->bigBedSummaryArrayExtendedHash('chr1',0,12_000_000,500);
+my $es = $bed->bigBedSummaryArrayExtended('chr1',0,12_000_000,500);
 ok ($es);
 ok(scalar @$es,500);
 ok($es->[-2]{validCount}/(12_000_000/500),$summary->[-2]);
+
+my $as = $bed->bigBedAs;
+ok($as);
+my $cs = $as->columnList;
+ok($cs);
+
+my @types;
+for (my $c=$cs;$c;$c=$c->next) {
+    push @types,$c->lowType->sqlName;
+}
+ok("@types","varchar(255) int unsigned int unsigned varchar(255) int unsigned char int unsigned int unsigned varchar(255) int unsigned varchar(255) varchar(255)");
 
 
 1;

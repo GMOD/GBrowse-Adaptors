@@ -64,8 +64,9 @@ typedef struct bigBedIntervalList {
 
 typedef struct bigBedInterval *Bio__DB__BigBedInterval;
 
-typedef struct asObject *Bio__DB__asObject;
-typedef struct asColumn *Bio__DB__asColumn;
+typedef struct asObject   *Bio__DB__asObject;
+typedef struct asColumn   *Bio__DB__asColumn;
+typedef struct asTypeInfo *Bio__DB__asTypeInfo;
 
 MODULE = Bio::DB::BigFile PACKAGE = Bio::DB::BigFile PREFIX=bf_
 
@@ -81,20 +82,6 @@ bf_bigWigFileCreate(package="Bio::DB::BigFile",inName,chromSizes,blockSize=1024,
   char             *outName
   CODE:
   bigWigFileCreate(inName,chromSizes,blockSize,itemsPerSlot,clipDontDie,compress,outName);
-
-void
-bf_bigBedFileCreate(package="Bio::DB::BigFile",inName,chromSizes,blockSize=1024,itemsPerSlot=64,definedFieldCount,asFileName,clipDontDie,outName)
-  char             *package
-  char             *inName
-  char             *chromSizes
-  int               blockSize
-  int               itemsPerSlot
-  int               definedFieldCount
-  char             *asFileName
-  int               clipDontDie
-  char             *outName
-  CODE:
-  bigBedFileCreate(inName,chromSizes,blockSize,itemsPerSlot,definedFieldCount,asFileName,clipDontDie,outName);
 
 Bio::DB::bbiFile
 bf_bigWigFileOpen(packname="Bio::DB::BigFile",filename)
@@ -263,7 +250,7 @@ bbi_bigWigSingleSummary(bwf,chrom,start,end,summaryType=0,defaultVal)
      RETVAL
 
 Bio::DB::bbiExtendedSummary
-bbi_bigWigSummaryArrayExtended(bwf,chrom,start,end,size)
+bbi_bigWigSummary(bwf,chrom,start,end,size)
    Bio::DB::bbiFile bwf
    char            *chrom
    unsigned int     start
@@ -293,7 +280,7 @@ bbi_bigWigSummaryArrayExtended(bwf,chrom,start,end,size)
     RETVAL
 
 Bio::DB::bbiExtendedSummary
-bbi_bigBedSummaryArrayExtended(bbf,chrom,start,end,size)
+bbi_bigBedSummary(bbf,chrom,start,end,size)
    Bio::DB::bbiFile bbf
    char            *chrom
    unsigned int     start
@@ -324,7 +311,7 @@ bbi_bigBedSummaryArrayExtended(bbf,chrom,start,end,size)
 
 
 SV*
-bbi_bigWigSummaryArrayExtendedHash(bwf,chrom,start,end,size)
+bbi_bigWigSummaryArrayExtended(bwf,chrom,start,end,size)
    Bio::DB::bbiFile bwf
    char            *chrom
    unsigned int     start
@@ -361,7 +348,7 @@ bbi_bigWigSummaryArrayExtendedHash(bwf,chrom,start,end,size)
     RETVAL
 
 SV*
-bbi_bigBedSummaryArrayExtendedHash(bbf,chrom,start,end,size)
+bbi_bigBedSummaryArrayExtended(bbf,chrom,start,end,size)
    Bio::DB::bbiFile bbf
    char            *chrom
    unsigned int     start
@@ -750,7 +737,7 @@ as_isSimple(as)
      RETVAL
 
 Bio::DB::asColumn
-   as_columnList(as)
+as_columnList(as)
    Bio::DB::asObject as
    CODE:
    RETVAL = as->columnList;
@@ -782,6 +769,15 @@ asc_comment(ac)
   RETVAL = ac->comment;
   OUTPUT:
   RETVAL
+
+Bio::DB::asTypeInfo
+asc_lowType(ac)
+  Bio::DB::asColumn ac
+  CODE:
+  RETVAL = ac->lowType;
+  OUTPUT:
+  RETVAL
+
 
 char*
 asc_obName(ac)
@@ -846,6 +842,88 @@ asc_isArray(ac)
     RETVAL = ac->isArray;
   OUTPUT:
   RETVAL
+
+MODULE = Bio::DB::BigFile PACKAGE = Bio::DB::asTypeInfo PREFIX=ast_
+
+int
+ast_type(ati)
+    Bio::DB::asTypeInfo ati
+    CODE:
+    RETVAL = ati->type;
+    OUTPUT:
+    RETVAL
+
+char*
+ast_name(ati)
+    Bio::DB::asTypeInfo ati
+    CODE:
+    RETVAL = ati->name;
+    OUTPUT:
+    RETVAL
+
+int
+ast_isUnsigned(ati)
+    Bio::DB::asTypeInfo ati
+    CODE:
+    RETVAL = ati->isUnsigned;
+    OUTPUT:
+    RETVAL
+
+int
+ast_stringy(ati)
+    Bio::DB::asTypeInfo ati
+    CODE:
+    RETVAL = ati->stringy;
+    OUTPUT:
+    RETVAL
+
+char*
+ast_sqlName(ati)
+    Bio::DB::asTypeInfo ati
+    CODE:
+    RETVAL = ati->sqlName;
+    OUTPUT:
+    RETVAL
+
+char*
+ast_cName(ati)
+    Bio::DB::asTypeInfo ati
+    CODE:
+    RETVAL = ati->cName;
+    OUTPUT:
+    RETVAL
+
+char*
+ast_listyName(ati)
+    Bio::DB::asTypeInfo ati
+    CODE:
+    RETVAL = ati->listyName;
+    OUTPUT:
+    RETVAL
+
+char*
+ast_nummyName(ati)
+    Bio::DB::asTypeInfo ati
+    CODE:
+    RETVAL = ati->nummyName;
+    OUTPUT:
+    RETVAL
+
+char*
+ast_outFormat(ati)
+    Bio::DB::asTypeInfo ati
+    CODE:
+    RETVAL = ati->outFormat;
+    OUTPUT:
+    RETVAL
+
+
+
+
+
+
+
+
 
 
 

@@ -10,7 +10,7 @@ my $ReadLine;
 my ($jk_include,$jk_lib) = find_jk(); # may exit with error here
 
 my $build = Module::Build->new(
-    module_name        => 'Bio::SamTools',
+    module_name        => 'Bio::BigFile',
     dist_version_from  => 'lib/Bio/DB/BigFile.pm',
     dist_author        => 'Lincoln Stein <lincoln.stein@gmail.com>',
     dist_abstract      => "Manipulate Jim Kent's BigWig and BigBed index files for genomic features.",
