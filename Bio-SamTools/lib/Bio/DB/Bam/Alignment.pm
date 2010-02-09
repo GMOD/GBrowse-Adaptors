@@ -144,10 +144,21 @@ The read's DNA string.
 
 The read's DNA as a Bio::PrimarySeqI object.
 
+=item $target  = $align->target;
+
+The target() method is similar to query(), except that it follows
+Bio::AlignIO conventions for how to represent minus strand
+alignments. The object returned has start(), end(), qscore(), dna()
+and seq() methods, but for minus strand alignments the sequence will
+be represented as it appears on the reverse strand, rather than on the
+forward strand. This has the advantage of giving you the read as it
+came off the machine, before being reverse complemented for use in the
+SAM file.
+
 =item $query   = $align->hit
 
-The hit() method is identical to query() and returns information about
-the read. It is present for compatibility with some of the
+The hit() method is identical to target() and returns information
+about the read. It is present for compatibility with some of the
 Bio::Graphics glyphs, which use hit() to represent the non-reference
 sequence in aligned sequences.
 

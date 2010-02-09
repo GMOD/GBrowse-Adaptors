@@ -154,7 +154,12 @@ high-level API are as follows:
 
  * Bio::DB::Sam               -- A collection of alignments and reference sequences.
  * Bio::DB::Bam::Alignment    -- The alignment between a query and the reference.
- * Bio::DB::Bam::Query        -- An object corresponding to the query sequence.
+ * Bio::DB::Bam::Query        -- An object corresponding to the query sequence in
+                                  which both (+) and (-) strand alignments are
+                                  shown in the reference (+) strand.
+ * Bio::DB::Bam::Target       -- An interface to the query sequence in which
+                                   (-) strand alignments are shown in reverse
+                                   complement
 
 You may encounter other classes as well. These include:
 

@@ -25,7 +25,7 @@ sub dna {
 sub qscore {
     my $self = shift;
     my @qscore = $$self->qscore;
-    @qscore    = reverse @qscore = $$self->strand < 0;
+    @qscore    = reverse @qscore if $$self->strand < 0;
     return wantarray ? @qscore : \@qscore;
 }
 

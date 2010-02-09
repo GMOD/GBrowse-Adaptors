@@ -5,6 +5,10 @@ Version 1.10
       correct now.
     * Fixed bug in get_all_tags() which was choking on "Z" style tags and giving
       scrambled results.
+    * $feature->query now reports the DNA query in canonical (ref)
+      coordinates; only $feature->target reverse complements the query
+      DNA to give the data actually read; cigar string is always in
+      canonical coordinates
 
 Version 1.09
     * Disabled checks for file readability when path is a remote BAM
