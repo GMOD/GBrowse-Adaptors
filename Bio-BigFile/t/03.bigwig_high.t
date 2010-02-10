@@ -31,16 +31,34 @@ use Bio::DB::BigWig;
 ok('loaded ok');
 
 my $testfile = "$Bin/../ExampleData/dpy-27-variable.bw";
-my $wig      = Bio::DB::BigWig->new(-bigwig=>$testfile);
+my $wig      = Bio::DB::BigWig->new(-bigwig=>$testfile,
+				    -fasta=>'/var/www/gbrowse2/databases/elegans_scaffolds'
+    );
 ok($wig);
 ok($wig->isa('Bio::DB::BigWig'));
 
-my $iterator = $wig->get_seq_stream;
+my $iterator = $wig->get_seq_stream(-seq_id=>'I',-start=>100,-end=>1000);
 ok ($iterator);
 my $nodes = 0;
+my $inbounds = 1;
 while (my $f = $iterator->next_seq) {
-    print $f->seq_id,":",$f->start,'..',$f->end,' ',$f->score,"\n";
-    1;
+    $nodes++;
+    $inbounds &&= $f->seq_id eq 'I' && $f->start <= 1000 && $f->end >= 100;
 }
+ok($nodes,11);
+ok($inbounds);
+
+my @features = $wig->features(-seq_id=>'I',-start=>100,-end=>1000);
+ok (scalar @features,$nodes);
+
+my @big_vals  = grep {$_->score >= 0.5} @features;
+my @big_vals2 = $wig->features(-seq_id=>'I',-start=>100,-end=>1000,-filter=>sub {shift->score >0.5});
+ok (@big_vals,@big_vals2);
+
+# This is probably NOT how we want it to work; instead of returning one feature for each bin,
+# return a single feature that knows how to produce an array of summary values
+my @bins = $wig->features(-type=>'summary',-seq_id=>'I');
+ok(@bins);
+
 1;
 
