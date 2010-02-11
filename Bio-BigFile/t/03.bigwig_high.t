@@ -90,5 +90,16 @@ my $bins = $summary[0]->statistical_summary(100);
 ok(@$bins,100);
 ok($bins->[0]{maxVal} > 0);
 
+# testing segment functionality
+my $seg = $wig->segment('II',1=>50000);
+ok($seg);
+ok($seg->isa('Bio::DB::BigWig::Segment'));
+ok($seg->length,50000);
+ok(length $seg->dna,50000);
+
+my @f = $seg->features('summary');
+ok(@f,1);
+ok(defined $f[0]->can('statistical_summary'));
+
 1;
 

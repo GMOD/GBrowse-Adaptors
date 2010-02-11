@@ -132,12 +132,14 @@ bbi_DESTROY(bbi)
     CODE:
       bigWigFileClose(&bbi);
 
+# max is here just to normalize call signature with bigBedIntervalQuery
 Bio::DB::bbiIntervalList
-bbi_bigWigIntervalQuery(bwf,chrom,start,end)
+bbi_bigWigIntervalQuery(bwf,chrom,start,end,max=0)
     Bio::DB::bbiFile bwf
     char            *chrom
     unsigned int     start
     unsigned int     end
+    unsigned int     max
     PREINIT:
     struct bbiIntervalList *list;
     CODE:
@@ -410,7 +412,7 @@ bbi_chromSize(bbi,name)
 MODULE = Bio::DB::BigFile PACKAGE = Bio::DB::bbiFile PREFIX=bb_
 
 Bio::DB::BigBedIntervalList
-bb_bigBedInterval(bbf,chrom,start,end,maxItems=0)
+bb_bigBedIntervalQuery(bbf,chrom,start,end,maxItems=0)
     Bio::DB::bbiFile bbf
     char            *chrom
     unsigned int     start

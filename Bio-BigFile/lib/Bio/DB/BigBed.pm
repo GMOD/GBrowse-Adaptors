@@ -1,21 +1,19 @@
-package Bio::DB::BigWig;
+package Bio::DB::BigBed;
 
 #$Id$
 
 use strict;
 use warnings;
-use Bio::DB::BigFile;
-use Bio::DB::BigFile::Constants;
-use Bio::Graphics::Feature;
+use base 'Bio::DB::BigWig';
 use Carp 'croak';
 
-# high level interface to BigWig files
+# high level interface to BigBed files
 
 sub new {
     my $self = shift;
     my %args = @_;
 
-    my $bw_path       = $args{-bigwig}  or croak "-bigwig argument required";
+    my $bw_path       = $args{-bigbed}  or croak "-bigbed argument required";
     my $fa_path       = $args{-fasta};
     my $dna_accessor  = $self->new_dna_accessor($fa_path);
     
@@ -24,7 +22,7 @@ sub new {
 	-r _  or croak "is not readable";
     }
 
-    my $bw = Bio::DB::BigFile->bigWigFileOpen($bw_path)
+    my $bw = Bio::DB::BigFile->bigBedFileOpen($bw_path)
 	or croak "$bw_path open: $!";
 
     return bless {
@@ -33,211 +31,30 @@ sub new {
     },ref $self || $self;
 }
 
-sub bw { shift->{bw} }
-sub fa { shift->{fa} }
-
-sub segment {
-    my $self = shift;
-    my ($seqid,$start,$end) = @_;
-
-    if ($_[0] =~ /^-/) {
-	my %args = @_;
-	$seqid = $args{-seq_id} || $args{-name};
-	$start = $args{-start};
-	$end   = $args{-stop}    || $args{-end};
-    } else {
-	($seqid,$start,$end) = @_;
-    }
-
-    $start ||= 1;
-    $end   ||= $self->bw->chromSize($seqid);
-
-    return Bio::DB::BigWig::Segment->new(-bw=>$self,
-					 -seq_id=>$seqid,
-					 -start=>$start,
-					 -end=>$end);
-}
-
-sub bigwig { shift->bw }
-
-sub seq_ids {
-    my $self = shift;
-    my $bw   = $self->bw;
-    my $chrom_list = $bw->bbiChromInfoHead;
-    my @list;
-    for (my $c=$chrom_list->head;$c;$c=$c->next) {
-	push @list,$c->name;
-    }
-    return @list;
-}
-
-sub length {
-    my $self = shift;
-    my $seqid = shift;
-    return $self->bw->chromSize($seqid);
-}
-
-sub features {
-    my $self    = shift;
-    my %options;
-
-    if (@_ && $_[0] !~ /^-/) {
-	%options = (-type => $_[0]);
-    } else {
-	%options = @_;
-    }
-
-    my $iterator = $self->get_seq_stream(%options);
-    return $iterator if $options{-iterator};
-    
-    my @result;
-    while (my $f = $iterator->next_seq) {
-	push @result,$f;
-    }
-
-    return @result;
-}
-
-sub get_seq_stream {
-    my $self    = shift;
-    my %options;
-
-    if (@_ && $_[0] !~ /^-/) {
-	%options = (-type => $_[0]);
-    } else {
-	%options = @_;
-    }
-
-    $options{-type} ||= 'region';
-
-    if (ref $options{-type} && ref $options{-type} eq 'ARRAY') {
-	warn "This module only supports fetching one feature type at a time. Picking first one.";
-	$options{-type} = $options{-type}->[0];
-    }
-
-    my $iterator_class = $self->_type_to_iterator($options{-type});
-    
-    # first deal with the problem of the user not specifying the chromosome
-    return Bio::DB::BigWig::GlobalIterator->new($self,$iterator_class,\%options)
-	unless $options{-seq_id};
-
-    # now deal with the problem of the user not specifying either the
-    # start or the end position
-    $options{-start} ||= 1;   # that was easy!
-    $options{-end}   ||= $self->bw->chromSize($options{-seq_id});
-    
-    return unless $options{-seq_id} && $options{-start} && $options{-end};
-
-    return $iterator_class->new($self,\%options);
-}
+sub bb     { shift->bw  }
+sub bigbed { shift->bw }
 
 sub _type_to_iterator {
     my $self = shift;
     my $type = shift;
 
-    return 'Bio::DB::BigWig::BinIterator'      if $type =~ /^bin/;
-    return 'Bio::DB::BigWig::SummaryIterator'  if $type =~ /^summary/;
-    return 'Bio::DB::BigWig::IntervalIterator' if $type =~ /^region/;
-    return 'Bio::DB::BigWig::EmptyIterator';
-}
-
-sub seq {
-    my $self = shift;
-    my ($seqid,$start,$end) = @_;
-    my $fa   = $self->fa;
-    return $fa ? $fa->seq($seqid,$start,$end) : 'N' x ($end-$start+1);
-}
-
-sub is_remote {
-    my $self = shift;
-    my $path = shift;
-    return $path =~ /^(http|ftp):/;
-}
-
-sub new_dna_accessor {
-    my $self     = shift;
-    my $accessor = shift;
-
-    return unless $accessor;
-
-    if (-e $accessor) {  # a file, assume it is a fasta file
-	eval "require Bio::DB::Fasta" unless Bio::DB::Fasta->can('new');
-	my $a = Bio::DB::Fasta->new($accessor)
-	    or croak "Can't open FASTA file $accessor: $!";
-	return $a;
-    }
-
-    if (ref $accessor && UNIVERSAL::can($accessor,'seq')) {
-	return $accessor;  # already built
-    }
-
-    my $obj = eval $accessor;  # maybe we got some code????
-    if ($obj && ref $obj && UNIVERSAL::can($obj,'seq')) {
-	return $obj;
-    }
-
-    return;
+    return 'Bio::DB::BigBed::BinIterator'      if $type =~ /^bin/;
+    return 'Bio::DB::BigBed::SummaryIterator'  if $type =~ /^summary/;
+    return 'Bio::DB::BigBed::FeatureIterator'  if $type =~ /^(region|feature)/;
+    return 'Bio::DB::BigBed::EmptyIterator';
 }
 
 ############################################################
 
-package Bio::DB::BigWig::IntervalIterator;
+package Bio::DB::BigBed::FeatureIterator;
 
-sub new {
-    my $self   = shift;
-    my ($bigwig,$options) = @_;
-    my $bw     = $bigwig->bw;
-    my $method = $self->_query();
-    my $head   = $bw->$method($options->{-seq_id},
-			      $options->{-start}-1,
-			      $options->{-end},
-			      $options->{-max}||0,
-	)
-	or return;
-    return bless {
-	head    => $head,   # keep in scope so not garbage collected
-	seq_id  => $options->{-seq_id},
-	current => $head->head,
-	bigwig  => $bigwig,
-	options => $options,
-    },ref $self || $self;
-}
-
-sub next_seq {
-    my $self = shift;
-    my $filter = $self->{options}{-filter};
-
-    my ($i,$f);
-
-    for ($i = $self->{current};$i;$i=$i->next) {
-	$f = $self->_make_feature($i);
-	last if !$filter || $filter->($f);
-    }
-
-    if ($i) {
-	$self->{current} = $i->next;
-	return $f;
-    }
-    else {
-	$self->{current} = undef;
-	return;
-    }
-}
+use base 'Bio::DB::BigWig::IntervalIterator';
 
 sub _query {
-    return 'bigWigIntervalQuery';
+    return 'bigBedInterval';
 }
 
 sub _make_feature {
-    my $self     = shift;
-    my $raw_item = shift;
-    return Bio::DB::BigWig::Feature->new(-seq_id => $self->{seq_id},
-					 -start  => $raw_item->start+1,
-					 -end    => $raw_item->end,
-					 -score  => $raw_item->value,
-					 -type   => 'region',
-					 -fa     => $self->{bigwig}->fa,
-	);
 }
 
 ############################################################
@@ -255,11 +72,10 @@ sub new {
 	or croak "invalid call to _get_bin_stream. -type argument must be bin[:bins]";
     $bins ||= 1024;
 
-    my $method = $self->_query;
-    my $arry   = $bw->$method($options->{-seq_id},
-			      $options->{-start}-1,
-			      $options->{-end},
-			      $bins)
+    my $arry   = $bw->bigWigSummaryArrayExtended($options->{-seq_id},
+						 $options->{-start}-1,
+						 $options->{-end},
+						 $bins)
 	or return;
 
     my $chrom_end = $bw->chromSize($options->{-seq_id});
@@ -282,7 +98,15 @@ sub next_seq {
     my $i      = shift @$array;
     my $f;
     while ($i) {
-	$f = $self->_make_feature($i);
+	my $end = int($self->{start}+$self->{binsize});
+	$end    = $self->{end} if $end > $self->{end};
+	$f = Bio::DB::BigWig::Feature->new(-seq_id => $self->{seq_id},
+					   -start  => int($self->{start}),
+					   -end    => $end,
+					   -score  => $i,
+					   -type   => 'bin',
+					   -fa     => $self->{bigwig}->fa,
+	    );
 	$self->{start} += $self->{binsize} + 1;
 	last if !$filter || $filter->($f);
 	$i = shift @$array;
@@ -290,24 +114,6 @@ sub next_seq {
 
     return $f if $i;
     return;
-}
-
-sub _query {
-    return 'bigWigSummaryArrayExtended';
-}
-
-sub _make_feature {
-    my $self = shift;
-    my $raw_item = shift;
-    my $end = int($self->{start}+$self->{binsize});
-    $end    = $self->{end} if $end > $self->{end};
-    return Bio::DB::BigWig::Feature->new(-seq_id => $self->{seq_id},
-					 -start  => int($self->{start}),
-					 -end    => $end,
-					 -score  => $raw_item,
-					 -type   => 'bin',
-					 -fa     => $self->{bigwig}->fa,
-	);
 }
 
 ##################################################################

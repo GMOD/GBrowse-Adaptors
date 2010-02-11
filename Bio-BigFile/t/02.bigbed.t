@@ -31,7 +31,7 @@ use Bio::DB::BigFile::Constants;
 my $bed = Bio::DB::BigFile->bigBedFileOpen("$Bin/../ExampleData/refSeqTest.flat.bb");
 ok($bed);
 
-my $interval_list = $bed->bigBedInterval('chr1',0=>20_000_000);
+my $interval_list = $bed->bigBedIntervalQuery('chr1',0=>20_000_000);
 ok($interval_list);
 ok(ref $interval_list->head,'Bio::DB::BigBedInterval');
 my $nodes = 0;

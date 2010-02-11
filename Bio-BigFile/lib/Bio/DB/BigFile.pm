@@ -332,11 +332,12 @@ Returns the number of items in the BigBed file.
 This is identical to the BigWig chromList() method and returns an
 object that points to a linked list of chromosome information objects.
 
-=item $list_head = $bed->bigBedInterval($chrom,$start,$end)
+=item $list_head = $bed->bigBedIntervalQuery($chrom,$start,$end [,$max])
 
 For the indicated interval, return the head to a linked list of BigBed
-interval objects (Bio::DB::BigBedInterval). The head object has a
-single method named head() that returns the first interval
+interval objects (Bio::DB::BigBedInterval). $max specifies the maximum
+number of items to return; unlimited if absent or 0. The head object
+has a single method named head() that returns the first interval
 object. Each interval object has the following methods:
 
   next()     Return the next interval in the list
@@ -358,7 +359,7 @@ Here is a simple bigBedToBed file dumper:
      my $chrom = shift;
      my $name  = $chrom->name;
      my $size  = $chrom->size;
-     my $intervals = $bed->bigBedInterval($name,0,$size);
+     my $intervals = $bed->bigBedIntervalQuery($name,0,$size);
      for (my $i=$intervals->head;$i;$i=$i->next) {
 	 print join("\t",$name,$i->start,$i->end,$i->rest),"\n";
      }
