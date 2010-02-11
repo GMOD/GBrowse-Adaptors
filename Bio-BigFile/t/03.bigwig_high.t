@@ -32,12 +32,12 @@ ok('loaded ok');
 
 my $testfile = "$Bin/../ExampleData/dpy-27-variable.bw";
 my $wig      = Bio::DB::BigWig->new(-bigwig=>$testfile,
-				    -fasta=>'/var/www/gbrowse2/databases/elegans_scaffolds'
+#				    -fasta=>'/var/www/gbrowse2/databases/elegans_scaffolds'
     );
 ok($wig);
 ok($wig->isa('Bio::DB::BigWig'));
 
-my $iterator = $wig->get_seq_stream(-seq_id=>'I',-start=>100,-end=>1000);
+my $iterator = $wig->get_seq_stream(-seq_id=>'I',-start=>100,-end=>1000,-type=>'region');
 ok ($iterator);
 my $nodes = 0;
 my $inbounds = 1;
@@ -51,14 +51,44 @@ ok($inbounds);
 my @features = $wig->features(-seq_id=>'I',-start=>100,-end=>1000);
 ok (scalar @features,$nodes);
 
+{
+    my $warning;
+    local $SIG{__WARN__} = sub { $warning .= $_[0] };
+    my @f = $wig->features(-seq_id=>'I',-start=>100,-end=>1000,-type=>['region','bin']);
+    ok (scalar @f,$nodes);
+    ok ($warning =~ /this module only supports/i);
+}
+
 my @big_vals  = grep {$_->score >= 0.5} @features;
 my @big_vals2 = $wig->features(-seq_id=>'I',-start=>100,-end=>1000,-filter=>sub {shift->score >0.5});
 ok (@big_vals,@big_vals2);
 
-# This is probably NOT how we want it to work; instead of returning one feature for each bin,
-# return a single feature that knows how to produce an array of summary values
-my @bins = $wig->features(-type=>'summary',-seq_id=>'I');
-ok(@bins);
+my @foo = $wig->features(-type=>'foo',-seq_id=>'I');
+ok(@foo,0);
+
+@foo = $wig->features(-type=>'foo');
+ok(@foo,0);
+
+# One way of getting summary data is as a series of feature objects of type 'bin'.
+# The score of each is the extended summary hash
+my @bins = $wig->features(-type=>'bin',-seq_id=>'I');
+ok(@bins,1024);
+ok($bins[0]->score->{maxVal} > 0);
+
+@bins = $wig->features(-type=>'bin:10',-seq_id=>'I');
+ok(@bins,10);
+ok($bins[0]->start,1);
+ok($bins[-1]->end,$wig->bw->chromSize('I'));
+
+# another way is to fetch type='summary'
+my @summary = $wig->features(-type=>'summary');  # one for each chromosome
+ok(@summary,7);
+ok(join(' ',sort map{$_->seq_id} @summary),'I II III IV MtDNA V X');
+
+ok(defined $summary[0]->can('statistical_summary'));
+my $bins = $summary[0]->statistical_summary(100);
+ok(@$bins,100);
+ok($bins->[0]{maxVal} > 0);
 
 1;
 
