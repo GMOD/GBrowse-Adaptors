@@ -1318,6 +1318,16 @@ sub header {
 
 sub fai { shift->{fai} }
 
+sub seq {
+    my $self = shift;
+    my ($seqid,$start,$end) = @_;
+    my $region = $seqid;
+    $region   .= ":$start" if defined $start;
+    $region   .= "-$end"   if defined $end;
+    my $fai = $self->fai;
+    return $fai ? $fai->fetch($region) : 'N' x ($end-$start+1);
+}
+
 sub expand_flags {
     my $self = shift;
     my $d    = $self->{expand_flags};

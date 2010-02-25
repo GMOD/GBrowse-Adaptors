@@ -1,3 +1,6 @@
+Version 1.11
+    * Fixed the padded alignments returned for hard-clipped alignments.
+
 Version 1.10
     * Added a new Bio::DB::Bam method for caching remote files' indices in the
       temp directory. This is used by default by high-level API.
