@@ -1253,7 +1253,7 @@ use Bio::SeqFeature::Lite;
 use Bio::PrimarySeq;
 
 use base 'DynaLoader';
-our $VERSION = '1.12';
+our $VERSION = '1.13';
 bootstrap Bio::DB::Sam;
 
 use Bio::DB::Bam::Alignment;
