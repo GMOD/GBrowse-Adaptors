@@ -1,3 +1,7 @@
+Version 1.12
+    * Fixed the padded_alignments() method to correct "method not found"
+      bug introduced in version 1.11.
+
 Version 1.11
     * Fixed the padded alignments returned for hard-clipped alignments.
 

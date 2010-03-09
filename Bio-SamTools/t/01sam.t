@@ -9,7 +9,7 @@ use ExtUtils::MakeMaker;
 use File::Temp qw(tempfile);
 use Bio::Root::IO;
 use FindBin '$Bin';
-use constant TEST_COUNT => 98;
+use constant TEST_COUNT => 101;
 
 use lib "$Bin/../lib","$Bin/../blib/lib","$Bin/../blib/arch";
 
@@ -241,6 +241,11 @@ use Bio::DB::Sam;
     ok($target->dna,reversec($alignments[0]->dna));
 
     ok($alignments[0]->get_tag_values('FLAGS'),$alignments[0]->flag_str);
+
+    my @pads = $alignments[0]->padded_alignment;
+    ok(@pads,3);
+    ok($pads[0],$pads[2]);
+    ok($pads[1]=~tr/|/|/,length($pads[0]));
 
     my @f = $sam->features(-name=>'EAS114_45:2:1:1140:1206');
     ok(scalar @f,2);
