@@ -1,6 +1,6 @@
 ---
 name: Bio-SamTools
-version: 1.11
+version: 1.12
 author:
   - 'Lincoln Stein <lincoln.stein@gmail.com>'
 abstract: Perl interface to SamTools library for DNA sequencing
@@ -34,7 +34,7 @@ provides:
     file: lib/Bio/DB/Bam/Target.pm
   Bio::DB::Sam:
     file: lib/Bio/DB/Sam.pm
-    version: 1.11
+    version: 1.12
   Bio::DB::Sam::Constants:
     file: lib/Bio/DB/Sam/Constants.pm
   Bio::DB::Sam::Fai:
