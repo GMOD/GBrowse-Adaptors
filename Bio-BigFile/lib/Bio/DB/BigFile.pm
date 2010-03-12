@@ -114,6 +114,13 @@ Note that there is no equivalent method for creating BigBed files, and
 this method may also be deprecated in the future. Jim Kent recommends
 using the wigToBigWig and bedToBigBed command-line utilities instead.
 
+=item Bio::DB::BigFile->udcSetDefaultDir('/path/')
+
+When the BigWig/BigBed library accesses remote Big{Wig,Bed} files, it
+creates a series of cache files located in /tmp/udcCache by
+default. To change the location of the cache files, call this method,
+passing it the path to the preferred directory.
+
 =back
 
 =head1 OBJECT METHODS

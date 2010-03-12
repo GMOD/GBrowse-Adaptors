@@ -6,6 +6,7 @@ use strict;
 use warnings;
 use Bio::DB::BigFile;
 use Bio::DB::BigFile::Constants;
+use Bio::DB::BigFile::Iterators;
 use Bio::Graphics::Feature;
 use Carp 'croak';
 
@@ -33,6 +34,7 @@ sub new {
     },ref $self || $self;
 }
 
+sub bf { shift->{bw} }
 sub bw { shift->{bw} }
 sub fa { shift->{fa} }
 
@@ -52,18 +54,58 @@ sub segment {
     $start ||= 1;
     $end   ||= $self->bw->chromSize($seqid);
 
-    return Bio::DB::BigWig::Segment->new(-bw=>$self,
-					 -seq_id=>$seqid,
-					 -start=>$start,
-					 -end=>$end);
+    return Bio::DB::BigFile::Segment->new(-bf    => $self,
+					  -seq_id=> $seqid,
+					  -start => $start,
+					  -end   => $end);
 }
 
 sub bigwig { shift->bw }
 
+sub get_features_by_name  { return; } # this doesn't do anything
+sub get_features_by_alias { return; } # this doesn't do anything
+sub get_features_by_attribute { return; } # this doesn't do anything
+sub get_features_by_type {
+    my $self = shift;
+    return $self->features(-type=>\@_);
+}
+sub get_features_by_location {
+    my $self = shift;
+    if ($_[0] =~ /^-/) { # named argument form
+	return $self->features(@_);
+    } else {
+	my ($seqid,$start,$end) = @_;
+	return $self->features(-seq_id => $seqid,
+			       -start  => $start,
+			       -end    => $end);
+    }
+
+}
+# kind of a cheat because there are no real IDs in bed/bigwig files
+# we simply encode the location and other identifying information
+# into the id
+sub get_feature_by_id {
+    my $self = shift;
+    my $id   = shift;
+    my ($chr,$start,$end) = split ':',$id;
+    my @f = $self->get_features_by_location(-seq_id=>$chr,
+					    -start => $start,
+					    -end   => $end);
+    @f or return;
+    return $f[0] if @f == 1; # yay!
+    
+    @f = grep {$_->start == $start && $_->end == $end} @f;
+    return $f[0] if @f == 1;
+
+    warn "Did not find a single feature with id $id. Returning first one.";
+    return $f[0]; # lie
+}
+
+
 sub seq_ids {
     my $self = shift;
     my $bw   = $self->bw;
-    my $chrom_list = $bw->bbiChromInfoHead;
+    my $chrom_list = $bw->chromList;
     my @list;
     for (my $c=$chrom_list->head;$c;$c=$c->next) {
 	push @list,$c->name;
@@ -111,14 +153,15 @@ sub get_seq_stream {
     $options{-type} ||= 'region';
 
     if (ref $options{-type} && ref $options{-type} eq 'ARRAY') {
-	warn "This module only supports fetching one feature type at a time. Picking first one.";
+	warn "This module only supports fetching one feature type at a time. Picking first one."
+	    if @{$options{-type}}>1;
 	$options{-type} = $options{-type}->[0];
     }
 
     my $iterator_class = $self->_type_to_iterator($options{-type});
     
     # first deal with the problem of the user not specifying the chromosome
-    return Bio::DB::BigWig::GlobalIterator->new($self,$iterator_class,\%options)
+    return Bio::DB::BigFile::GlobalIterator->new($self,$iterator_class,\%options)
 	unless $options{-seq_id};
 
     # now deal with the problem of the user not specifying either the
@@ -138,7 +181,7 @@ sub _type_to_iterator {
     return 'Bio::DB::BigWig::BinIterator'      if $type =~ /^bin/;
     return 'Bio::DB::BigWig::SummaryIterator'  if $type =~ /^summary/;
     return 'Bio::DB::BigWig::IntervalIterator' if $type =~ /^region/;
-    return 'Bio::DB::BigWig::EmptyIterator';
+    return 'Bio::DB::BigFile::EmptyIterator';
 }
 
 sub seq {
@@ -183,163 +226,28 @@ sub new_dna_accessor {
 
 package Bio::DB::BigWig::IntervalIterator;
 
-sub new {
-    my $self   = shift;
-    my ($bigwig,$options) = @_;
-    my $bw     = $bigwig->bw;
-    my $method = $self->_query();
-    my $head   = $bw->$method($options->{-seq_id},
-			      $options->{-start}-1,
-			      $options->{-end},
-			      $options->{-max}||0,
-	)
-	or return;
-    return bless {
-	head    => $head,   # keep in scope so not garbage collected
-	seq_id  => $options->{-seq_id},
-	current => $head->head,
-	bigwig  => $bigwig,
-	options => $options,
-    },ref $self || $self;
-}
+use base 'Bio::DB::BigFile::IntervalIterator';
 
-sub next_seq {
-    my $self = shift;
-    my $filter = $self->{options}{-filter};
+sub _query_method { 'bigWigIntervalQuery' }
 
-    my ($i,$f);
-
-    for ($i = $self->{current};$i;$i=$i->next) {
-	$f = $self->_make_feature($i);
-	last if !$filter || $filter->($f);
-    }
-
-    if ($i) {
-	$self->{current} = $i->next;
-	return $f;
-    }
-    else {
-	$self->{current} = undef;
-	return;
-    }
-}
-
-sub _query {
-    return 'bigWigIntervalQuery';
-}
-
-sub _make_feature {
-    my $self     = shift;
-    my $raw_item = shift;
-    return Bio::DB::BigWig::Feature->new(-seq_id => $self->{seq_id},
-					 -start  => $raw_item->start+1,
-					 -end    => $raw_item->end,
-					 -score  => $raw_item->value,
-					 -type   => 'region',
-					 -fa     => $self->{bigwig}->fa,
-	);
-}
+sub _feature_method {'Bio::DB::BigWig::Feature'}
 
 ############################################################
 
 package Bio::DB::BigWig::BinIterator;
-
+use base 'Bio::DB::BigFile::BinIterator';
 use Carp 'croak';
 
-sub new {
-    my $self   = shift;
-    my ($bigwig,$options) = @_;
-    my $bw     = $bigwig->bw;
+sub _query_method   { 'bigWigSummaryArrayExtended' }
+sub _feature_method { 'Bio::DB::BigWig::Feature'   }
 
-    my (undef,$bins) = $options->{-type} =~ /^(bin)(?::(\d+))?/i
-	or croak "invalid call to _get_bin_stream. -type argument must be bin[:bins]";
-    $bins ||= 1024;
-
-    my $method = $self->_query;
-    my $arry   = $bw->$method($options->{-seq_id},
-			      $options->{-start}-1,
-			      $options->{-end},
-			      $bins)
-	or return;
-
-    my $chrom_end = $bw->chromSize($options->{-seq_id});
-    my $binsize   = ($options->{-end}-$options->{-start}+1)/$bins;
-    return bless {
-	array   => $arry,
-	bigwig  => $bigwig,
-	start   => $options->{-start},
-	end     => $chrom_end,
-	binsize => $binsize,
-	seq_id  => $options->{-seq_id},
-    },ref $self || $self;
-}
-
-sub next_seq {
-    my $self = shift;
-    my $filter = $self->{options}{-filter};
-
-    my $array  = $self->{array};
-    my $i      = shift @$array;
-    my $f;
-    while ($i) {
-	$f = $self->_make_feature($i);
-	$self->{start} += $self->{binsize} + 1;
-	last if !$filter || $filter->($f);
-	$i = shift @$array;
-    }
-
-    return $f if $i;
-    return;
-}
-
-sub _query {
-    return 'bigWigSummaryArrayExtended';
-}
-
-sub _make_feature {
-    my $self = shift;
-    my $raw_item = shift;
-    my $end = int($self->{start}+$self->{binsize});
-    $end    = $self->{end} if $end > $self->{end};
-    return Bio::DB::BigWig::Feature->new(-seq_id => $self->{seq_id},
-					 -start  => int($self->{start}),
-					 -end    => $end,
-					 -score  => $raw_item,
-					 -type   => 'bin',
-					 -fa     => $self->{bigwig}->fa,
-	);
-}
 
 ##################################################################
 package Bio::DB::BigWig::SummaryIterator;
 
-sub new {
-    my $self = shift;
-    my ($bigwig,$options) = @_;
-    my $bw     = $bigwig->bw;
-    return bless {
-	feature => Bio::DB::BigWig::Summary->new(-seq_id => $options->{-seq_id},
-						 -start  => $options->{-start},
-						 -end    => $options->{-end},
-						 -type   => 'summary',
-						 -fa     => $bigwig->fa,
-						 -bw     => $bigwig)
-    },ref $self || $self;
-}
+use base 'Bio::DB::BigFile::SummaryIterator';
 
-sub next_seq {
-    my $self = shift;
-    my $d = $self->{feature};
-    $self->{feature} = undef;
-    return $d;
-}
-
-##################################################################
-
-package Bio::DB::BigWig::EmptyIterator;
-
-sub new { my $self = shift; return bless {},ref $self || $self }
-sub next_seq { return }
+sub _query_class { 'Bio::DB::BigWig::Summary' }
 
 
 ##################################################################
@@ -370,18 +278,22 @@ sub seq {
     return Bio::PrimarySeq->new(-seq=>$self->dna);
 }
 
+sub id {
+    my $self = shift;
+    return join (':',$self->seq_id,$self->start,$self->end);
+}
+
 
 ##################################################################
 
 package Bio::DB::BigWig::Summary;
-
 use base 'Bio::DB::BigWig::Feature';
 
 sub new {
     my $self = shift;
     my $feat = $self->SUPER::new(@_);
     my %args = @_;
-    $feat->{bw} = $args{-bw} if $args{-bw};
+    $feat->{bf} = $args{-bf} if $args{-bf};
     return $feat;
 }
 
@@ -390,21 +302,20 @@ sub statistical_summary {
     my $bins = shift;
     $bins ||= 1024;
 
-    my $bw = $self->{bw}->bw or return;
-    return $bw->bigWigSummaryArrayExtended($self->seq_id,
+    my $bf = $self->{bf}->bf or return;
+    return $bf->bigWigSummaryArrayExtended($self->seq_id,
 					   $self->start-1,
 					   $self->end,
 					   $bins);
 }
 
 ##################################################################
-package Bio::DB::BigWig::Segment;
-
+package Bio::DB::BigFile::Segment;
 use base 'Bio::DB::BigWig::Summary';
 
 sub features {
     my $self = shift;
-    return $self->{bw}->features(-seq_id => $self->seq_id,
+    return $self->{bf}->features(-seq_id => $self->seq_id,
 				 -start  => $self->start,
 				 -end    => $self->end,
 				 -type   => $_[0] || 'region');
@@ -412,60 +323,10 @@ sub features {
 
 sub get_seq_stream {
     my $self = shift;
-    return $self->{bw}->get_seq_stream(-seq_id => $self->seq_id,
+    return $self->{bf}->get_seq_stream(-seq_id => $self->seq_id,
 				       -start  => $self->start,
 				       -end    => $self->end,
 				       -type   => $_[0] || 'region');
-}
-
-##################################################################
-
-package Bio::DB::BigWig::GlobalIterator;
-
-sub new {
-    my $self = shift;
-    my ($bigwig,$inner_iterator,$options) = @_;
-    my $cl = $bigwig->bw->chromList or return;
-
-    my $s =  bless {
-	cl_head  => $cl,     # keep in scope so not garbage collected
-	current  => $cl->head,
-	bigwig   => $bigwig,
-	options  => $options,
-	inner_i  => $inner_iterator,
-    },ref $self || $self;
-
-    $s->{interval}  = $s->_new_interval($bigwig,$cl->head,$options);
-    return $s;
-}
-
-
-sub next_seq {
-    my $self = shift;
-    my $c    = $self->{current} or return;
-
-    my $next = $self->{interval}->next_seq;
-    return $next if $next;
-    
-    # if we get here, then there are no more intervals on current chromosome
-    # try more chromosomes
-    while (1) {
-	$self->{current}  = $self->{current}->next or return;  # out of chromosomes
-	$self->{interval} = $self->_new_interval($self->{bigwig},$self->{current},$self->{options});
-	my $next = $self->{interval}->next_seq;
-	return $next if $next;
-    }
-}
-
-sub _new_interval {
-    my $self = shift;
-    my ($bigwig,$chrom,$options) = @_;
-    my $inner_iterator = $self->{inner_i};
-    my %options = (%$options,
-		   -seq_id => $chrom->name,
-		   -start  => 1,
-		   -end    => $chrom->size);
-    return $inner_iterator->new($bigwig,\%options);
 }
 
 1;

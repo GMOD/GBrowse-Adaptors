@@ -12,6 +12,7 @@
 #include "localmem.h"
 #include "bigWig.h"
 #include "bigBed.h"
+#include "udc.h"
 #include "asParse.h"
 
 
@@ -84,6 +85,14 @@ bf_bigWigFileCreate(package="Bio::DB::BigFile",inName,chromSizes,blockSize=1024,
   char             *outName
   CODE:
   bigWigFileCreate(inName,chromSizes,blockSize,itemsPerSlot,clipDontDie,compress,outName);
+
+void
+bf_udcSetDefaultDir(packname="Bio::DB::BigFile",path)
+  char       *packname
+  char       *path
+  CODE:
+  udcSetDefaultDir(path);
+
 
 Bio::DB::bbiFile
 bf_bigWigFileOpen(packname="Bio::DB::BigFile",filename)

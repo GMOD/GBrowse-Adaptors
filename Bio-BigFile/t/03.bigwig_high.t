@@ -9,7 +9,7 @@ use ExtUtils::MakeMaker;
 use File::Temp qw(tempfile);
 use Bio::Root::IO;
 use FindBin '$Bin';
-use constant TEST_COUNT => 29;
+use constant TEST_COUNT => 32;
 
 use lib "$Bin/../lib","$Bin/../blib/lib","$Bin/../blib/arch";
 
@@ -59,8 +59,19 @@ ok (scalar @features,$nodes);
     ok ($warning =~ /this module only supports/i);
 }
 
+my $id = $features[0]->id;
+ok($id);
+my $f  = $wig->get_feature_by_id($id);
+ok($f);
+ok($f->score>0);
+ok($f->score,$features[0]->score);
+
 my @big_vals  = grep {$_->score >= 0.5} @features;
-my @big_vals2 = $wig->features(-seq_id=>'I',-start=>100,-end=>1000,-filter=>sub {shift->score >0.5});
+my @big_vals2 = $wig->features(-seq_id=>'I',
+			       -start=>100,
+			       -end=>1000,
+			       -filter=>sub {shift->score >0.5}
+    );
 ok (@big_vals,@big_vals2);
 
 my @foo = $wig->features(-type=>'foo',-seq_id=>'I');
@@ -68,6 +79,8 @@ ok(@foo,0);
 
 @foo = $wig->features(-type=>'foo');
 ok(@foo,0);
+
+
 
 # One way of getting summary data is as a series of feature objects of type 'bin'.
 # The score of each is the extended summary hash
@@ -93,7 +106,7 @@ ok($bins->[0]{maxVal} > 0);
 # testing segment functionality
 my $seg = $wig->segment('II',1=>50000);
 ok($seg);
-ok($seg->isa('Bio::DB::BigWig::Segment'));
+ok($seg->isa('Bio::DB::BigFile::Segment'));
 ok($seg->length,50000);
 ok(length $seg->dna,50000);
 
