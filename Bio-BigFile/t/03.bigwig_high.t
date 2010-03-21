@@ -84,7 +84,7 @@ ok(@foo,0);
 
 # One way of getting summary data is as a series of feature objects of type 'bin'.
 # The score of each is the extended summary hash
-my @bins = $wig->features(-type=>'bin',-seq_id=>'I');
+my @bins = $wig->features(-type=>'bin:1024',-seq_id=>'I');
 ok(@bins,1024);
 ok($bins[0]->score->{maxVal} > 0);
 

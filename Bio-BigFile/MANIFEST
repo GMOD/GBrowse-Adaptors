@@ -8,13 +8,18 @@ ExampleData/refSeqTest.as
 ExampleData/refSeqTest.flat.bb
 ExampleData/refSeqTest.flat.bed
 ExampleData/WS180.chrom.sizes
+lib/Bio/DB/BigBed.pm
 lib/Bio/DB/BigFile.pm
 lib/Bio/DB/BigFile.xs
 lib/Bio/DB/BigFile/Constants.pm
+lib/Bio/DB/BigFile/Iterators.pm
+lib/Bio/DB/BigWig.pm
 LICENSE
 MANIFEST			This list of files
 META.yml
 README
 t/01.bigwig.t
 t/02.bigbed.t
+t/03.bigwig_high.t
+t/04.bigbed_high.t
 typemap

@@ -29,6 +29,7 @@ my $build = Module::Build->new(
     },
     requires     => {
 	'perl'                => '5.008',
+	'Bio::Root::Version'  => '1.005009001',
     },
 #    create_makefile_pl => 'passthrough',
     );

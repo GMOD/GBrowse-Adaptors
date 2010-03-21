@@ -103,6 +103,7 @@ sub _make_feature {
 	my $fa = $self->{bigfile}->fa;
 	@children= map {
 	    $method->new(-fa     => $fa,
+			 -seq_id => $self->{seq_id},
 			 -start  => $_->[0],
 			 -end    => $_->[1],
 			 -type   => $_->[2],
@@ -194,14 +195,14 @@ sub split_gene_bits {
 package Bio::DB::BigBed::Feature;
 use base 'Bio::DB::BigWig::Feature';
 
-sub id {
+sub primary_id {
     my $self = shift;
     my $chr    = $self->seq_id;
     my $start  = $self->start;
     my $end    = $self->end;
-    my $strand = $self->strand;
+    my $strand = $self->strand||'';
     my $parts  = $self->get_SeqFeatures;
-    my $name   = $self->display_name;
+    my $name   = $self->display_name ||'';
     return join ':',$name,$chr,$start,$end,$strand,$parts;
 }
 

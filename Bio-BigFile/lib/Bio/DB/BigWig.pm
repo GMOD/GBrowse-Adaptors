@@ -10,11 +10,144 @@ use Bio::DB::BigFile::Iterators;
 use Bio::Graphics::Feature;
 use Carp 'croak';
 
+use base 'Exporter';
+our @EXPORT_OK = qw(binMean binVariance binStdev);
+
+# $Id$
 # high level interface to BigWig files
+
+=head1 SYNOPSIS
+
+   use Bio::DB::BigWig 'binMean';
+
+   my $wig  = Bio::DB::BigWig->new(-bigwig=>'ExampleData/dpy-27-variable.bw',
+				    -fasta=>'/tmp/elegans.fa');
+
+   # get statistical summaries across all chromosomes
+   my @summary = $wig->features(-type=>'summary');# one for each chromosome
+   for my $s (@summary) {
+      print "chromosome ",$s->seq_id,"\n";
+      my $stats = $s->statistical_summary(10);   # 10 evenly-spaced bins as an array ref
+      print "\tmax  = ",$stats->[0]{maxVal},"\n";
+      print "\tmean = ",binMean($stats->[0]),"\n";
+   }
+
+   # get statistical summary across just chromosome I
+   my ($summary) = $wig->features(-seq_id=>'I',-type=>'summary'); 
+   my $stats = $summary->statistical_summary(10);   # 10 evenly-spaced bins as an array ref
+   print "\tmax  = ",$stats->[0]{maxVal},"\n";
+   print "\tmean = ",binMean($stats->[0]),"\n";
+   
+   # get statistical summary across a subregion
+   ($summary) = $wig->features(-seq_id => 'I',
+                               -start  => 5_000_000,
+                               -end    => 6_000_000,
+                               -type   => 'summary');
+   $stats = $summary->statistical_summary(10); # 10 bins across region
+
+   # Alternative API. Each bin is an object in its own right
+   my (@bins) = $wig->features(-seq_id=>'I',
+                               -start  => 5_000_000,
+                               -end    => 6_000_000,
+                               -type=>'summary');
+   for my $b (@bins) {
+      my $start = $b->start;
+      my $end   = $b->end;
+      my $score = $b->score;
+      print "$start..$end, mean = ",$score->mean,"\n";
+   }
+
+   # fetch the individual data points in the wig file over a region of interest
+   my @points = $wig->features(-seq_id=>'I',-start=>100,-end=>1000);
+   for my $p (@points) {
+      my $start = $p->start;
+      my $end   = $p->end;
+      my $val   = $p->score;
+      print "$start..$end : $val\n";
+   }
+
+   # Same thing, but using an iterator.
+   my $iterator = $wig->get_seq_stream(-seq_id=>'I',-start=>100,-end=>1000);
+   while (my $p = $iterator->next_seq) {
+      my $start = $p->start;
+      my $end   = $p->end;
+      my $val   = $p->score;
+      print "$start..$end : $val\n";
+   }
+
+   # now dump whole thing out as a BEDGraph file
+   my $iterator = $wig->get_seq_stream();
+   while (my $p = $iterator->next_seq) {
+      my $seqid = $p->seq_id;
+      my $start = $p->start;
+      my $end   = $p->end;
+      my $val   = $p->score;
+      print join("\t",$seqid,$start,$end,$val),"\n";
+   }
+
+=head1 DESCRIPTION
+
+This module provides a high-level interface to Jim Kent's BigWig
+files, an indexed genome feature database that can be randomly
+accessed across the network. Please see
+http://genome.ucsc.edu/FAQ/FAQformat.html for information about
+creating these files.
+
+For the low-level interface, please see Bio::DB::BigFile. BigBed files
+are supported by the module Bio::DB::BigBed.
+
+=head1 INSTALLATION
+
+Installation requires a compiled version of Jim Kent's source tree,
+including the main library, jkweb.a. Please see the README in the
+Bio::DB::BigFile distribution directory for instructions.
+
+=head1 CLASS METHODS
+
+Please note that B<all> genomic coordinates consumed or returned by
+this module are one-based closed intervals, identical to the BioPerl
+standard. This is not true of the low level interfaces.
+
+=over 4
+
+=item B<$bw = Bio::DB::BigWig-E<gt>new(-bigwig=E<gt>$bw_path,-fasta=E<gt>$fa_path)>
+=item B<$bw = Bio::DB::BigWig-E<gt>new($bw_path)>
+
+Create a new Bio::DB::BigWig object. The B<-bigwig> argument
+(required) points to the path to the indexed .bw file you wish to
+open. Alternatively, you may pass an http: or ftp: URL in order to
+open a remote BigWig file. A shorter version of new() allows you to
+pass a single argument consisting of the BigWig file path.
+
+The optional B<-fasta> argument provides a path to a FASTA file
+containing the genome sequence corresponding to the original WIG
+file. All DNA sequences come from this file, so annoying and confusing
+things will happen if use the wrong genome build. The file B<must> use
+chromosome/contig identifiers that match those in the WIG file from
+which the BigWig was built. This module uses the BioPerl
+Bio::DB::Fasta libary to build an index of the FASTA file, which means
+that the directory in which the FASTA file resides must be writable by
+the current process the first time you use it. Alternately, you can
+pass the B<-fasta> option a previously-opened Perl object that
+supports the seq($seqid,$start,$end) method. This method takes three
+arguments consisting of the chromosome/contig name and the start and
+end coordinates of the region of interest in 1-based
+coordinates. Suitable implementations include
+Bio::DB::SeqFeature::Store (part of BioPerl) and Bio::DB::Sam::Fai,
+part of the Bio::SamTools package. You are of course welcome to
+implement your own Fasta object.
+
+The returned Bio::DB::BigWig object adheres to most of the Bio::DasI
+interface, allowing you to retrieve lists of Bio::DB::SeqFeatureI
+objects from it by querying across ranges of chromosome coordinates.
+
+=back
+
+=cut
 
 sub new {
     my $self = shift;
-    my %args = @_;
+    my %args = $_[0] =~ /^-/ ? @_ : (-bigwig=>shift);
 
     my $bw_path       = $args{-bigwig}  or croak "-bigwig argument required";
     my $fa_path       = $args{-fasta};
@@ -34,9 +167,108 @@ sub new {
     },ref $self || $self;
 }
 
+=head1 OBJECT METHODS
+
+The following are public methods available to Bio::DB::BigWig objects.
+
+=head2 Accessors
+
+Here are read-only accessors that give you limited access to the
+contents of the BigWig object. In the method synopses given
+below, B<$bigwig> is a Bio::DB::BigWig object.
+
+=over 4
+
+=item B<$bigfile = $bigwig-E<gt>bf>
+
+Return the low-level Bio::DB::BigFile underlying the object.
+
+=cut
+
 sub bf { shift->{bw} }
+
+=item B<$bigfile = $bigwig-E<gt>bigwig>
+
+An alias for bf().
+
+=cut
+
+sub bigwig { shift->bw }
+
 sub bw { shift->{bw} }
+
+=item B<$fasta = $bigwig-E<gt>fa>
+
+Return the DNA accessor (usually a Bio::DB::Fasta object) which the
+object uses to fetch the sequence of the reference genome.
+
+=cut
+
 sub fa { shift->{fa} }
+
+=back
+
+=head2 Segments
+
+The following are methods that allow you to retrieve information on
+defined ranges of the genome.
+
+=over 4
+
+=item B<$segment = $bigwig-E<gt>segment($seqid,$start,$end)>
+=item B<$segment = $bigwig-E<gt>segment(-seq_id=>$seqid, -start=E<gt>$start, -end=E<gt>$end)>
+
+The segment() method returns a Bio::DB::BigFile::Segment object. It
+has two forms. In the positional form, pass it the sequence ID
+(chromosome or contig name), and start and end positions of the
+range. Start defaults to 1 if missing or undef, and end defaults to
+the full length of the chromosome/contig. The named form takes the
+named arguments B<-seq_id>, B<-start> and B<-end>.
+
+=back
+
+Once a segment is defined, the following methods are available:
+
+=over 4
+
+=item B<@features = $segment-E<gt>features([$type])>
+
+Return a list of features that overlap the segment. You may us this to
+retrieve statistical summary information about the segment or
+subranges of the segment, or to return the underlying WIG values. The
+optional $type argument allows you to select what type of information
+to retrieve. Options are B<bin> to retrieve statistical information as
+a series of bin features spanning the segment, B<summary> to retrieve
+a single summary object describing the entire segment, or B<region> to
+retrieve the intervals defined in the original WIG file (the type
+named B<interval> is an alias for 'region'). If no type is given, then
+B<region> is assumed. See the discussion of the
+Bio::DB::WigFile->features() method for a more in-depth discussion of
+how this works.
+
+=item B<$iterator = $segment-E<gt>get_seq_stream([$type])>
+
+This method returns an iterator across the segment. Call the
+iterator's next_seq() method repeatedly to step through the features
+contained within the segment in a memory-efficient manner:
+
+  my $iterator = $segment->get_seq_stream('region');
+  while (my $f = $iterator->next_seq) {
+      print $f->score,"\n";
+  }
+
+=item B<$seqid = $segment-E<gt>seq_id>
+
+=item B<$start = $segment-E<gt>start>
+
+=item B<$end   = $segment-E<gt>end>
+
+These methods return the chromosome/contig name, start and end of the
+segment range, respectively.
+
+=back
+
+=cut
 
 sub segment {
     my $self = shift;
@@ -51,8 +283,13 @@ sub segment {
 	($seqid,$start,$end) = @_;
     }
 
+    my $size = $self->bw->chromSize($seqid) or return;
+
     $start ||= 1;
     $end   ||= $self->bw->chromSize($seqid);
+
+    return unless $start >= 1 && $start < $size;
+    return unless $end   >= 1 && $end   < $size;
 
     return Bio::DB::BigFile::Segment->new(-bf    => $self,
 					  -seq_id=> $seqid,
@@ -60,15 +297,288 @@ sub segment {
 					  -end   => $end);
 }
 
-sub bigwig { shift->bw }
+=head2 Retrieving intervals and summary statistics
 
-sub get_features_by_name  { return; } # this doesn't do anything
-sub get_features_by_alias { return; } # this doesn't do anything
-sub get_features_by_attribute { return; } # this doesn't do anything
+This section describes methods that return lists of intervals and
+summary statistics from the BigWig object. Most of the methods are
+oriented towards retrieving information about the distribution of
+values in the WIG file. Summary information typically consists of the
+following fields:
+
+  Key                Value
+  ---            ---------
+
+  validCount     Number of intervals in the bin
+
+  maxVal         Maximum value in the bin
+
+  minVal         Minimum value in the bin
+
+  sumData        Sum of the intervals in the bin
+
+  sumSquares     Sum of the squares of the intervals in the bin
+
+From these values one can determine the mean, variance and standard
+deviation across one or more genomic intervals. The formulas are as
+follows:
+
+ sub mean {
+    my ($sumData,$validCount) = @_;
+    return $sumData/$validCount;
+ }
+
+ sub variance {
+    my ($sumData,$sumSquares,$validCount) = @_;
+    my $var = $sumSquares - $sumData*$sumData/$validCount;
+    if ($validCount > 1) {
+	$var /= $validCount-1;
+    }
+    return 0 if $var < 0;
+    return $var;
+ }
+
+ sub stdev {
+     my ($sumData,$sumSquares,$validCount) = @_;
+     my $variance = variance($sumData,$sumSquares,$validCount);
+     return sqrt($variance);
+ }
+
+Note that in the calculation of variance, there is a chance of getting
+very small negative numbers in a tight distribution due to floating
+point rounding errors. Hence the check for variance < 0. To pool bins,
+simply sum the individual values.
+
+For your convenience, Bio::DB::BigWig optionally exports functions
+that perform these calculations for you. Please see L</EXPORTED
+FUNCTIONS> below.
+
+The following methods allow you to query the BigWig file:
+
+=over 4
+
+=item B<@features = $bigwig-E<gt>features(@args)>
+
+This method is the workhorse for retrieving various types of intervals
+and summary statistics from the BigWig database. It takes a series of
+named arguments in the format (-argument1 => value1, -argument2 =>
+value2, ...) and returns a list of zero or more BioPerl
+Bio::SeqFeatureI objects.
+
+The following arguments are recognized:
+
+   Argument     Description                         Default
+   --------     -----------                         -------
+
+   -seq_id      Chromosome or contig name defining  All chromosomes/contigs.
+                the range of interest.
+
+   -start       Start of the range of interest.     1
+
+   -end         End of the range of interest        Chromosome/contig end
+
+   -type        Type of feature to retrieve         'region'
+                    (see below). 
+
+   -iterator    Boolean, which if true, returns     undef (false)
+                an iterator across the list rather
+                than the list itself.
+
+Each returned feature supports the standard Bio::SeqFeatureI methods,
+including seq_id(), start(), end(), strand(), display_name(),
+primary_id(), primary_tag() and score(). Typically, the seq_id, start,
+end and score are of the greatest interest.
+
+Three different feature types are accepted, each one with slightly
+different properties:
+
+I<region>,I<interval>
+
+Features retrieved using either of these types will represent the raw
+intervals and values present in the original WIG file (the two are
+equivalent, "region" is preferred because it is a Sequence Ontology
+term, but "interval" is probably more natural). Note that this
+operation may consume a lot of memory and be processor-intensive. It
+is almost always better to create an iterator using get_seq_stream().
+
+These features have the following useful methods:
+
+  $feature->seq_id()     The chromosome/contig name
+  $feature->start()      Start of the interval
+  $feature->end()        End of the interval
+  $feature->score()      Score for the interval
+  $feature->primary_id() Primary ID for the interval
+
+Due to floating point precision issues at the BigWig C level, the
+scores may be very slightly different from the originals.
+
+Here is a simple script that dumps out the contents of chromosome I in
+BedGraph format:
+
+ use Bio::DB::BigWig;
+
+  my $wig  = Bio::DB::BigWig->new(-bigwig=>$path);
+  my @features = $wig->features(-seq_id=>'I',-type=>'region');
+  for my $p (@features) {
+     my $seqid = $p->seq_id;
+     my $start = $p->start;
+     my $end   = $p->end;
+     my $val   = $p->score;
+     print join("\t",$seqid,$start,$end,$val),"\n";
+ }
+
+I<bin:#count>
+
+A type named "bin:" followed by an integer will divide each
+chromosome/contig into the indicated number of summary bins, and
+return one feature for each bin. For example, type "bin:100" will
+return 100 evenly-spaced bins across each chromosome/contig. 
+
+The returned bin features have the same methods as those returned by
+the "region"/"interval" types, except that the start() and end()
+methods return the boundaries of the bin rather than any individual
+interval reported in the WIG file. Instead of returning a single
+value, the score() method returns a hash of statistical summary
+information containing the keys B<validCount>, B<maxVal>, B<minVal>,
+B<sumData> and B<sumSquares> as described earlier.
+
+In addition, the bin objects add the following convenience methods:
+
+ $bin->count()    Same as $bin->score->{validCount}
+ $bin->minVal()   Same as $bin->score->{minVal}
+ $bin->maxVal()   Same as $bin->score->{maxVal}
+ $bin->mean()     The mean of values in the bin (from the formula above)
+ $bin->variance() The variance of values in the bin (ditto)
+ $bin->stdev()    The standard deviation of values in the bin (ditto)
+
+If no number is specified (i.e. you search for type "bin"), then an
+interval of "1" is assumed. You will receive one bin spanning each
+chromosome/contig.
+
+I<summary>
+
+This feature type is similar to "bin" except that instead of returning
+one feature for each binned interval on the genome, it returns a
+single object from which you can retrieve summary statistics across
+fixed-width bins in a more memory-efficient manner. Call the object's
+statistical_summary() method with the number of bins you need to get
+an array ref of bins length. Each element of the array will be a
+hashref containing the B<minVal>, B<maxVal>, B<sumData>, B<sumSquares>
+and B<validCount> keys. The following code illustrates how this works:
+
+ use Bio::DB::BigWig 'binMean','binStdev';
+ my $wig = Bio::DB::BigWig->new(-bigwig=>$path);
+ my @chroms = $wig->features(-type=>'summary');
+
+ for my $c (@chroms) {
+    my $seqid   = $c->seq_id;
+    my $c_start = $c->start;
+
+    my $stats     = $c->statistical_summary(10);
+    my $bin_width = $c->length/@$stats;
+    my $start     = $c_start;
+
+    for my $s (@$stats) {
+        my $mean  = binMean($s);
+        my $stdev = binStdev($s);
+        my $end   = $start + $bin_width-1;
+        print "$seqid:",int($start),'..',int($end),": $mean +/- $stdev\n";
+    } continue {
+       $start += $c_start;
+    }
+ }
+
+"summary" features also have a score() method which returns a
+statistical summary hash across the entire region.
+
+If the argument -iterator=>1 is present, then instead of returning an
+array of features, the method call will return a single object that
+has a next_seq() method. Each time next_seq() is called it will return
+a retrieved feature in a memory-efficient manner. Here is a script
+that will dump the entire BigWig file out in BedGraph format:
+
+ use Bio::DB::BigWig;
+
+  my $wig  = Bio::DB::BigWig->new(-bigwig=>$path);
+  my $iterator = $wig->features(-iterator=>1,-type=>'region');
+  while (my $p $iterator->next_seq) {
+     my $seqid = $p->seq_id;
+     my $start = $p->start;
+     my $end   = $p->end;
+     my $val   = $p->score;
+     print join("\t",$seqid,$start,$end,$val),"\n";
+ }
+
+The next few methods are basically convenience interfaces to the
+features() method:
+
+=item B<@features = $bigwig-E<gt>get_features_by_type($type)>
+
+This method returns all features of the specified type from the BigWig
+file without regard to their location
+
+=item B<@features = $bigwig-E<gt>get_features_by_location($seqid,$start,$end)>
+
+=item B<@features = $bigwig-E<gt>get_features_by_location(@named_args)>
+
+get_features_by_location() retrieves features across a specified
+interval of the genome. In its three-argument form, it accepts the ID
+of the chromosome/contig, the start position and the end position of
+the desired range. If start or end are omitted, they default to the
+beginning and end of the chromosome respectively.
+
+In the named-argument form, it behaves essentially identically to
+features().
+
+Typical usage to fetch 100 bins across the region of chromosome "I"
+from 1Mb to 2Mb:
+
+  my @bins = $bigwig->get_features_by_location(-seq_id => 'I',
+                                               -start  => 1_000_000,
+                                               -end    => 2_000_000,
+                                               -type   => 'bins:100');
+
+  foreach (@bins) {
+      print $_->start,'..',$_->end,': ',$_->mean,"\n";
+  }
+
+
+=item B<@features = $bigwig-E<gt>get_features_by_name($name)>
+
+=item B<@features = $bigwig-E<gt>get_features_by_alias($name)>
+
+=item B<@features = $bigwig-E<gt>get_features_by_attribute(%attributes)>
+
+=item B<$feature  = $bigwig-E<gt>get_feature_by_id($id)>
+
+=item B<$feature  = $bigwig-E<gt>get_feature_by_name($name)>
+
+These methods are supported for compatibility with like-named methods
+in BioPerl's Bio::DB::SeqFeature::Store class. However they do not do
+anything useful, as these are not properties of WIG data.
+
+=item B<$iterator = $bigwig-E<gt>get_seq_stream(@args)>
+
+This method is identical to calling
+$bigwig->features(-iterator=>1,@args), and returns an iterator object
+that will fetch the result of the query by calling next_seq
+repeatedly:
+
+  my $i = $bigwig->get_seq_stream(-seq_id => 'I',
+                                  -start  => 1_000_000,
+                                  -end    => 2_000_000,
+                                  -type   => 'bins:100');
+
+  while (my $b = $i->next_seq;
+      print $b->start,'..',$b->end,': ',$b->mean,"\n";
+  }
+
+=cut
+
 sub get_features_by_type {
     my $self = shift;
     return $self->features(-type=>\@_);
 }
+
 sub get_features_by_location {
     my $self = shift;
     if ($_[0] =~ /^-/) { # named argument form
@@ -101,23 +611,10 @@ sub get_feature_by_id {
     return $f[0]; # lie
 }
 
-
-sub seq_ids {
-    my $self = shift;
-    my $bw   = $self->bw;
-    my $chrom_list = $bw->chromList;
-    my @list;
-    for (my $c=$chrom_list->head;$c;$c=$c->next) {
-	push @list,$c->name;
-    }
-    return @list;
-}
-
-sub length {
-    my $self = shift;
-    my $seqid = shift;
-    return $self->bw->chromSize($seqid);
-}
+sub get_features_by_name  { return; } # this doesn't do anything
+sub get_feature_by_name   { return; } # this doesn't do anything
+sub get_features_by_alias { return; } # this doesn't do anything
+sub get_features_by_attribute { return; } # this doesn't do anything
 
 sub features {
     my $self    = shift;
@@ -174,21 +671,64 @@ sub get_seq_stream {
     return $iterator_class->new($self,\%options);
 }
 
+=item B<@seq_ids = $bw->seq_ids>
+
+This method returns the names of all the chromosomes/contigs known to
+the BigWig file.
+
+=cut
+
+sub seq_ids {
+    my $self = shift;
+    my $bw   = $self->bw;
+    my $chrom_list = $bw->chromList;
+    my @list;
+    for (my $c=$chrom_list->head;$c;$c=$c->next) {
+	push @list,$c->name;
+    }
+    return @list;
+}
+
+=item B<$length = $bw->length($seqid)>
+
+Given the ID of a chromosome or contig, this returns its size in
+bases. If the sequence ID is unknown, returns undef.
+
+=cut
+
+sub length {
+    my $self = shift;
+    my $seqid = shift;
+    return $self->bw->chromSize($seqid);
+}
+
 sub _type_to_iterator {
     my $self = shift;
     my $type = shift;
 
     return 'Bio::DB::BigWig::BinIterator'      if $type =~ /^bin/;
     return 'Bio::DB::BigWig::SummaryIterator'  if $type =~ /^summary/;
-    return 'Bio::DB::BigWig::IntervalIterator' if $type =~ /^region/;
+    return 'Bio::DB::BigWig::IntervalIterator' if $type =~ /^(region|interval)/;
     return 'Bio::DB::BigFile::EmptyIterator';
 }
+
+=item B<$dna = $bw-E<gt>seq($seqid,$start,$end)>
+
+Given a sequence ID and a range, this method returns the DNA bases (a
+string, not a Bio::PrimarySeq object) if a DNA accessor or FASTA path
+was defined at object creation time. Otherwise it will return undef.
+
+=back
+
+=cut
 
 sub seq {
     my $self = shift;
     my ($seqid,$start,$end) = @_;
-    my $fa   = $self->fa;
-    return $fa ? $fa->seq($seqid,$start,$end) : 'N' x ($end-$start+1);
+    my $fa   = $self->fa or return;
+    return $fa->can('seq')            ? $fa->seq($seqid,$start,$end)
+          :$fa->can('fetch_sequence') ? $fa->fetch_sequence($seqid,$start,$end)
+          : undef;
 }
 
 sub is_remote {
@@ -210,16 +750,72 @@ sub new_dna_accessor {
 	return $a;
     }
 
-    if (ref $accessor && UNIVERSAL::can($accessor,'seq')) {
+    if (ref $accessor && $self->can_do_seq($accessor)) {
 	return $accessor;  # already built
     }
 
-    my $obj = eval $accessor;  # maybe we got some code????
-    if ($obj && ref $obj && UNIVERSAL::can($obj,'seq')) {
-	return $obj;
-    }
-
     return;
+}
+
+sub can_do_seq {
+    my $self = shift;
+    my $obj  = shift;
+    return 
+	UNIVERSAL::can($obj,'seq') ||
+	UNIVERSAL::can($obj,'fetch_sequence');
+}
+
+=head1 EXPORTED FUNCTIONS
+
+These convenience functions are optionally exportable. You must
+explicitly request them, as in: 
+
+ use Bio::DB::BigWig qw(binMean binVariance, binStdev);
+
+=over 4
+
+=item B<$mean = binMean($feature-E<gt>score)>
+
+Return the mean of a summary statistics hash, such as those returned
+by the bin and summary feature score() method. This will also suitable
+for the elements of the array ref returned by summary features'
+statistical_summary() method.
+
+=cut
+
+sub binMean {
+    my $score = shift;
+    $score->{sumData}/$score->{validCount};
+}
+
+=item B<$variance = binVariance($feature-E<gt>score)>
+
+As above, but returns the variance of the summary statistics.
+
+=cut
+
+sub binVariance {
+    my $score = shift;
+    my $var = $score->{sumSquares} - $score->{sumData}**2/$score->{validCount};
+    if ($score->{validCount} > 1) {
+	$var /= $score->{validCount}-1;
+    }
+    return 0 if $var < 0;
+    return $var;
+
+}
+
+=item B<$sd = binStdev($feature-E<gt>score)>
+
+As above, but returns the standard deviaton of the summary statistics.
+
+=back
+
+=cut
+
+sub binStdev {
+    my $score = shift;
+    return sqrt(binVariance($score));
 }
 
 ############################################################
@@ -239,7 +835,7 @@ use base 'Bio::DB::BigFile::BinIterator';
 use Carp 'croak';
 
 sub _query_method   { 'bigWigSummaryArrayExtended' }
-sub _feature_method { 'Bio::DB::BigWig::Feature'   }
+sub _feature_method { 'Bio::DB::BigWig::Bin'       }
 
 
 ##################################################################
@@ -270,7 +866,9 @@ sub dna {
     my $seq_id = $self->seq_id;
     my $start  = $self->start;
     my $end    = $self->end;
-    return $fa->seq($seq_id,$start,$end);
+    return $fa->can('seq')            ? $fa->seq($seq_id,$start,$end)
+          :$fa->can('fetch_sequence') ? $fa->fetch_sequence($seq_id,$start,$end)
+          :'N' x $self->length;
 }
 
 sub seq {
@@ -278,9 +876,38 @@ sub seq {
     return Bio::PrimarySeq->new(-seq=>$self->dna);
 }
 
-sub id {
+sub primary_id {
     my $self = shift;
     return join (':',$self->seq_id,$self->start,$self->end);
+}
+
+sub id { shift->primary_id }
+
+##################################################################
+package Bio::DB::BigWig::Bin;
+
+use base 'Bio::DB::BigWig::Feature';
+
+sub minVal {
+    shift->score->{minVal};
+}
+
+sub maxVal {
+    shift->score->{maxVal};
+}
+
+sub mean {
+    Bio::DB::BigWig::binMean(shift->score);
+}
+
+sub count { shift->score->{validCount} }
+
+sub variance {
+    Bio::DB::BigWig::binVariance(shift->score);
+}
+
+sub stdev {
+    Bio::DB::BigWig::binStdev(shift->score);
 }
 
 
@@ -300,13 +927,19 @@ sub new {
 sub statistical_summary {
     my $self = shift;
     my $bins = shift;
-    $bins ||= 1024;
+    $bins ||= 1;
 
     my $bf = $self->{bf}->bf or return;
     return $bf->bigWigSummaryArrayExtended($self->seq_id,
 					   $self->start-1,
 					   $self->end,
 					   $bins);
+}
+
+sub score {
+    my $self = shift;
+    my $arry = $self->statistical_summary(1);
+    return $arry->[0];
 }
 
 ##################################################################
@@ -328,5 +961,82 @@ sub get_seq_stream {
 				       -end    => $self->end,
 				       -type   => $_[0] || 'region');
 }
+
+=head1 Using BigWig objects and Bio::Graphics
+
+Recent versions of the Bio::Graphics module (see L<Bio::Graphics>)
+directly supports the "summary" feature type via the wiggle_whiskers
+glyph. This glyph uses different color intensities to summarize the
+mean, standard deviation, min and max of bins across the range. You do
+not have to specify the bin size -- the glyph will choose a bin that
+is most appropriate for the width of the drawing. Typical usage is
+like this:
+
+ use Bio::DB::BigWig;
+ use Bio::Graphics;
+
+ my $path      = 'ExampleData/dpy-27-variable.bw';
+ my $wig       = Bio::DB::BigWig->new($path) or die;
+ my ($summary) = $wig->features(-seq_id=>'I',
+ 			        -type=>'summary');
+
+ my $panel     = Bio::Graphics::Panel->new(-width   => 800,
+					   -segment => $summary,
+					   -key_style => 'between',
+					   -pad_left => 10,
+					   -pad_right=>18,
+    );
+ # add the scalebar
+ $panel->add_track($summary,
+		  -glyph => 'arrow',
+		  -tick  => 2,
+		  -label => 'chrI',
+    );
+
+ # add the whisker
+ $panel->add_track($summary,
+		  -glyph => 'wiggle_whiskers',
+		  -height => 80,
+		  -key   => 'Summary statistics',
+    );
+ print $panel->png;
+
+=head1 Using BigWig objects and GBrowse
+
+The Generic Genome Browser version 2.0 (http://www.gmod.org/gbrowse)
+can treat a BigWig file as a track database. A typical configuration
+will look like this:
+
+ [BigWig:database]
+ db_adaptor    = Bio::DB::BigWig
+ db_args       = -bigwig /var/www/data/dpy-27-variable.bw
+	         -fasta  /var/www/data/elegans-ws190.fa
+
+ [BigWigIntervals]
+ feature  = summary
+ database = BigWig
+ glyph    = wiggle_whiskers
+ min_score = -1
+ max_score = +1.5
+ key       = DPY-27 ChIP-chip
+
+=head1 SEE ALSO
+
+L<Bio::DB::BigFile>, L<Bio::Perl>, L<Bio::Graphics>, L<Bio::Graphics::Browser2>
+
+=head1 AUTHOR
+
+Lincoln Stein E<lt>lincoln.stein@oicr.on.caE<gt>.
+E<lt>lincoln.stein@bmail.comE<gt>
+
+Copyright (c) 2010 Ontario Institute for Cancer Research.
+
+This package and its accompanying libraries is free software; you can
+redistribute it and/or modify it under the terms of the GPL (either
+version 1, or at your option, any later version) or the Artistic
+License 2.0.  Refer to LICENSE for the full license text. In addition,
+please see DISCLAIMER.txt for disclaimers of warranty.
+
+=cut
 
 1;

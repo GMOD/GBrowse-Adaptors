@@ -16,6 +16,8 @@ subdirectories "inc" and "lib". If you do not wish to set this
 environment variable, then this module will prompt you for the
 location the first time you build it.
 
+You will also need to install Bio::Perl from CPAN.
+
 Then run:
 
   perl Build.PL
