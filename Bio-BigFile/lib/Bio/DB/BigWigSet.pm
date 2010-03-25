@@ -500,7 +500,7 @@ sub _filter_ids_by_type {
   ID:
     for my $id (@$ids) {
 	my $att           = $self->{attributes}{$id};
-	my $type_base     = lc ($att->{type} || $att->{primary_tag} || $att->{method});
+	my $type_base     = lc ($att->{type} || $att->{method} || $att->{primary_tag} || $self->feature_type);
 	{
 	    no warnings;
 	    my $type_extended = lc "$att->{method}:$att->{source}" if $att->{method};
@@ -600,7 +600,7 @@ sub readdir {
 	$self->set_bigwig_attributes($path,
 				     {
 					 display_name=>$name,
-					 dbid        =>$path
+					 dbid        =>$path,
 				     });
     }
 
