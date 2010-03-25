@@ -7,8 +7,11 @@ VERSION 0.1.4, YOU MUST RUN "make -f makefile.generic" IN THE
 DISTRIBUTION DIRECTORY IN ORDER TO CREATE THE REQUIRED libbam.a
 LIBRARY FILE. For other versions, just "make" will usually work.
 
-Then set the environment variable SAMTOOLS to point to this directory
-and run:
+Then set the environment variable SAMTOOLS to point to this directory.
+
+You will also need to install Bio::Perl from CPAN.
+
+Now run:
 
   perl Build.PL
   ./Build

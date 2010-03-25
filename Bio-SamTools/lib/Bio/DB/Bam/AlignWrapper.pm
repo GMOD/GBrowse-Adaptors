@@ -228,9 +228,7 @@ sub padded_alignment {
 
 sub dna {
     my $self = shift;
-    my $region = $self->seq_id.':'.$self->start.'-'.$self->end;
-    my $fai = $self->{sam}->fai;
-    return $fai ? $self->{sam}->fai->fetch($region) : 'N' x $self->length;
+    return $self->{sam}->seq($self->seq_id,$self->start,$self->end);
 }
 
 sub tseq {

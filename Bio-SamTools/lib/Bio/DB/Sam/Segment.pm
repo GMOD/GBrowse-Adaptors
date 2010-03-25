@@ -72,8 +72,7 @@ sub primary_tag {
 sub dna {
     my $self = shift;
     my $db     = $self->db;
-    my $region = $self->seq_id.':'.$self->start.'-'.$self->end;
-    return $db->fai ? $db->fai->fetch($region) : 'N'x$self->length;
+    $db->seq($self->seq_id,$self->start,$self->end);
 }
 # required by api
 sub source_tag { return 'sam/bam' }

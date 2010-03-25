@@ -220,7 +220,10 @@ follows:
                    or higher, an http: or ftp: URL is accepted.
 
   -fasta         Path to the Fasta file that contains
-                   the reference sequences (optional).
+                   the reference sequences (optional). Alternatively,
+                   you may pass any object that supports a seq()
+                   or fetch_seq() method and takes the three arguments
+                   ($seq_id,$start,$end).
 
   -expand_flags  A boolean value. If true then the standard
                    alignment flags will be broken out as 
@@ -359,6 +362,13 @@ into a seq_id used by the high-level API.
 
 Translates a numeric target ID (TID) from the low-level API to a
 sequence length.
+
+=item $dna    = $sam->seq($seqid,$start,$end)
+
+Returns the DNA across the region from start to end on reference
+seqid. Note that this is a string, not a Bio::PrimarySeq object. If
+no -fasta path was passed when the sam object was created, then you
+will receive a series of N nucleotides of the requested length.
 
 =back
 
@@ -1200,10 +1210,14 @@ single position.
 
 =over 4
 
-=item $alignment = $pileup->b
+=item $alignment = $pileup->alignment
 
 Return the Bio::DB::Bam::Alignment object at this level. This provides
 you with access to the aligning read.
+
+=item $alignment = $pileup->b
+
+An alias for alignment(), provided for compatibility with the C API.
 
 =item $pos = $pileup->qpos
 
@@ -1279,12 +1293,7 @@ sub new {
 
     my $bam = Bio::DB::Bam->open($bam_path)      or croak "$bam_path open: $!";
 
-    my $fai;
-    if ($fa_path) {
-	-e $fa_path or croak "$fa_path does not exist";
-	-r _  or croak "$fa_path is not readable";
-	$fai = Bio::DB::Sam::Fai->open($fa_path)  or croak "$fa_path open: $!";
-    }
+    my $fai = $class->new_dna_accessor($fa_path) if $fa_path;
 
     my $self =  bless {
 	fai           => $fai,
@@ -1308,7 +1317,7 @@ sub is_remote {
 sub clone {
     my $self = shift;
     $self->{bam} = Bio::DB::Bam->open($self->{bam_path})     if $self->{bam_path};
-    $self->{fai} = Bio::DB::Sam::Fai->open($self->{fa_path}) if $self->{fa_path};
+    $self->{fai} = $self->new_dna_accessor($self->{fa_path}) if $self->{fa_path};
 }
 
 sub header {
@@ -1318,14 +1327,42 @@ sub header {
 
 sub fai { shift->{fai} }
 
+sub new_dna_accessor {
+    my $self     = shift;
+    my $accessor  = shift;
+
+    return unless $accessor;
+
+    if (-e $accessor) {  # a file, assume it is a fasta file
+	-r _  or croak "$accessor is not readable";
+	my $a = Bio::DB::Sam::Fai->open($accessor)  or croak "$accessor open: $!"
+	    or croak "Can't open FASTA file $accessor: $!";
+	return $a;
+    }
+
+    if (ref $accessor && $self->can_do_seq($accessor)) {
+	return $accessor;  # already built
+    }
+
+    return;
+}
+
+sub can_do_seq {
+    my $self = shift;
+    my $obj  = shift;
+    return 
+	UNIVERSAL::can($obj,'seq') ||
+	UNIVERSAL::can($obj,'fetch_sequence');
+}
+
+
 sub seq {
     my $self = shift;
     my ($seqid,$start,$end) = @_;
-    my $region = $seqid;
-    $region   .= ":$start" if defined $start;
-    $region   .= "-$end"   if defined $end;
-    my $fai = $self->fai;
-    return $fai ? $fai->fetch($region) : 'N' x ($end-$start+1);
+    my $fai = $self->fai or return 'N' x ($end-$start+1);
+    return $fai->can('seq')            ? $fai->seq($seqid,$start,$end) 
+	  :$fai->can('fetch_sequence') ? $fai->fetch_sequence($seqid,$start,$end)
+	  :'N' x ($end-$start+1);
 }
 
 sub expand_flags {
@@ -1929,6 +1966,15 @@ sub _glob_match {
 package Bio::DB::Sam::Fai;
 
 sub open { shift->load(@_) }
+
+sub seq {
+    my $self = shift;
+    my ($seqid,$start,$end) = @_;
+    my $region = $seqid;
+    $region   .= ":$start" if defined $start;
+    $region   .= "-$end"   if defined $end;
+    return $self->fetch($region)
+}
 
 package Bio::SeqFeature::Coverage;
 

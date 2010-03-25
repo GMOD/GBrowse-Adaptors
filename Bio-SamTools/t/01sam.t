@@ -1,5 +1,4 @@
 #-*-Perl-*-
-## Bioperl Test Harness Script for Modules
 
 # Before `make install' is performed this script should be runnable with
 # `make test'. After `make install' it should work as `perl test.t'
@@ -7,7 +6,6 @@
 use strict;
 use ExtUtils::MakeMaker;
 use File::Temp qw(tempfile);
-use Bio::Root::IO;
 use FindBin '$Bin';
 use constant TEST_COUNT => 101;
 
@@ -175,7 +173,7 @@ use Bio::DB::Sam;
 {
     my $sam = Bio::DB::Sam->new(-fasta=>"$Bin/data/ex1.fa",
 			        -bam  =>"$Bin/data/ex1.bam",
-				-expand_flags => 1,
+				-expand_flags => 1,m
 	);
     ok($sam);
     ok($sam->n_targets,2);
