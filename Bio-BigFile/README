@@ -10,13 +10,13 @@ http://hgdownload.cse.ucsc.edu/admin/jksrc.zip. Please follow the
 instructions contained in the source tree to create the main library
 file jkweb.a
 
-Set the environment variable KENT_SRC to point to the "src" directory
-inside the source tree. This directory should contain the
-subdirectories "inc" and "lib". If you do not wish to set this
-environment variable, then this module will prompt you for the
-location the first time you build it.
+This module will prompt you for the location of the Kent source tree
+the first time you build it. This should be the "src" directory which
+contains the subdirectories "inc" and "lib". If you do not wish to be
+prompted, set the environment variable KENT_SRC to point to the
+directory.
 
-You will also need to install Bio::Perl from CPAN.
+You will also need to install a recent version of Bio::Perl from CPAN.
 
 Then run:
 

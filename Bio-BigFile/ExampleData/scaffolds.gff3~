@@ -1,8 +1,0 @@
-##gff-version 3
-I	Reference	chromosome	1	15072421	.	+	.	ID=I;Name=I
-II	Reference	chromosome	1	15279316	.	+	.	ID=II;Name=II
-III	Reference	chromosome	1	13783681	.	+	.	ID=III;Name=III
-IV	Reference	chromosome	1	17493785	.	+	.	ID=IV;Name=IV
-V	Reference	chromosome	1	20919568	.	+	.	ID=V;Name=V
-X	Reference	chromosome	1	17718851	.	+	.	ID=X;Name=X
-MtDNA	Reference	chromosome	1	13794	.	+	.	ID=MtDNA;Name=MtDNA

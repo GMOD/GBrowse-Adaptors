@@ -51,7 +51,7 @@
 \.o$
 
 # avoid .pl files in the top level directory
-^.+\.pl
+^[^/]+\.pl
 
 # avoid test files
 \btest\b

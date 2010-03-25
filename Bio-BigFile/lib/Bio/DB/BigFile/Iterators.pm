@@ -29,13 +29,13 @@ sub new {
 
 sub next_seq {
     my $self = shift;
-    my $filter = $self->{options}{-filter};
-    my $strand = $self->{options}{-strand};
+    my $options = $self->{options};
+    my ($filter,$strand,$type) = @{$options}{qw(-filter -strand -type)};
 
     my ($i,$f);
 
     for ($i = $self->{current};$i;$i=$i->next) {
-	$f = $self->_make_feature($i);
+	$f = $self->_make_feature($i,$type);
 	next if defined $strand && $f->strand != $strand;
 	last if !$filter || $filter->($f);
     }
@@ -60,13 +60,14 @@ sub _feature_method {
 
 sub _make_feature {
     my $self     = shift;
-    my $raw_item = shift;
+    my ($raw_item,$type) = @_;
+    $type      ||= 'region';
     my $method   = $self->_feature_method;
     return $method->new(-seq_id => $self->{seq_id},
 			-start  => $raw_item->start+1,
 			-end    => $raw_item->end,
 			-score  => $raw_item->value,
-			-type   => 'region',
+			-type   => $type,
 			-fa     => $self->{bigfile}->fa,
 	);
 }

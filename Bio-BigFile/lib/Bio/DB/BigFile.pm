@@ -593,7 +593,7 @@ Not documented here.
 use Carp 'croak';
 use base qw(DynaLoader);
 use Bio::DB::BigFile::Constants;
-our $VERSION = '0.95';
+our $VERSION = '1.00';
 
 bootstrap Bio::DB::BigFile;
 
