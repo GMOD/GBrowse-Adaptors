@@ -1,3 +1,7 @@
+Version 1.14
+    * A last minute typo broke the regression tests. This is now fixed.
+      Don't use version 1.13.
+
 Version 1.13
     * Fixed another bug in padded_alignments(), which caused the source dna
       sequence to be reported incorrectly for mismatches. Thanks to David Gacquer <dgacquer@ulb.ac.be>

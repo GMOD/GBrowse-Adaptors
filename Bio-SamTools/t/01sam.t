@@ -173,7 +173,7 @@ use Bio::DB::Sam;
 {
     my $sam = Bio::DB::Sam->new(-fasta=>"$Bin/data/ex1.fa",
 			        -bam  =>"$Bin/data/ex1.bam",
-				-expand_flags => 1,m
+				-expand_flags => 1,
 	);
     ok($sam);
     ok($sam->n_targets,2);
