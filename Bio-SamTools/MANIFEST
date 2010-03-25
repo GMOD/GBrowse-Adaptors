@@ -1,3 +1,4 @@
+bin/bamToGBrowse.pl
 Build.PL
 Changes
 DISCLAIMER
@@ -15,11 +16,13 @@ lib/Bio/DB/Sam/Constants.pm
 lib/Bio/DB/Sam/Segment.pm
 LICENSE
 MANIFEST			This list of files
+META.yml
 README
 t/01sam.t
 t/data/00README.txt
 t/data/ex1.bam
+t/data/ex1.bam.bai
 t/data/ex1.fa
+t/data/ex1.fa.fai
 t/data/ex1.sam.gz
 typemap				Don't delete this!
-META.yml
