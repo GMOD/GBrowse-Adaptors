@@ -1,3 +1,10 @@
+Version 1.01 
+        * fixed bug in build process -- not finding jkweb.a library or
+	header files when path entered at the prompt.
+
+Version 1.0
+	* first release
+
 Version 0.95 Sun Mar 21 18:40:02 CET 2010
 	* Documentation mostly done.
         * High level interfaces to BigWig and BigBed now pretty-compatible with BioPerl

@@ -27,6 +27,12 @@
 #include "EXTERN.h"
 #include "perl.h"
 #include "XSUB.h"
+
+/* work around a problem on older MacOS systems */
+#ifndef _environ
+#define _environ environ
+#endif
+
 #ifdef FCGI
  #include <fcgi_stdio.h>
 #else

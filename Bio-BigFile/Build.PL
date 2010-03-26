@@ -66,9 +66,9 @@ END
 	    my $path = prompt($prompt);
 	    print STDERR "\n";
 	    last unless $path;
-	    $jk_include = $path
+	    $jk_include = "$path/inc"
 		if -e "$path/inc/$HeaderFile";
-	    $jk_lib = $path
+	    $jk_lib = "$path/lib/$ENV{MACHTYPE}"
 		if -e "$path/lib/$ENV{MACHTYPE}/$LibFile";
 	    $found = $jk_include && $jk_lib;
 	    unless ($found) {
