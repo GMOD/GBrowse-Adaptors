@@ -21,3 +21,5 @@ Revision history for Perl module Bio::DB::Das::Chado
 0.24 Wed Jun 17 03:29:06 EDT 2009
     - made the srcfeature method always return something; it no longer depends
       on the call to the constructor to set it.
+    - Made using organism information more robust; now checks abbreviation
+      and "genus species", and if it fails at everything, throws an error.
