@@ -113,6 +113,10 @@ $VERSION = 0.24;
  Returns : a new Bio::DB::Das::Chado object
  Args    :
 
+An optional argument is to provide -reference_class => (SO type name) to
+specify what the "base type" is.  Typically, this would be chromosome
+or contig.
+
 =cut
 
 # create new database accessor object
@@ -1078,7 +1082,7 @@ sub _by_alias_by_name {
   my $isth =  $self->dbh->prepare("
        select f.feature_id, f.name, f.type_id,f.uniquename,af.significance as score,
               fl.fmin,fl.fmax,fl.strand,fl.phase, fl.srcfeature_id, fd.dbxref_id,
-              f.is_obsolete
+              f.is_obsolete,f.seqlen
        from feature f join featureloc fl using (feature_id)
             left join analysisfeature af using (feature_id)
             left join feature_dbxref fd using (feature_id) 
@@ -1140,6 +1144,19 @@ sub _by_alias_by_name {
     while (my $hashref = $isth->fetchrow_hashref) {
 
       next if ($$hashref{'is_obsolete'} and !$self->allow_obsolete);
+
+      if ($self->refclass && $$hashref{type_id} == $self->refclass) {
+          #this feature is supposed to be a reference feature
+          my $f = Bio::DB::Das::Chado::Segment->new($$hashref{'name'},
+                                                    $self,
+                                                    1,$$hashref{'seqlen'},
+                                                    $$hashref{'uniquename'},
+                                                    undef,
+                                                    $$hashref{'feature_id'},
+                                                    undef);
+          push @features,$f;
+          next;
+      }
 
       if ($$hashref{'srcfeature_id'} != $old_srcfeature_id) {
         $jsth->execute($$hashref{'srcfeature_id'})
