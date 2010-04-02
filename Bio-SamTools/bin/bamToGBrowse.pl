@@ -15,7 +15,8 @@ sequence, do the following:
     into BAM. These must end in one of the extensions ".sam" or ".sam.gz".
     A series of <base>.bam files will be created.
 
- 2. Sort the newly created BAM files.
+ 2. Sort the newly created BAM files, creating a series of files named
+    <base>_sorted.bam.
 
  3. Index BAM files that need indexing. This step will look for
       files named <base>_sorted.bam
@@ -27,8 +28,19 @@ sequence, do the following:
     serves as a starting point for viewing these files. Previous versions
     of this file will be appended to.
 
-If the Fasta file is not provided, then this script will look in the
-designated directory for ONE .fa file to use.
+You can prepopulate the directory with sorted and indexed BAM files,
+in which case the script will not attempt to resort or reindex them.
+Unless the Fasta file is explicitly provided, this script will look in
+the designated directory for ONE .fa file to use.
+
+Note that you will need temporary space in the directory equivalent to
+the size of the largest SAM file being processed. In addition, you
+should have a copy of the bedGraphToBigWig executable somewhere on
+your path (obtainable in binary form from
+http://hgdownload.cse.ucsc.edu/admin/exe or source form from
+http;//hgdownload.cse.ucsc.edu/admin/jksrc.zip). If the binary is not
+found, this script will use its built-in BigWig loader, which uses a
+lot of RAM.
 USAGE
     ;
 
@@ -43,6 +55,9 @@ use Carp 'croak';
 use File::Spec;
 use File::Basename 'basename';
 use File::Temp;
+
+use constant FORCE_TEMPFILES=>0;
+use constant DUMP_INTERVAL => 1_000_000;
 
 sub new {
     my $class = shift;
@@ -106,7 +121,7 @@ sub sam_to_bam {
     $self->msg('Searching for SAM files');
     my @sam = $self->files($self->sam_extensions);
 
-    $self->msg('Found ',@sam+0,' sam files');
+    $self->msg("\t",'Found ',@sam+0,' sam files');
     $self->convert_one_sam($_) foreach @sam;
 }
 
@@ -116,7 +131,7 @@ sub index_bam {
     my $self = shift;
     $self->msg('Searching for BAM files');
     my @bam = $self->files('.bam');
-    $self->msg('Found ',@bam+0,' bam files');
+    $self->msg("\t",'Found ',@bam+0,' bam files');
     $self->index_one_bam($_) foreach @bam;
 }
 
@@ -128,11 +143,11 @@ sub convert_one_sam {
     my $sorted = $self->dir_path("${base}_sorted.bam");
 
     if ($self->up_to_date($sam,$bam) or $self->up_to_date($sam,$sorted)) {
-	$self->msg("$bam: up to date");
+	$self->msg("\t","$sam: bam file is up to date");
 	return;
     }
 
-    $self->msg("$bam: creating");
+    $self->msg("\t","$bam: creating");
 
     # This is to create the .fai file. Do this in a block so that handle
     # goes out of scope when not needed.
@@ -160,19 +175,19 @@ sub convert_one_sam {
 
     while ($tam->read1($header,$alignment) > 0) {
 	$out->write1($alignment);
-	$self->msg("converted $lines lines...") if ++$lines%100000 == 0;
+	$self->msg("\tConverted $lines lines...") if ++$lines%100000 == 0;
     }
     undef $tam;
     undef $out; 
 
-    $self->msg("converted $lines lines");
+    $self->msg("\tConverted $lines lines");
     $self->sort_bam($bam);
 }
 
 sub sort_bam {
     my $self = shift;
     my $bam  = shift;
-    $self->msg("sorting $bam");
+    $self->msg("Sorting $bam");
     my $basename = basename($bam,'.bam');
 
     my $sorted = $self->dir_path($basename.'_sorted');
@@ -188,15 +203,14 @@ sub sort_bam {
 sub index_one_bam {
     my $self = shift;
     my $bam  = shift;
-    my $base = basename($bam,'.bam');
-    my $idx  = "${base}.bam.bai";
+    my $idx  = $bam . ".bai";
 
     if ($self->up_to_date($bam,$idx)) {
-	$self->msg("$bam: index is up to date");
+	$self->msg("\t$bam: index is up to date");
 	return;
     }
 
-    $self->msg("indexing $bam");
+    $self->msg("\tIndexing $bam");
     my $err = $self->_fork_and_index_bam($bam);
 
     if ($err =~ /alignment is not sorted/) {
@@ -206,9 +220,9 @@ sub index_one_bam {
     }
     
     if ($err) {
-	$self->err("Could not index $bam: $err");
+	$self->err("\t","Could not index $bam: $err");
     } else {
-	$self->msg("$bam indexed successfully");
+	$self->msg("\t","$bam indexed successfully");
     }
 }
 
@@ -237,7 +251,7 @@ sub bam_to_wig {
     my $self  = shift;
     $self->msg('Searching for .bai files');
     my @files = map {$self->dir_path(basename($_,'.bai'))} $self->files('.bai');
-    $self->msg('Found ', @files+0,' files');
+    $self->msg("\t",'Found ', @files+0,' files');
     $self->wiggle_one_bam($_) foreach @files;
 }
 
@@ -248,11 +262,12 @@ sub wiggle_one_bam {
     my $base        = basename($bam,'.bam');
     my $bigwig      = $self->dir_path($base.'.bw');
     if ($self->up_to_date($bam,$bigwig)) {
-	$self->msg("$bigwig is up to date");
+	$self->msg("\t","$bam: bigwig is up to date");
 	return;
     }
 
-    if (-r '/dev/stdin' && -c _) {  # only works with linux, I think
+
+    if (!$self->bedgraph_path && -r '/dev/stdin' && -c _) {  # only works with linux, I think
 	$self->_wiggle_one_bam_pipe($bam,$bigwig);
     } else {
 	$self->_wiggle_one_bam_tempfile($bam,$bigwig);
@@ -273,29 +288,61 @@ sub _wiggle_one_bam_pipe {
     }
 
     else {   # I'm the child; my job is to create the BigWig file from /dev/stdin
-	$self->msg("writing bigwig file");
+	$self->msg("Writing bigwig file");
 	my $chrom_sizes = $self->fasta.".fai";
-	Bio::DB::BigFile->createBigWig('/dev/stdin',$chrom_sizes,$bigwig);
+	$self->make_bigwig_file('/dev/stdin',$chrom_sizes,$bigwig);
 	exit 0;
     }
 }
 
+# we are using the low-level interface here in order to eke
+# out all possible performance.
 sub write_coverage {
     my $self = shift;
     my ($bamfile,$fh) = @_;
 
-    $self->msg("calculating coverage for $bamfile");
+    $self->msg("Calculating coverage for $bamfile");
     my $bam = Bio::DB::Sam->new(-bam=>$bamfile) 
-	or die "Couldn't open $bamfile: $!";
+ 	or die "Couldn't open $bamfile: $!";
 
-    my $callback = sub {
-	my ($seqid,$pos,$pileup,$sam) = @_;
-	print $fh $pos,"\t",scalar @$pileup,"\n";
-    };
+    my $header  = $bam->header;
+    my $index   = $bam->bam_index;
+    my $seqids  = $header->target_name;
+    my $lengths = $header->target_len;
+    my $b       = eval{$bam->bam} || $bam->{bam}; # for debugging
 
-    for my $seq_id ($bam->seq_ids) {
-	print $fh "variableStep chrom=$seq_id span=1\n";
-	$bam->fast_pileup($seq_id,$callback);
+    for my $tid (0..$header->n_targets-1) {
+	my $seqid = $seqids->[$tid];
+	my $len   = $lengths->[$tid];
+	
+	my $sec_start = -1;
+	my $last_val = -1;
+	
+	for (my $start=0;$start <= $len;$start += DUMP_INTERVAL) {
+	    my $end = $start+DUMP_INTERVAL;
+	    $end    = $len if $end > $len;
+	    $self->msg("\t","Calculating coverage for interval $seqid:",$start+1,'..',$end);
+	    my $coverage = $index->coverage($b,$tid,$start,$end);
+	    for (my $i=0; $i<@$coverage; $i++) {
+	    if($last_val == -1) {
+	    	$sec_start = 0;
+	    	$last_val = $coverage->[$i];
+	    }
+	    if($last_val != $coverage->[$i]) {
+	    	print $fh $seqid,"\t",$sec_start,"\t",$start+$i,"\t",$last_val,"\n";
+	    	$sec_start = $start+$i;
+	    	$last_val = $coverage->[$i];
+	    	if($start+$i == $len-1) {
+	    		$self->msg("\t","Completing chromosome at ", $start+$i);
+	    	}
+	    }
+	    elsif($start+$i == $len-1) {
+	    	$self->msg("\t","Completing chromosome via tail catch at ", $start+$i);
+	    	print $fh $seqid,"\t",$sec_start,"\t",$start+$i,"\t",$last_val,"\n";
+	    }
+	    }
+	}
+	
     }
 }
 
@@ -309,9 +356,9 @@ sub _wiggle_one_bam_tempfile {
     $self->write_coverage($bam,$tmpfh);
     close $tmpfh;
 
-    $self->msg("writing bigwig file");
+    $self->msg("Writing bigwig file");
     my $chrom_sizes = $self->fasta.".fai";
-    Bio::DB::BigFile->createBigWig($tmpfh,$chrom_sizes,$bigwig);
+    $self->make_bigwig_file($tmpfh,$chrom_sizes,$bigwig);
 }
 
 sub make_conf {
@@ -354,10 +401,39 @@ sub parse_conf {
     return \%data;
 }
 
+sub bedgraph_path {
+    my $self = shift;
+    return $self->{_bedgraph_path} ||= $self->search_for_binary('bedGraphToBigWig');
+}
+
+sub search_for_binary {
+    my $self   = shift;
+    my $target = shift;
+    my @path   = split ':',$ENV{PATH};
+    for my $d (@path) {
+	my $tgt = File::Spec->catfile($d,$target);
+	return  $tgt if -e $tgt && -x _;
+    }
+    return;
+}
+
+sub make_bigwig_file {
+    my $self = shift;
+    my ($infile,$chrom_sizes,$outfile) = @_;
+    my $bedpath = $self->bedgraph_path;
+    if ($bedpath) {
+	$self->msg("\t",'Found bedGraphToBigWig in path. Will use it to create BigWig index.');
+	system $bedpath,$infile,$chrom_sizes,$outfile;
+    } else {
+	$self->err('WARNING: No bedGraphToBigWig found in path. Will use memory-intensive library function to create BigWig index.');
+	Bio::DB::BigFile->createBigWig($infile,$chrom_sizes,$outfile);
+    }
+}
+
 sub make_gbrowse_conf {
     my $self  = shift;
     my $track = shift;
-    $self->msg("creating gbrowse stanza for $track");
+    $self->msg("Creating gbrowse stanza for $track");
 
     my $fasta = File::Spec->rel2abs($self->fasta);
     my $bam   = File::Spec->rel2abs($self->dir_path("$track.bam"));
@@ -409,6 +485,7 @@ key          = Reads from $key
 database = ${track}_bw
 feature  = summary
 glyph    = wiggle_whiskers
+height   = 20
 
 END
 }

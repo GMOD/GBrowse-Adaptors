@@ -124,9 +124,10 @@ sub split_splices {
 							  -end    => $e,
 							  -seq_id => $self->seq_id,
 							  -strand => +1,
-							  -seq    => substr($self->dna,
-									    $start+$skip,
-									    $end-$start),
+							  -seq    => [$self,$start+$skip,$end-$start], # deferred rendering
+#							  -seq    => substr($self->dna,
+#									    $start+$skip,
+#									    $end-$start),
 							  -type   => $self->type);
 
 	    # in case sequence is missing?
@@ -348,6 +349,13 @@ sub hit {
     my $d    = $self->{hit};
     $self->{hit} = Bio::SeqFeature::Lite->new(@_) if @_;
     return $d;
+}
+
+sub seq {
+    my $self = shift;
+    my $seq  = $self->{seq};
+    return $self->SUPER::seq() unless ref $seq;
+    return substr($seq->[0]->dna,$seq->[1],$seq->[2]);
 }
 
 sub Bio::SeqFeature::Lite::subseq {

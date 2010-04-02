@@ -297,6 +297,11 @@ B<subsequently.>
 Return the Bio::DB::Bam::Header object associated with the BAM
 file. You can manipulate the header using the low-level API.
 
+=item $bam    = $sam->bam
+
+Returns the low-level Bio::DB::Bam object associated with the opened
+file.
+
 =item $fai    = $sam->fai
 
 Returns the Bio::DB::Sam::Fai object associated with the Fasta
@@ -1308,6 +1313,8 @@ sub new {
     return $self;
 }
 
+sub bam { shift->{bam} }
+
 sub is_remote {
     my $self = shift;
     my $path = shift;
@@ -1660,7 +1667,7 @@ sub features {
 	    $self->reset_read;
 	    my $code = eval "sub {my \$a=shift;$filter;1}";
 	    die $@ if $@;
-	    return Bio::DB::Bam::ReadIterator->new($self->{bam},$code);
+	    return Bio::DB::Bam::ReadIterator->new($self,$self->{bam},$code);
 	}
 
 	# TAM filehandle retrieval is requested
@@ -1887,7 +1894,7 @@ sub _segment_search {
 
 sub bam_index {
     my $self = shift;
-    return Bio::DB::Bam->index($self->{bam_path});
+    return $self->{bai} ||= Bio::DB::Bam->index($self->{bam_path});
 }
 
 sub _features_fh {
