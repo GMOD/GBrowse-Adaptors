@@ -68,3 +68,5 @@ tar\.gz$
 # avoid top level fa, bam and fai files
 ^[^/]+\.(?:bam|fa|sam|fai)
 
+\.bai
+\.fai
