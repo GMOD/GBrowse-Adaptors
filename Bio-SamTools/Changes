@@ -1,3 +1,7 @@
+Version 1.15
+    * If -fasta argument is not provided at new() time, methods will
+      attempt to use the MD tags to reconstruct reference sequence.
+
 Version 1.14
     * A last minute typo broke the regression tests. This is now fixed.
       Don't use version 1.13.

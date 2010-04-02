@@ -96,7 +96,10 @@ format -1 or +1.
 
 =item $ref_dna        = $align->dna
 
-Returns the B<reference> sequence's DNA across the aligned regin.
+Returns the B<reference> sequence's DNA across the aligned region. If
+an MD tag is present in the alignment, it will be used preferentially
+to reconstruct the reference sequence. Otherwise the reference DNA
+access object passed to Bio::DB::Sam->new() will be used.
 
 =item $ref_dna        = $align->seq
 

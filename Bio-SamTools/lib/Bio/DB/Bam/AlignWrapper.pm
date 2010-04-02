@@ -229,7 +229,29 @@ sub padded_alignment {
 
 sub dna {
     my $self = shift;
-    return $self->{sam}->seq($self->seq_id,$self->start,$self->end);
+    my $sam  = $self->{sam};
+    if (my $md   = $self->get_tag_values('MD')) {  # try to use MD string
+	warn $md;
+	my $qseq = $self->qseq;
+	my $start = 0;
+	my $result;
+	while ($md =~ /(\d+)|\^([gatcn]+)|([gatcn]+)/ig) {
+	    if ($1) {
+		$result .= substr($qseq,$start,$1);
+		$start  += $1;
+	    } elsif ($2) {
+		$result .= $2;
+	    } elsif ($3) {
+		$result .= $3;
+		$start  += length $3;
+	    }
+	}
+	return $result;
+    }
+
+    else {
+	return $self->{sam}->seq($self->seq_id,$self->start,$self->end);
+    }
 }
 
 sub tseq {

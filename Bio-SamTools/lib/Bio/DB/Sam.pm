@@ -102,8 +102,9 @@ genome sequence, and the BAM file that contains the query sequences
 and their alignments. If either of the two files needs to be indexed,
 the indexing will happen automatically. You can then query the
 database for alignment features by combinations of name, position,
-type, and feature tag. The high-level API provides access to up to
-four feature "types":
+type, and feature tag.
+
+The high-level API provides access to up to four feature "types":
 
  * "match": The "raw" unpaired alignment between a read and the
    reference sequence.
@@ -148,6 +149,22 @@ to the samtools "pileup" API. This gives you the ability to write a
 callback that will be invoked on every column of the alignment for the
 purpose of calculating coverage, quality score metrics, or SNP
 calling.
+
+B<Access to the reference sequence> When you create the Bio::DB::Sam
+object, you can pass the path to a FASTA file containing the reference
+sequence. Alternatively, you may pass an object that knows how to
+retrieve DNA sequences across a range via the seq() of fetch_seq()
+methods, as described under new().
+
+If the SAM/BAM file has MD tags, then these tags will be used to
+reconstruct the reference sequence when necessary, in which case you
+can completely omit the -fasta argument. Note that not all SAM/BAM
+files have MD tags, and those that do may not use them correctly due
+to the newness of this part of the SAM spec. You may wish to populate
+these tags using samtools' "calmd" command.
+
+If the -fasta argument is omitted and no MD tags are present, then the
+reference sequence will be returned as 'N'.
 
 The B<main object classes> that you will be dealing with in the
 high-level API are as follows:
@@ -1272,7 +1289,7 @@ use Bio::SeqFeature::Lite;
 use Bio::PrimarySeq;
 
 use base 'DynaLoader';
-our $VERSION = '1.14';
+our $VERSION = '1.15';
 bootstrap Bio::DB::Sam;
 
 use Bio::DB::Bam::Alignment;
