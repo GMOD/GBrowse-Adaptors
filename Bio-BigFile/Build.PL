@@ -29,8 +29,13 @@ my $build = Module::Build->new(
     },
     requires     => {
 	'perl'                => '5.008',
+	'IO::String'          => 0,
 	'Bio::Root::Version'  => '1.005009001',
     },
+    recommends => {
+	'LWP'      => 0,
+	'URI::URL' => 0,
+    }
 #    create_makefile_pl => 'passthrough',
     );
 

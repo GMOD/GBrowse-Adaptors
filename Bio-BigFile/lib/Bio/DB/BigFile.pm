@@ -121,6 +121,10 @@ creates a series of cache files located in /tmp/udcCache by
 default. To change the location of the cache files, call this method,
 passing it the path to the preferred directory.
 
+=item $path = Bio::DB::BigFile->udcGetDefaultDir()
+
+This class method returns the current UDC cache default directory.
+
 =back
 
 =head1 OBJECT METHODS
@@ -592,8 +596,9 @@ Not documented here.
 
 use Carp 'croak';
 use base qw(DynaLoader);
+use File::Spec;
 use Bio::DB::BigFile::Constants;
-our $VERSION = '1.01';
+our $VERSION = '1.02';
 
 bootstrap Bio::DB::BigFile;
 
@@ -610,6 +615,25 @@ sub createBigWig {
 			    @merged_args{qw(blockSize itemsPerSlot clipDontDie compress)},
 			    $outFile);
 }
+
+sub set_udc_defaults {
+    my $class = shift;
+
+    if (my $override = $ENV{UDC_CACHEDIR}) {
+	Bio::DB::BigFile->udcSetDefaultDir($override);
+	return;
+    }
+
+    my $path = Bio::DB::BigFile->udcGetDefaultDir();
+    return if -w $path;
+    my $tmp    = File::Spec->tmpdir();
+    my ($user) = getpwuid($<);
+    $user    ||= $<;
+    $path      = File::Spec->catfile($tmp,"udcCache_$user");
+    Bio::DB::BigFile->udcSetDefaultDir($path);
+}
+
+
 package Bio::DB::bbiFile;
 
 # this method is fun but slow

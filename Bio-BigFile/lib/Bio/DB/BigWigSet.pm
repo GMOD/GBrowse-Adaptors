@@ -23,11 +23,17 @@ package Bio::DB::BigWigSet;
 
 =head1 DESCRIPTION
 
-This module provides a convenient way of adding meta-data to a
-directory of BigWig files. The directory should be layed out so that
-it contains 1 or more BigWig files with the extension ".bw" (the
-extension is mandatory), plus zero or more meta-data files named
-"meta*" (anything following the initial ``meta'' is fine).
+This module provides a convenient way of adding metadata to a
+directory of BigWig files in such a way that it appears that all the
+BigWig files form a single database of sequence features. The
+directory should be layed out so that it contains one or more BigWig
+files and a metadata index file that adds names and attributes to the files.
+
+The metdata file must be named beginning "meta". Anything following
+the initial ``meta'' is fine. Its format is described below. The
+metadata file is optional if the BigWig files end with the extension
+".bw", in which case they will be added to the collection
+automatically
 
 The metadata file is plain text and should be laid out like this:
 
@@ -101,6 +107,10 @@ You can fetch it from the BigWigSet using this call:
 
 See L<Bio::DB::SeqFeature::Store> for more examples of this API.
 
+The directory of BigWigs may be on a remote HTTP or FTP server; simply
+provide the URL for the remote directory. This will only work if the
+remote server allows directory listings.
+
 =head1 METHODS
 
 Most methods are inherited from Bio::DB::BigWig (see
@@ -115,6 +125,8 @@ L<Bio::DB::BigWig>). This section describes the differences.
 =item $bws = Bio::DB::BigWigSet->new(-dir => '/path/to/directory', 
                                      -feature_type => $type,
 				     -fasta        => $fasta_file_or_obj)
+
+=item $bws = Bio::DB::BigWigSet->new(-index => '/path/to/metadata.txt') 
 
 This method creates a new Bio::DB::BigWigSet. If just one argument is
 provided, it is used as the path to the directory where the BigWig
@@ -137,6 +149,8 @@ are recognized:
 		     "interval." See the Bio::DB::BigWig manual
                      page for more information. If not specified
                      "summary" is assumed.
+
+  -index            Provide a path to the metadata file directly.
 
 You may call new() without any arguments, in which case an empty
 BigWig set is created. You may add BigWig files to the set
@@ -164,6 +178,7 @@ use Bio::DB::BigWig;
 use IO::Dir;
 use IO::File;
 use File::Spec;
+use File::Basename 'basename','dirname';
 use Carp 'croak';
 
 sub new {
@@ -172,6 +187,7 @@ sub new {
     my $self  = $class->_new();
     $self->fasta_path($opts{-fasta})           if $opts{-fasta};
     $self->readdir($opts{-dir})                if $opts{-dir};
+    $self->read_index($opts{-index})           if $opts{-index};
     $self->feature_type($opts{-feature_type})  if $opts{-feature_type};
     $self;
 }
@@ -575,6 +591,34 @@ directories into a BigWigSet.
 sub readdir {
     my $self = shift;
     my $dir  = shift or croak "Usage: \$bigwigset->readdir(\$dir)";
+    my ($wigfiles,$indices);
+    if ($dir =~ /^(ftp|http):/) {
+	($wigfiles,$indices) = $self->read_remote_dir($dir);
+    }
+    else {
+	($wigfiles,$indices) = $self->read_local_dir($dir);
+    }
+
+    # create a bigwig for each file
+    for my $file (@$wigfiles) {
+	$self->add_bigwig($file);
+	my $name  = basename($file,'.bw');
+	$self->set_bigwig_attributes($file,
+				     {
+					 display_name=>$name,
+					 dbid        =>$file,
+				     });
+    }
+
+    # read the tables of attributes
+    for my $file (@$indices) {
+	$self->read_index($file,$dir);
+    }
+}
+
+sub read_local_dir {
+    my $self = shift;
+    my $dir  = shift;
     croak "directory $dir doesn't exist" unless -d $dir;
     croak "directory $dir not readable"  unless -r _;
 
@@ -583,33 +627,43 @@ sub readdir {
     while (my $node = $d->read) {
 	next if $node =~ /^[.#]/; # dot files and temp files
 	next if $node =~ /~$/;    # autosave files
-	next unless -f File::Spec->catfile($dir,$node);
+	my $file = File::Spec->catfile($dir,$node);
+	next unless -f $file;
 	if ($node =~ /^meta/) {
-	    push @indices,$node;
+	    push @indices,$file;
 	} elsif ($node =~ /\.bw/i) {
-	    push @wigfiles,$node;
+	    push @wigfiles,$file;
 	}
     }
     undef $d;
-
-    # create a bigwig for each file
-    for my $f (@wigfiles) {
-	my $path = File::Spec->catfile($dir,$f);
-	$self->add_bigwig($path);
-	(my $name = $f) =~ s/\.\w+$//;  # get rid of extension
-	$self->set_bigwig_attributes($path,
-				     {
-					 display_name=>$name,
-					 dbid        =>$path,
-				     });
-    }
-
-    # read the tables of attributes
-    for my $node (@indices) {
-	my $path = File::Spec->catfile($dir,$node);
-	$self->read_index($path,$dir);
-    }
+    return (\@wigfiles,\@indices);
 }
+
+sub read_remote_dir {
+    my $self = shift;
+    my $dir  = shift;
+
+    eval "require LWP::UserAgent;1" or die "LWP is required to handle remote directories"
+	unless LWP::UserAgent->can('new');
+
+    eval "require URI::URL;1"       or die "URI::URL is required to handle remote directories"
+	unless URI::URL->can('new');
+
+    my $ua  = LWP::UserAgent->new;
+    my $response = $ua->get($dir,Accept=>'text/html, */*;q=0.1');
+
+    unless ($response->is_success) {
+	warn "Web fetch of $dir failed: ",$response->status_line;
+	return;
+    }
+
+    my $html = $response->decoded_content;
+    my $base = $response->base;
+    my @wigfiles = map {URI::URL->new($_=>$base)->abs} $html =~ /href="([^\"]+\.bw)"/ig;
+    my @indices  = map {URI::URL->new($_=>$base)->abs} $html =~ /href="(meta[^\"]*)"/ig;
+    return (\@wigfiles,\@indices);
+}
+
 
 =item $bws->add_bigwig($path)
 
@@ -689,8 +743,22 @@ sub get_bigwig {
 
 sub read_index {
     my $self = shift;
-    my ($index,$base) = @_;
-    my $f = IO::File->new($index) or die "$index: $!";
+    my ($file,$base) = @_;
+    $base ||= dirname($file);
+    my $f;
+
+    if ($file =~ /^(ftp|http):/i) {
+	my $ua = LWP::UserAgent->new;
+	my $r  = $ua->get($file);
+	die "Couldn't read $file: ",$r->status_line unless $r->is_success;
+	eval "require IO::String; 1" 
+	    or die "IO::String module is required for remote directories"
+	    unless IO::String->can('new');
+	$f = IO::String->new($r->decoded_content);
+    }
+    else {
+	$f = IO::File->new($file) or die "$file: $!";
+    }
     my ($current_path,%wigs);
 
     while (<$f>) {
@@ -699,7 +767,8 @@ sub read_index {
 	s/\s*\#.*$// unless /\#[0-9a-f]{6,8}\s*$/i || /\w+\#\w+/ || /\w+\"*\s*\#\d+$/;   
 	if (/^\[([^\]]+)\]/) {  # beginning of a configuration section
 	    my $wigname = $1;
-	    $current_path    = File::Spec->catfile($base,$wigname);
+	    $current_path    = $wigname =~ m!^(/|http:|ftp:)! ? $wigname
+		                                              : "$base/$wigname";
 	}
 
 	elsif ($current_path && /^([\w: -]+?)\s*=\s*(.*)/) {  # key value pair
@@ -714,6 +783,64 @@ sub read_index {
 	$self->set_bigwig_attributes($path,$attributes);
     }
 }
+
+sub segment {
+    my $self = shift;
+    my ($seqid,$start,$end) = @_;
+
+    if ($_[0] =~ /^-/) {
+	my %args = @_;
+	$seqid = $args{-seq_id} || $args{-name};
+	$start = $args{-start};
+	$end   = $args{-stop}    || $args{-end};
+    } else {
+	($seqid,$start,$end) = @_;
+    }
+
+    my ($one_bigwig) = keys %{$self->{bigwigs}};
+    my $bw           = $self->get_bigwig($one_bigwig);
+
+    my $size = $bw->length($seqid) or return;
+
+    $start ||= 1;
+    $end   ||= $bw->length($seqid);
+
+    return unless $start >= 1 && $start < $size;
+    return unless $end   >= 1 && $end   < $size;
+
+    return Bio::DB::BigWigSet::Segment->new(-bws   => $self,
+					    -seq_id=> $seqid,
+					    -start => $start,
+					    -end   => $end);
+}
+
+package Bio::DB::BigWigSet::Segment;
+use base 'Bio::DB::BigWig::Summary';
+
+sub new {
+    my $self = shift;
+    my $feat  = $self->SUPER::new(@_);
+    my %args = @_;
+    $feat->{bws} = $args{-bws} if $args{-bws};
+    return $feat;
+}
+
+sub features {
+    my $self = shift;
+    return $self->{bws}->features(-seq_id => $self->seq_id,
+				  -start  => $self->start,
+				  -end    => $self->end,
+				  -type   => $_[0]);
+}
+
+sub get_seq_stream {
+    my $self = shift;
+    return $self->{bws}->get_seq_stream(-seq_id => $self->seq_id,
+					-start  => $self->start,
+					-end    => $self->end,
+					-type   => $_[0]);
+}
+
 
 package Bio::DB::BigWigSet::Iterator;
 

@@ -25,6 +25,29 @@ Then run:
   ./Build test
   (sudo) ./Build install
 
+MAC OSX ISSUES:
+
+On Mac OSX platforms prior to Snow Leopard you may encounter the
+following fatal error when building this module:
+
+   Symbol not found: _environ
+
+This is due to a problem in the Macintosh header files that causes one
+of the Kent sources to compile incorrectly.
+
+If you encounter this problem, then do the following:
+
+ 1) cd to the "src" subdirectory of the Kent source tree. This is the directory
+     that contains the "lib" and "inc" directories.
+
+ 2) run the command:
+
+     patch < -p1 < /path/to/Bio-BigFile-1.XX/patches/kent_src_patch_macosx.diff
+
+ 3) Rerun "make" in the Kent source tree
+
+ 4) Rerun "./Build" in the Bio-BigFile directory.
+
 TROUBLESHOOTING:
 
 If you encounter problems during compiling, you may need to set the

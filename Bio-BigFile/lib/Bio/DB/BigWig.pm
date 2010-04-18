@@ -7,6 +7,7 @@ use warnings;
 use Bio::DB::BigFile;
 use Bio::DB::BigFile::Constants;
 use Bio::DB::BigFile::Iterators;
+use File::Spec;
 use Carp 'croak';
 
 use base 'Exporter';
@@ -178,6 +179,14 @@ Suitable implementations include Bio::DB::SeqFeature::Store (part of
 BioPerl) and Bio::DB::Sam::Fai, part of the Bio::SamTools package. You
 are of course welcome to implement your own Fasta object.
 
+When opening a remote file on an FTP or HTTP server, the directory
+returned by Bio::DB::BigFile->udcGetDefaultDir must be writable
+(usually '/tmp/udcCache'). The new() method will attempt to catch the
+case in which this directory is not writable and instead set the cache
+to /tmp/udcCache_###, where ### is the current username. For better
+control over this behavior, you may set the environment variable
+UDC_CACHEDIR before creating the BigWig file.
+
 =back
 
 =cut
@@ -190,7 +199,10 @@ sub new {
     my $fa_path       = $args{-fasta};
     my $dna_accessor  = $self->new_dna_accessor($fa_path);
     
-    unless ($self->is_remote($bw_path)) {
+    if ($self->is_remote($bw_path)) {
+	Bio::DB::BigFile->set_udc_defaults;
+    }
+    else {
 	-e $bw_path or croak "$bw_path does not exist";
 	-r _  or croak "is not readable";
     }

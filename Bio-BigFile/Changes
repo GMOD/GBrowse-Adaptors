@@ -1,3 +1,7 @@
+Version 1.02
+	* BigWigSet now operates correctly on remote HTTP and FTP directories.
+	* Added instructions and patch file for compiling on MacOSX platforms.
+
 Version 1.01 
         * fixed bug in build process -- not finding jkweb.a library or
 	header files when path entered at the prompt.
