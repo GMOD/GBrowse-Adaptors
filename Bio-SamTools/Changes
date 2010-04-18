@@ -1,3 +1,8 @@
+Version 1.16
+    * No longer attempt to build BAM index automatically if the .bai file is
+      either missing or out of date. Pass -autoindex=>1 to Bio::DB::Sam to
+      restore original behavior.
+
 Version 1.15
     * If -fasta argument is not provided at new() time, methods will
       attempt to use the MD tags to reconstruct reference sequence.

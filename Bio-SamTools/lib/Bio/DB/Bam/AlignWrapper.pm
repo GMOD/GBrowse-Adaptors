@@ -211,9 +211,14 @@ sub padded_alignment {
 	    $pad_target .= substr($tdna,0,$count,'');
 	    $pad_match  .= ' ' x $count;
 	}
-	elsif ($op eq 'D' || $op eq 'N' || $op eq 'P') {
+	elsif ($op eq 'D' || $op eq 'N') {
 	    $pad_source .= substr($sdna,0,$count,'');
 	    $pad_target .= '-' x $count;
+	    $pad_match  .= ' ' x $count;
+	}
+	elsif ($op eq 'P') {
+	    $pad_source .= '*' x $count;
+	    $pad_target .= '*' x $count;
 	    $pad_match  .= ' ' x $count;
 	}
 	elsif ($op eq 'H') {

@@ -106,7 +106,7 @@ sub up_to_date {
     my $self = shift;
     my ($source,$target) = @_;
     return unless -e $target;
-    return unless $self->mtime($target) > $self->mtime($source);
+    return unless $self->mtime($target) >= $self->mtime($source);
     return 1;
 }
 sub find_fasta {

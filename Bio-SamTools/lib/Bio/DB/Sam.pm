@@ -1,6 +1,8 @@
 package Bio::DB::Sam;
 # $Id$
 
+our $VERSION = '1.16';
+
 =head1 NAME
 
 Bio::DB::Sam -- Read SAM/BAM database files
@@ -253,6 +255,10 @@ follows:
                   alignments (default false).
 
   -split          The same as -split_splices.
+
+  -autoindex      Create a BAM index file if one does not exist
+                   or the current one has a modification date
+                   earlier than the BAM file.
 
 An example of a typical new() constructor invocation is:
  
@@ -1045,6 +1051,14 @@ space for the operation or the process will be terminated in the C
 library layer. The result code is currently always zero, but in the
 future may return a negative value to indicate failure.
 
+=item $index = Bio::DB::Bam->index('/path/to/file.bam',$reindex)
+
+Attempt to open the index for the indicated BAM file. If $reindex is
+true, and the index either does not exist or is out of date with
+respect to the BAM file (by checking modification dates), then attempt
+to rebuild the index. Will throw an exception if the index does not
+exist or if attempting to rebuild the index was unsuccessful.
+
 =item $index = Bio::DB::Bam->index_open('/path/to/file.bam')
 
 Attempt to open the index file for a BAM file, returning a
@@ -1289,7 +1303,6 @@ use Bio::SeqFeature::Lite;
 use Bio::PrimarySeq;
 
 use base 'DynaLoader';
-our $VERSION = '1.15';
 bootstrap Bio::DB::Sam;
 
 use Bio::DB::Bam::Alignment;
@@ -1301,11 +1314,12 @@ use Bio::DB::Bam::ReadIterator;
 
 sub new {
     my $class         = shift;
-    my %args          = @_;
+    my %args          = $_[0] =~ /^-/ ? @_ : (-bam=>shift);
     my $bam_path      = $args{-bam}   or croak "-bam argument required";
     my $fa_path       = $args{-fasta};
     my $expand_flags  = $args{-expand_flags};
     my $split_splices = $args{-split} || $args{-split_splices};
+    my $autoindex     = $args{-autoindex};
 
     # file existence checks
     unless ($class->is_remote($bam_path)) {
@@ -1324,6 +1338,7 @@ sub new {
 	fa_path       => $fa_path,
 	expand_flags  => $expand_flags,
 	split_splices => $split_splices,
+	autoindex     => $autoindex,
     },ref $class || $class;
     $self->header;  # catch it
 
@@ -1400,6 +1415,13 @@ sub split_splices {
     my $self = shift;
     my $d    = $self->{split_splices};
     $self->{split_splices} = shift if @_;
+    $d;
+}
+
+sub autoindex {
+    my $self = shift;
+    my $d    = $self->{autoindex};
+    $self->{autoindex} = shift if @_;
     $d;
 }
 
@@ -1911,7 +1933,7 @@ sub _segment_search {
 
 sub bam_index {
     my $self = shift;
-    return $self->{bai} ||= Bio::DB::Bam->index($self->{bam_path});
+    return $self->{bai} ||= Bio::DB::Bam->index($self->{bam_path},$self->autoindex);
 }
 
 sub _features_fh {
@@ -2036,41 +2058,53 @@ package Bio::DB::Bam;
 
 use File::Spec;
 use Cwd;
+use Carp 'croak';
 
 sub index {
     my $self = shift;
     my $path = shift;
+    my $autoindex = shift;
 
     return $self->index_open_in_safewd($path) if Bio::DB::Sam->is_remote($path);
 
-    unless (-e "${path}.bai" && (-M $path >= -M "${path}.bai")) {
-	# if bam file is not sorted, then index_build will exit.
-	# we spawn a shell to intercept this eventuality
-	print STDERR "[bam_index_build] creating index for $path\n" if -t STDOUT;
-
-	my $result = open my $fh,"-|";
-	die "Couldn't fork $!" unless defined $result;
-
-	if ($result == 0) { # in child
-	    # dup stderr to stdout so that we can intercept messages from library
-	    open STDERR,">&STDOUT";  
-	    $self->index_build($path);
-	    exit 0;
-	}
-
-	my $mesg = <$fh>;
-	$mesg  ||= '';
-	close $fh;
-	if ($mesg =~ /not sorted/i) {
-	    print STDERR "[bam_index_build] sorting by coordinate...\n" if -t STDOUT;
-	    $self->sort_core(0,$path,"$path.sorted");
-	    rename "$path.sorted.bam",$path;
-	    $self->index_build($path);
-	} elsif ($mesg) {
-	    die $mesg;
-	}
+    if ($autoindex) {
+	$self->reindex($path) unless
+	    -e "${path}.bai" && mtime($path) <= mtime("${path}.bai");
     }
+
+    croak "No index file for $path; try opening file with -autoindex" unless -e "${path}.bai";
     return $self->index_open($path);
+}
+
+sub reindex {
+    my $self = shift;
+    my $path = shift;
+
+    # if bam file is not sorted, then index_build will exit.
+    # we spawn a shell to intercept this eventuality
+    print STDERR "[bam_index_build] creating index for $path\n" if -t STDOUT;
+
+    my $result = open my $fh,"-|";
+    die "Couldn't fork $!" unless defined $result;
+
+    if ($result == 0) { # in child
+	# dup stderr to stdout so that we can intercept messages from library
+	open STDERR,">&STDOUT";  
+	$self->index_build($path);
+	exit 0;
+    }
+
+    my $mesg = <$fh>;
+    $mesg  ||= '';
+    close $fh;
+    if ($mesg =~ /not sorted/i) {
+	print STDERR "[bam_index_build] sorting by coordinate...\n" if -t STDOUT;
+	$self->sort_core(0,$path,"$path.sorted");
+	rename "$path.sorted.bam",$path;
+	$self->index_build($path);
+    } elsif ($mesg) {
+	die $mesg;
+    }
 }
 
 # same as index_open(), but changes current wd to TMPDIR to accomodate
@@ -2084,6 +2118,11 @@ sub index_open_in_safewd {
     my $result = $self->index_open(@_);
     chdir $dir;
     $result;
+}
+
+sub mtime {
+    my $path = shift;
+    (stat($path))[9];
 }
 
 

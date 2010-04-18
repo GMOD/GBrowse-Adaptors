@@ -64,7 +64,7 @@ use Bio::DB::Sam;
     @result    = $header->parse_region('seq_invalid:51-1000');
     ok(scalar @result,0);
     
-    my $index = Bio::DB::Bam->index($bamfile);
+    my $index = Bio::DB::Bam->index($bamfile,1);
     ok($index);
 
     my @a;
@@ -157,14 +157,14 @@ use Bio::DB::Sam;
     ok(scalar @$target_lens,2);
     ok($target_lens->[0],1575);
 
-    # try removeing and regenerating index
+    # try removing and regenerating index
     unlink "$Bin/data/ex1.bam.bai";
-    ok(Bio::DB::Bam->index($bamfile));
+    ok(Bio::DB::Bam->index($bamfile,1));
     ok(-e "$Bin/data/ex1.bam.bai");
 
     Bio::DB::Bam->sort_core(1,"$Bin/data/ex1.bam","$Bin/data/ex1.sorted");
     ok(-e "$Bin/data/ex1.sorted.bam");
-    ok(Bio::DB::Bam->index("$Bin/data/ex1.sorted.bam"));
+    ok(Bio::DB::Bam->index("$Bin/data/ex1.sorted.bam",1));
     ok(-e "$Bin/data/ex1.sorted.bam.bai");
     unlink ("$Bin/data/ex1.sorted.bam","$Bin/data/ex1.sorted.bam.bai");
 }
@@ -174,6 +174,7 @@ use Bio::DB::Sam;
     my $sam = Bio::DB::Sam->new(-fasta=>"$Bin/data/ex1.fa",
 			        -bam  =>"$Bin/data/ex1.bam",
 				-expand_flags => 1,
+				-autoindex => 1,
 	);
     ok($sam);
     ok($sam->n_targets,2);
