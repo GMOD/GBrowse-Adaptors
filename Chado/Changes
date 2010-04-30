@@ -33,3 +33,6 @@ Revision history for Perl module Bio::DB::Das::Chado
       recursive mapping still works--I haven't tested it in a long time.
     - Fixed a bug that sometimes prevented GBrowse from finding the subfeatures
       of features (like mRNAs of genes couldn't be found).
+
+2.00 Thu Apr 29 22:10:43 EDT 2010
+    - Bumping version number to make CPAN happy.
