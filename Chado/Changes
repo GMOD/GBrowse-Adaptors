@@ -23,10 +23,13 @@ Revision history for Perl module Bio::DB::Das::Chado
       on the call to the constructor to set it.
     - Made using organism information more robust; now checks abbreviation
       and "genus species", and if it fails at everything, throws an error.
-    - Added an option to the Chado constructor called -reference_class that allows
-      the user to specify what feature type_id to use as the srcfeature.  For example,
-      if you have motifs mapped to a polypeptide and that polypeptide mapped to a region,
-      you can speicify either "region" or "polypeptide" for the reference_class.  Note that
-      this does not automatically turn on recursive mapping, so by default, the motifs
-      wouldn't be visible on the region.  I honestly don't know for sure if recursive
-      mapping still works--I haven't tested it in a long time.
+    - Added an option to the Chado constructor called -reference_class that
+      allows the user to specify what feature type_id to use as the srcfeature.
+      For example, if you have motifs mapped to a polypeptide and that
+      polypeptide mapped to a region, you can speicify either "region" or
+      "polypeptide" for the reference_class.  Note that this does not
+      automatically turn on recursive mapping, so by default, the motifs
+      wouldn't be visible on the region.  I honestly don't know for sure if
+      recursive mapping still works--I haven't tested it in a long time.
+    - Fixed a bug that sometimes prevented GBrowse from finding the subfeatures
+      of features (like mRNAs of genes couldn't be found).

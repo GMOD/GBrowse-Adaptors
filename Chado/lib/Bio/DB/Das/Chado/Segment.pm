@@ -282,7 +282,9 @@ sub new {
         warn "srcfeature_id:$srcfeature_id" if DEBUG;
 
 	###URGI Is it the right place to set it?
-        $factory->refclass_feature_id($srcfeature_id);
+           #but don't set it if creating a feature for a hit object
+        $factory->refclass_feature_id($srcfeature_id)
+             unless defined($target);
 
         if ( $landmark_feature_id == $srcfeature_id ) {
 
