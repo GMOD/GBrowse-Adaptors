@@ -423,7 +423,11 @@ sub make_bigwig_file {
     my $bedpath = $self->bedgraph_path;
     if ($bedpath) {
 	$self->msg("\t",'Found bedGraphToBigWig in path. Will use it to create BigWig index.');
-	system $bedpath,$infile,$chrom_sizes,$outfile;
+	my $result = system($bedpath,$infile,$chrom_sizes,$outfile) == 0;
+	unless ($result) {
+	    $self->err("WARNING: bedGraphToBigWig exited with an error. $outfile will be removed.");
+	    unlink $outfile;
+	}
     } else {
 	$self->err('WARNING: No bedGraphToBigWig found in path. Will use memory-intensive library function to create BigWig index.');
 	Bio::DB::BigFile->createBigWig($infile,$chrom_sizes,$outfile);

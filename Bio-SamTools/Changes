@@ -1,3 +1,9 @@
+Version 1.17
+    * Fixed bug in processing of MD tag that returned incorrect reference sequence when alignment
+      contains soft clips.
+    * Fixed processing of "A" tags so that they return the appropriate 1 character string rather than
+      undef.
+
 Version 1.16
     * No longer attempt to build BAM index automatically if the .bai file is
       either missing or out of date. Pass -autoindex=>1 to Bio::DB::Sam to

@@ -236,8 +236,13 @@ sub dna {
     my $self = shift;
     my $sam  = $self->{sam};
     if (my $md   = $self->get_tag_values('MD')) {  # try to use MD string
-	warn $md;
 	my $qseq = $self->qseq;
+
+	#remove soft clip from start and end
+	my $cigar = $self->cigar_array;
+	substr($qseq,0,               $cigar->[0][1],  '') if $cigar->[0][0] eq 'S';
+	substr($qseq,-$cigar->[-1][1],$cigar->[-1][1], '') if $cigar->[-1][0] eq 'S';
+
 	my $start = 0;
 	my $result;
 	while ($md =~ /(\d+)|\^([gatcn]+)|([gatcn]+)/ig) {

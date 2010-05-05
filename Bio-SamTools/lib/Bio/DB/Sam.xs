@@ -587,6 +587,9 @@ CODE:
    case 'H':
      RETVAL = newSVpv((char*)s,0);
      break;
+   case 'A':
+     RETVAL = newSVpv((char*)s,1);
+     break;
    default:
      XSRETURN_EMPTY;
    }

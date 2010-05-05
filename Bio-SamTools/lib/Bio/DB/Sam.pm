@@ -1,7 +1,7 @@
 package Bio::DB::Sam;
 # $Id$
 
-our $VERSION = '1.16';
+our $VERSION = '1.17';
 
 =head1 NAME
 
