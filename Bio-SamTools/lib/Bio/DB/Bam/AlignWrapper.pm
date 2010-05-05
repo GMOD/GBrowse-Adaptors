@@ -234,20 +234,28 @@ sub padded_alignment {
 
 sub dna {
     my $self = shift;
+
     my $sam  = $self->{sam};
     if (my $md   = $self->get_tag_values('MD')) {  # try to use MD string
 	my $qseq = $self->qseq;
 
-	#remove soft clip from start and end
+	#preprocess qseq using cigar array
 	my $cigar = $self->cigar_array;
-	substr($qseq,0,               $cigar->[0][1],  '') if $cigar->[0][0] eq 'S';
-	substr($qseq,-$cigar->[-1][1],$cigar->[-1][1], '') if $cigar->[-1][0] eq 'S';
+	my $seq   = '';
+	for my $op (@$cigar) {
+	    my ($operation,$count) = @$op;
+	    if ($operation eq 'M') {
+		$seq .= substr($qseq,0,$count,''); # include these residues
+	    } elsif ($operation eq 'S' or $operation eq 'I') {
+		substr($qseq,0,$count,'');         # skip soft clipped and inserted residues
+	    }
+	}
 
 	my $start = 0;
 	my $result;
 	while ($md =~ /(\d+)|\^([gatcn]+)|([gatcn]+)/ig) {
-	    if ($1) {
-		$result .= substr($qseq,$start,$1);
+	    if (defined $1) {
+		$result .= substr($seq,$start,$1);
 		$start  += $1;
 	    } elsif ($2) {
 		$result .= $2;

@@ -7,7 +7,7 @@ use strict;
 use ExtUtils::MakeMaker;
 use File::Temp qw(tempfile);
 use FindBin '$Bin';
-use constant TEST_COUNT => 101;
+use constant TEST_COUNT => 102;
 
 use lib "$Bin/../lib","$Bin/../blib/lib","$Bin/../blib/arch";
 
@@ -47,6 +47,10 @@ use Bio::DB::Sam;
     
     my $text = $header->text;
     ok(length $text > 0);
+
+    my $c = "\@CO\tThis is a comment\n";
+    $header->text($c);
+    ok($header->text,$c);
     
     my $fai  = Bio::DB::Sam::Fai->open("$Bin/data/ex1.fa");
     my $seq  = $fai->fetch('seq2:51-1000');

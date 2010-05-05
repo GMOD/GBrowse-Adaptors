@@ -1,3 +1,8 @@
+Version 1.18
+    * Made the BAMfile  $header->text() method read/write, allowing limited modification of
+      header fields.
+    * Fixed MD processing again to correctly handle insertions into the reference sequence.
+      
 Version 1.17
     * Fixed bug in processing of MD tag that returned incorrect reference sequence when alignment
       contains soft clips.

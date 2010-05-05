@@ -1,7 +1,7 @@
 package Bio::DB::Sam;
 # $Id$
 
-our $VERSION = '1.17';
+our $VERSION = '1.18';
 
 =head1 NAME
 
@@ -1216,8 +1216,12 @@ array returned by target_len():
  $length = $header->target_len->[$tid];
 
 =item $text = $header->text
+=item $header->text("new value")
 
-Return the text portion of the BAM header.
+Read the text portion of the BAM header. The text can be replaced by
+providing the replacement string as an argument. Note that you should
+follow the header conventions when replacing the header text. No
+parsing or other error-checking is performed.
 
 =item ($tid,$start,$end) = $header->parse_region("seq_id:start-end")
 

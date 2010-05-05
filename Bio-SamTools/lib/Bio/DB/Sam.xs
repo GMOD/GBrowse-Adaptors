@@ -790,12 +790,19 @@ bam_target_len(bamh)
     RETVAL
 
 SV*
-bam_text(bamh)
+bam_text(bamh, ...)
   Bio::DB::Bam::Header bamh
-  PROTOTYPE: $
+  PREINIT:
+    char   *newtext;
+    STRLEN n;
   CODE:
     /* in case text is not null terminated, we copy it */
     RETVAL = newSVpv(bamh->text,bamh->l_text);
+    if (items > 1) {
+      newtext = (char*) SvPV(ST(1),n);
+      bamh->text   = newtext;
+      bamh->l_text = n;
+    }
   OUTPUT:
     RETVAL
 
