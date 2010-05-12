@@ -108,6 +108,12 @@ our @EXPORT_OK = qw(binMean binVariance binStdev);
                                -type   => 'summary');
    $stats = $summary->statistical_summary(10); # 10 bins across region
 
+   # get an iterator across the intervals covered by a summary
+   my $i = $summary->get_seq_stream();
+   while (my $interval = $i->next_seq) {
+      print $interval->start,'..',$interval->end,': ',$interval->score,'\n";
+   }
+
 =head1 DESCRIPTION
 
 This module provides a high-level interface to Jim Kent's BigWig
@@ -476,8 +482,10 @@ and B<validCount> keys. The following code illustrates how this works:
     }
  }
 
-"summary" features also have a score() method which returns a
-statistical summary hash across the entire region.
+"summary" features have a score() method which returns a statistical
+summary hash across the entire region. They also have a
+get_seq_stream() method which returns a feature iterator across the
+region they cover.
 
 If the argument -iterator=>1 is present, then instead of returning an
 array of features, the method call will return a single object that
@@ -1020,6 +1028,13 @@ sub score {
     my $self = shift;
     my $arry = $self->statistical_summary(1);
     return $arry->[0];
+}
+
+sub get_seq_stream {
+    my $self = shift;
+    return $self->{bf}->get_seq_stream(-seq_id=>$self->seq_id,
+				       -start =>$self->start,
+				       -end   =>$self->end);
 }
 
 ##################################################################
