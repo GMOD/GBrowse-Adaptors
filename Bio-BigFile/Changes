@@ -1,3 +1,7 @@
+Version 1.03
+	* Added a get_seq_stream() method to BigWig summary objects so that users can
+	  easily access the intervals underlying a statistical summary.
+
 Version 1.02
 	* BigWigSet now operates correctly on remote HTTP and FTP directories.
 	* Added instructions and patch file for compiling on MacOSX platforms.
