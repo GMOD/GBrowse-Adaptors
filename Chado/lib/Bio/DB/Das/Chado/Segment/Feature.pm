@@ -30,7 +30,7 @@ use constant DEBUG => 0;
 use vars qw(@ISA $AUTOLOAD %CONSTANT_TAGS $VERSION);
 @ISA = qw(Bio::DB::Das::Chado::Segment Bio::SeqFeatureI
           Bio::Root::Root);
-$VERSION = 0.25;
+$VERSION = 0.26;
 
 %CONSTANT_TAGS = ();
 
@@ -969,6 +969,11 @@ sub sub_SeqFeature {
     $partof .= ",$derivesfrom";
 
     warn "partof = $partof" if DEBUG;
+
+    #silencing unit warnings
+    $typewhere ||='';
+    $where_part ||='';
+    $join_part ||='';
 
     my $sql = "
     select child.feature_id, child.name, child.type_id, child.uniquename, parent.name as pname, child.is_obsolete,

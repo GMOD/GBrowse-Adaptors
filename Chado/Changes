@@ -41,3 +41,4 @@ Revision history for Perl module Bio::DB::Das::Chado
     - Making the dbh method in Chado.pm create a db handle if one doesn't
       already exist (it is not clear to me how this happens, since the
       constructor for Chado.pm is supposed to create it, but whatever).
+    - Silenced uninit squawks when gbrowse_details page is rendered
