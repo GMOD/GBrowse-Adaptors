@@ -27,9 +27,10 @@ use URI::Escape;
 
 use constant DEBUG => 0;
 
-use vars qw(@ISA $AUTOLOAD %CONSTANT_TAGS);
+use vars qw(@ISA $AUTOLOAD %CONSTANT_TAGS $VERSION);
 @ISA = qw(Bio::DB::Das::Chado::Segment Bio::SeqFeatureI
           Bio::Root::Root);
+$VERSION = 0.25;
 
 %CONSTANT_TAGS = ();
 

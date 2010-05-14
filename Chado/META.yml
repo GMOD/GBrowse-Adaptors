@@ -12,11 +12,13 @@ name: Bio-DB-Das-Chado
 provides:
   Bio::DB::Das::Chado:
     file: lib/Bio/DB/Das/Chado.pm
-    version: 2
+    version: 0.25
   Bio::DB::Das::Chado::Segment:
     file: lib/Bio/DB/Das/Chado/Segment.pm
+    version: 0.25
   Bio::DB::Das::Chado::Segment::Feature:
     file: lib/Bio/DB/Das/Chado/Segment/Feature.pm
+    version: 0.25
   Bio::DB::Das::ChadoIterator:
     file: lib/Bio/DB/Das/Chado.pm
 requires:
@@ -26,4 +28,4 @@ requires:
   URI::Escape: 0
 resources:
   license: http://dev.perl.org/licenses/
-version: 2
+version: 0.25

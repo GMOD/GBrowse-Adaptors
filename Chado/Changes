@@ -34,5 +34,10 @@ Revision history for Perl module Bio::DB::Das::Chado
     - Fixed a bug that sometimes prevented GBrowse from finding the subfeatures
       of features (like mRNAs of genes couldn't be found).
 
-2.00 Thu Apr 29 22:10:43 EDT 2010
+0.25 Thu Apr 29 22:10:43 EDT 2010
     - Bumping version number to make CPAN happy.
+
+0.26 Fri May 14 11:37:37 EDT 2010
+    - Making the dbh method in Chado.pm create a db handle if one doesn't
+      already exist (it is not clear to me how this happens, since the
+      constructor for Chado.pm is supposed to create it, but whatever).

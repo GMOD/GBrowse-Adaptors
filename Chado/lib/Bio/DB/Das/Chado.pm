@@ -97,7 +97,7 @@ use constant SEGCLASS => 'Bio::DB::Das::Chado::Segment';
 use constant MAP_REFERENCE_TYPE => 'MapReferenceType'; #dgg
 use constant DEBUG => 0;
 
-$VERSION = 2.0;
+$VERSION = 0.25;
 @ISA = qw(Bio::Root::Root Bio::DasI);
 
 =head2 new
@@ -551,6 +551,16 @@ sub dbh {
   my $self = shift;
 
   return $self->{'dbh'} = shift if @_;
+  return $self->{'dbh'} if defined ($self->{'dbh'});
+
+  #uh oh, there isn't already a dbh object, try to create one
+  my $dsn        = $self->{db_args}->{dsn};
+  my $username   = $self->{db_args}->{username};
+  my $password   = $self->{db_args}->{password};
+
+  my $dbh = DBI->connect( $dsn, $username, $password )
+    or $self->throw("unable to open db handle");
+  $self->{'dbh'} = $dbh;
   return $self->{'dbh'};
 }
 
