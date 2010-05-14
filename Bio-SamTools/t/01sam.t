@@ -221,7 +221,7 @@ use Bio::DB::Sam;
 
     my %att  = $alignments[0]->attributes;
     ok(scalar(keys %att),17);
-    ok($alignments[0]->cigar_str,'M35');
+    ok($alignments[0]->cigar_str,'35M');
 
     $sam->expand_flags(0);
     @keys = $alignments[0]->get_all_tags;

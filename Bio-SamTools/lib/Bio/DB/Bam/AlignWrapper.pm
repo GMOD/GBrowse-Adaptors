@@ -165,6 +165,12 @@ sub seq_id {
     $self->{sam}->target_name($tid);
 }
 
+sub mate_seq_id {
+    my $self = shift;
+    my $tid  = $self->mtid;
+    $self->{sam}->target_name($tid);
+}
+
 sub abs_ref    { shift->seq_id }
 sub abs_start  { shift->start  }
 sub abs_end    { shift->end    }
@@ -379,6 +385,23 @@ sub format_attributes {
   return join ';',@result;
 }
 
+sub tam_line {
+    my $self = shift;
+    return join ("\t",
+		 $self->qname,
+		 $self->flag,
+		 $self->seq_id,
+		 $self->pos+1,
+		 $self->qual,
+		 $self->cigar_str,
+		 $self->mate_seq_id eq $self->seq_id ? '=' : $self->mate_seq_id,
+		 $self->mpos,
+		 $self->isize,
+		 $self->qseq,
+		 join('',map{chr($_+33)} $self->qscore),
+		 $self->aux
+	);
+}
 
 package Bio::DB::Bam::SplitAlignmentPart;
 
@@ -415,7 +438,5 @@ sub cigar_str {
     $self->{cigar_str} = shift if @_;
     $d;
 }
-
-
 
 1;

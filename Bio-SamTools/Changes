@@ -1,3 +1,9 @@
+Version 1.19
+    * Added Bio::DB::Bam::Alignment->mate_seq_id() method.	
+    * Added Bio::DB::Bam::Alignment->aux() method.	
+    * Added Bio::DB::Bam::Alignment->tam_line() method.
+    * Fixed Bio::DB::Bam::Alignment->cigar_str() method to return fields in correct order! (bad bug)	
+
 Version 1.18
     * Made the BAMfile  $header->text() method read/write, allowing limited modification of
       header fields.

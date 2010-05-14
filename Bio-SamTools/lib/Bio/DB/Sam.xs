@@ -548,6 +548,44 @@ CODE:
 OUTPUT:
     RETVAL
 
+char*
+bama_aux(b)
+   Bio::DB::Bam::Alignment b
+PREINIT:
+   uint8_t *s;
+   uint8_t type, key[2];
+   char    str[1024];
+CODE:
+   s = bam1_aux(b);
+   str[0] = '\0';
+   while (s < b->data + b->data_len) {
+        char* d = str+strlen(str); 
+	key[0] = s[0]; 
+	key[1] = s[1];
+	s += 2; 
+ 	sprintf(d, "%c%c:", key[0], key[1]);
+	type = *s++; 
+	d += 3;
+	if (type == 'A')      { sprintf(d, "A:%c", *s);           s++; }
+	else if (type == 'C') { sprintf(d, "i:%u", *s);           s++; }
+	else if (type == 'c') { sprintf(d, "i:%d", *s);           s++; }
+	else if (type == 'S') { sprintf(d, "i:%u", *(uint16_t*)s);s += 2; }
+	else if (type == 's') { sprintf(d, "i:%d", *(int16_t*)s); s += 2; }
+	else if (type == 'I') { sprintf(d, "i:%u", *(uint32_t*)s);s += 4; }
+	else if (type == 'i') { sprintf(d, "i:%d", *(int32_t*)s); s += 4; }
+	else if (type == 'f') { sprintf(d, "f:%g", *(float*)s);   s += 4; }
+	else if (type == 'd') { sprintf(d, "d:%lg", *(double*)s); s += 8; }
+	else if (type == 'Z' || type == 'H') { sprintf(d, "%c:", type); 
+	                                       strcat(d,s);
+					       while (*s++) {}
+	                                     }
+	strcat(d," ");
+   }	  
+   str[strlen(str)-1] = '\0';
+   RETVAL = str;
+OUTPUT:
+   RETVAL
+
 SV*
 bama_aux_get(b,tag)
    Bio::DB::Bam::Alignment b
@@ -602,7 +640,7 @@ Bio::DB::Bam::Alignment b
 PROTOTYPE: $
 PREINIT:
    uint8_t *s;
-   uint8_t type, key[2];
+   uint8_t type;
 PPCODE:
    {
      s = bam1_aux(b);  /* s is a khash macro */

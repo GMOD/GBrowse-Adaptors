@@ -216,6 +216,16 @@ sequence (the target) and the query. It will look like this:
  $matches ||||||||||||||     |||||||||||||||||
  $query   AGTGCCTTTGTTCACATAGACCCCCTTGCAACAACC 
 
+=item $str = $align->aux
+
+Returns the text version of the SAM tags, e.g. 
+"XT:A:M NM:i:2 SM:i:37 AM:i:37 XM:i:1 XO:i:1 XG:i:1 MD:Z:6^C0A47"
+
+=item $str = $align->tam_line
+
+Returns the TAM (text) representation of the alignment (available in
+the high-level "AlignWrapper" interface only).
+
 =item $tag = $align->primary_tag
 
 This is provided for Bio::SeqFeatureI compatibility. Return the string
@@ -370,6 +380,10 @@ aligning.
 Return true if the aligned read's mate was reverse complemented prior
 to aligning.
 
+=item $mseqid  = $align->mate_seq_id
+
+Return the seqid of the mate.
+
 =item $mstart  = $align->mate_start
 
 For paired reads, return the start of the mate's alignment in
@@ -507,7 +521,7 @@ sub cigar_str {
 	my $op     = $c & BAM_CIGAR_MASK;
 	my $l      = $c >> BAM_CIGAR_SHIFT();
 	my $symbol = CIGAR_SYMBOLS()->[$op];
-	$result .= "${symbol}${l}";
+	$result .= "${l}${symbol}";
     }
     return $result;
 }
