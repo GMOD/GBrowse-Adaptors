@@ -168,6 +168,7 @@ sub seq_id {
 sub mate_seq_id {
     my $self = shift;
     my $tid  = $self->mtid;
+    return unless $tid >= 0;
     $self->{sam}->target_name($tid);
 }
 
@@ -394,8 +395,8 @@ sub tam_line {
 		 $self->pos+1,
 		 $self->qual,
 		 $self->cigar_str,
-		 $self->mate_seq_id eq $self->seq_id ? '=' : $self->mate_seq_id,
-		 $self->mpos,
+		 $self->mate_seq_id ? ($self->mate_seq_id eq $self->seq_id ? '=' : $self->mate_seq_id) : '*',
+		 $self->mpos || 0,
 		 $self->isize,
 		 $self->qseq,
 		 join('',map{chr($_+33)} $self->qscore),

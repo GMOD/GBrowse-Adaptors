@@ -7,7 +7,7 @@ use strict;
 use ExtUtils::MakeMaker;
 use File::Temp qw(tempfile);
 use FindBin '$Bin';
-use constant TEST_COUNT => 102;
+use constant TEST_COUNT => 104;
 
 use lib "$Bin/../lib","$Bin/../blib/lib","$Bin/../blib/arch";
 
@@ -198,6 +198,12 @@ use Bio::DB::Sam;
     my $samline = <$fh>;
     ok($samline =~ /^B7_591:4:96:693:509/);
     $fh->close;
+
+    my ($readname) = $samline =~ /^(\S+)/;
+    my ($f) = $sam->get_features_by_name($readname);
+    ok($f);
+    chomp($samline);
+    ok($f->tam_line,$samline);
 
     my $dummy = eval {Bio::DB::Sam->new(-fasta=>"invalid_path.txt",
 					-bam  =>"invalid_path.txt")};
