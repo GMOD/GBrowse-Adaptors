@@ -97,7 +97,7 @@ use constant SEGCLASS => 'Bio::DB::Das::Chado::Segment';
 use constant MAP_REFERENCE_TYPE => 'MapReferenceType'; #dgg
 use constant DEBUG => 0;
 
-$VERSION = 0.26;
+$VERSION = 0.27;
 @ISA = qw(Bio::Root::Root Bio::DasI);
 
 =head2 new
@@ -113,9 +113,89 @@ $VERSION = 0.26;
  Returns : a new Bio::DB::Das::Chado object
  Args    :
 
-An optional argument is to provide -reference_class => (SO type name) to
-specify what the "base type" is.  Typically, this would be chromosome
-or contig.
+=over
+
+=item -dsn [dsn string]
+
+A full dbi dsn string for the database, optionally including host and port
+information, like "dbi:Pg:dbname=chado;host=localhost;port=5432".
+
+=item -user [username]
+
+The database user name.
+
+=item -pass [password]
+
+The users password for the database.
+
+=item -organism [common_name|abbreviation|"Genus species"]
+
+Used to specify the organism that the features should be drawn from in
+Chado instances that have more than one organism.  The argument can be
+the common name, the abbreviation or "Genus species".  Since common name
+and abbreviation are not guaranteed to be unique, if one of those is supplied
+and it corresponds to more than one organism_id, the Chado adaptor will die.
+Since the combination is guaranteed to be unique by table constraints, 
+supplying "Genus species" should always work.
+
+=item -srcfeatureslice [1|0] default: 0
+
+Setting this to 1 will enable searching for features using a function and
+a corresponding index that can significantly speed searches, as long as
+the featureloc_slice function is present in the Chado instance (all
+"modern" instances of Chado do have this function).  Since it available
+in nearly all Chado instances, in a future release of this adaptor,
+the default value of -srcfeatureslice will be set to 1 (on).
+
+=item -inferCDS [1|0] default: 0
+
+Given mRNA features that have exons and polypeptide features as children,
+when inferCDS is set, the Chado adaptor will calculate the intersection
+of the exons and polypeptide features and create CDS features that result.
+This is generally needed when using gene and mRNA features with glyphs in
+GBrowse that show subparts, like the gene and processed_transcript glyphs.
+Since this is almost always required, in a future release of this adaptor,
+the default will be switched to 1 (on).
+
+=item -recursivMapping [1|0] default: 0
+
+In the case where features are mapped to a "small" srcfeature (like
+a contig) and then that small feature is mapped to a larger feature 
+(like a chromosome), setting -recursivMapping will allow the Chado
+adaptor to calculate the coordinates of the feature on the larger
+feature even though it isn't explicitly mapped to it.  The Chado adaptor
+suffers an approximately 20% performance penalty to do this mapping.
+
+=item -allow_obsolete [1|0] default: 0
+
+If set to 1, allow_obsolete will tell the Chado adaptor to ignore the
+feature.is_obsolete column when querying to find features.
+
+=item -enable_seqscan [1|0] default: 1
+
+If set to zero, the -enable_seqscan will send a query planner hint to the
+PostgreSQL server to make it more costly to do sequential scans on a table.
+This is generally not necessary, as the query planner in Pg 8+ is smarter
+than it used to be.
+
+=item -do2Level [1|0] default: 0
+
+do2Level is a flag for specifying that two "levels" at most of features should
+be fetch when getting child features.  This flag is generally unnecessary as
+Bio::Graphics::Glyph supports specifying on a per glyph basis what should
+be fetch.  Use of this flag is incompatible with the -recursivMapping flag.
+
+=item -reference_class [SO type name]
+
+Used to specify what the "base type" is.  Typically, this would be chromosome
+or contig, but setting it is only necessary in the case where features
+are mapped to more than one srcfeature and you don't want to use the
+one that is lowest on the graph.  For example, you have polypeptides that are
+mapped to chromosomes and motifs that are mapped to polypeptides.  If you
+want to display the motifs on the polypeptide, you need to set "polypeptide"
+as the argument for -reference_class.
+
+=back
 
 =cut
 
@@ -561,6 +641,11 @@ sub dbh {
   my $dbh = DBI->connect( $dsn, $username, $password )
     or $self->throw("unable to open db handle");
   $self->{'dbh'} = $dbh;
+
+  if (exists($arg{-enable_seqscan}) && ! $arg{-enable_seqscan}){
+    $dbh->do("set enable_seqscan=0");
+  }
+
   return $self->{'dbh'};
 }
 
