@@ -13,6 +13,7 @@ lib/Bio/DB/Bam/Target.pm
 lib/Bio/DB/Sam.pm
 lib/Bio/DB/Sam.xs
 lib/Bio/DB/Sam/Constants.pm
+lib/Bio/DB/Sam/SamToGBrowse.pm
 lib/Bio/DB/Sam/Segment.pm
 LICENSE
 MANIFEST			This list of files
