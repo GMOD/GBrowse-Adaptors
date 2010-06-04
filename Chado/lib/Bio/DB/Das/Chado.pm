@@ -642,7 +642,7 @@ sub dbh {
     or $self->throw("unable to open db handle");
   $self->{'dbh'} = $dbh;
 
-  if (exists($arg{-enable_seqscan}) && ! $arg{-enable_seqscan}){
+  if (exists($self->{-enable_seqscan}) && ! $self->{-enable_seqscan}){
     $dbh->do("set enable_seqscan=0");
   }
 
