@@ -1,0 +1,26 @@
+512d511
+<    # Use the full-text search [LP]
+515c514
+<              where searchable_name @@ to_tsquery($quoted_name) $obsolete_part ");
+---
+>              where lower(name) = $quoted_name $obsolete_part ");
+531d529
+<       # Use full-text search [LP]
+536c534
+<         afn.searchable_name @@ to_tsquery($quoted_name) $where_part
+---
+>         lower(afn.name) = $quoted_name $where_part
+540d537
+<       # Use full-text search [LP]
+546c543
+<         s.searchable_synonym_sgml @@ to_tsquery($quoted_name) $where_part
+---
+>         lower(s.synonym_sgml) = $quoted_name $where_part
+554c551
+<       # Use full-text search [LP]
+---
+> 
+560c557
+<                d.searchable_accession @@ to_tsquery($quoted_name) $where_part");
+---
+>                lower(d.accession) = $quoted_name $where_part");

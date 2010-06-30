@@ -43,5 +43,11 @@ Revision history for Perl module Bio::DB::Das::Chado
       constructor for Chado.pm is supposed to create it, but whatever).
     - Silenced uninit squawks when gbrowse_details page is rendered
 
-0.27 Wed May 19 10:56:33 EDT 2010
+0.3 Fri Jun 25 09:32:01 EDT 2010
     - Added documentation for the Chado constructor
+    - Changed the class method so that it always returns 'Sequence', which is
+      really the right thing for it to do: class only makes sense in the
+      context of Bio::DB::GFF.
+    - Added a -fulltext option for using full text searching in postgres 8.4
+      or better.  See perldoc Bio::DB::Das::Chado and gmod_chado_fts_prep.pl
+      for more info.

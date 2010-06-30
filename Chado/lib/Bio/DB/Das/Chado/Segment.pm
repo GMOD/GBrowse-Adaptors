@@ -102,7 +102,7 @@ use constant DEBUG => 0;
 
 use vars qw(@ISA $VERSION);
 @ISA = qw(Bio::Root::Root Bio::SeqI Bio::Das::SegmentI Bio::DB::Das::Chado);
-$VERSION = 0.27;
+$VERSION = 0.30;
 
 #use overload '""' => 'asString';
 
@@ -213,6 +213,8 @@ sub new {
     #or nothing if there is no result
 
     if ( ref $ref eq 'ARRAY' ) {    #more than one result returned
+
+        warn "\n\n@$ref\n\n";
 
         my @segments;
 
@@ -488,6 +490,8 @@ sub _search_by_name {
   my $self = shift;
   my ($factory,$quoted_name,$db_id,$feature_id) = @_;
 
+  my $fulltext = $factory->fulltext;
+
   warn "_search_by_name args:@_" if DEBUG;
 
   my $obsolete_part = "";
@@ -509,6 +513,7 @@ sub _search_by_name {
 
    } 
    else {
+    #can't use FTS here as exact names are required
     $sth = $factory->dbh->prepare ("
              select name,feature_id,seqlen from feature
              where lower(name) = $quoted_name $obsolete_part ");
@@ -527,20 +532,41 @@ sub _search_by_name {
     warn "looking for a synonym to $quoted_name" if DEBUG;
     my $isth;
     if ($self->factory->use_all_feature_names()) {
+
+      my $optional_full_text;
+      if ($fulltext) {
+          $optional_full_text 
+           = "afn.searchable_name @@ plainto_tsquery($quoted_name) $where_part";
+      }
+      else {
+          $optional_full_text
+           = "lower(afn.name) = $quoted_name $where_part";
+      }
+
       $isth = $factory->dbh->prepare ("
         select afn.feature_id from all_feature_names afn, feature f
         where afn.feature_id = f.feature_id and
         f.is_obsolete = 'false' and
-        lower(afn.name) = $quoted_name $where_part
+        $optional_full_text
       ");
+
     }
     else {
+      my $full_text_options;
+      if ($fulltext) {
+          $full_text_options
+           = "s.searchable_synonym_sgml @@ plainto_tsquery($quoted_name) $where_part";
+      }
+      else {
+          $full_text_options
+           = "lower(s.synonym_sgml) = $quoted_name $where_part";
+      }
       $isth = $factory->dbh->prepare ("
         select fs.feature_id from feature_synonym fs, synonym s, feature f
         where fs.synonym_id = s.synonym_id and
         f.feature_id = fs.feature_id and
         f.is_obsolete = 'false' and 
-        lower(s.synonym_sgml) = $quoted_name $where_part
+        $full_text_options
       ");
     }
     $isth->execute or Bio::Root::Root->throw("query for name in synonym failed");
@@ -549,12 +575,20 @@ sub _search_by_name {
     if ($rows_returned == 0) { #look in dbxref for accession number match
       warn "looking in dbxref for $quoted_name" if DEBUG;
 
+      my $full_text_option;
+      if ($fulltext) {
+          $full_text_option = "d.searchable_accession @@ plainto_tsquery($quoted_name) $where_part";
+      }
+      else {
+          $full_text_option = "lower(d.accession) = $quoted_name $where_part";
+      }
+
       $isth = $factory->dbh->prepare ("
          select fd.feature_id from feature_dbxref fd, dbxref d, feature f
          where fd.dbxref_id = d.dbxref_id and
                f.feature_id = fd.feature_id and
                f.is_obsolete = 'false' and
-               lower(d.accession) = $quoted_name $where_part");
+               $full_text_option");
       $isth->execute or Bio::Root::Root->throw("query for accession failed");
       $rows_returned = $isth->rows;
 
@@ -614,20 +648,12 @@ sub _search_by_name {
 
 =head2 class
 
-  Title   : class
-  Usage   : $obj->class($newval)
-  Function: Returns the segment class (synonymous with type)
-  Returns : value of class (a scalar)
-  Args    : on set, new value (a scalar or undef, optional)
-
+Needed for backward compatability; always returns 'Sequence'.
 
 =cut
 
 sub class {
-  my $self = shift;
-
-  return $self->{'class'} = shift if @_;
-  return $self->{'class'};
+    return 'Sequence';
 }
 
 =head2 type

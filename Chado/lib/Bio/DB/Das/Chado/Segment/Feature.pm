@@ -30,7 +30,7 @@ use constant DEBUG => 0;
 use vars qw(@ISA $AUTOLOAD %CONSTANT_TAGS $VERSION);
 @ISA = qw(Bio::DB::Das::Chado::Segment Bio::SeqFeatureI
           Bio::Root::Root);
-$VERSION = 0.27;
+$VERSION = 0.30;
 
 %CONSTANT_TAGS = ();
 
@@ -625,15 +625,6 @@ methods described below, L<Bio::RangeI> for details.
 =cut
 
 *abs_strand = \&strand;
-
-=head2 class()
-
-  Title   : class
-  Function: aliased to method()for backward compatibility
-
-=cut
-
-*class = \&type;
 
 =head2 db_id()
 

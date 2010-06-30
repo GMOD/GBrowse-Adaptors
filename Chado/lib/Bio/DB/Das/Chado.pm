@@ -97,7 +97,7 @@ use constant SEGCLASS => 'Bio::DB::Das::Chado::Segment';
 use constant MAP_REFERENCE_TYPE => 'MapReferenceType'; #dgg
 use constant DEBUG => 0;
 
-$VERSION = 0.27;
+$VERSION = 0.30;
 @ISA = qw(Bio::Root::Root Bio::DasI);
 
 =head2 new
@@ -156,6 +156,18 @@ This is generally needed when using gene and mRNA features with glyphs in
 GBrowse that show subparts, like the gene and processed_transcript glyphs.
 Since this is almost always required, in a future release of this adaptor,
 the default will be switched to 1 (on).
+
+=item -fulltext [1|0] default: 0
+
+This item allows full text searching of various Chado text fields,
+including feature.name, feature.uniquename, synonym.synonym_sgml,
+dbxref.accession, and all_feature_names.name (which fequently includes
+featureprop.value, depending on how all_feature_names is configured).  Note
+that to use -fulltext, you must run the preparation script, 
+gmod_chado_fts_prep.pl, on the database, and in addition, it might 
+be a good idea to set up a cronjob to keep the all_feature_names
+materialized view up to date with the materialized view tool,
+gmod_materialized_view_tool.pl.
 
 =item -recursivMapping [1|0] default: 0
 
@@ -306,8 +318,43 @@ sub new {
   #determine the type_id of the ref class and cache it
   $self->refclass($self->name2term($refclass));
 
+  $self->fulltext($arg{-fulltext});
+
   return $self;
 }
+
+=head2 fulltext
+
+=over
+
+=item Usage
+
+  $obj->fulltext()        #get existing value
+  $obj->fulltext($newval) #set new value
+
+=item Function
+
+Flag to govern the use of full text searching queries
+
+=item Returns
+
+value of fulltext (a scalar)
+
+=item Arguments
+
+new value of fulltext (to set)
+
+=back
+
+=cut
+
+sub fulltext {
+    my $self = shift;
+    my $fulltext = shift if defined(@_);
+    return $self->{'fulltext'} = $fulltext if defined($fulltext);
+    return $self->{'fulltext'};
+}
+
 
 =head2 refclass
 
@@ -1029,6 +1076,12 @@ sub _by_alias_by_name {
     }
   }
 
+##I think this is where this should go...
+  # We need to split the query on whitespaces, and replace the whitespace with &
+  # so that we can get proper full test search on allquery terms [LP]
+  # but it only make sense to do this for full text searching [Scott]
+  $name = $self->_search_name_prep_spaces($name) if $self->fulltext;
+
 
   my $wildcard = 0;
   if ($name =~ /\*/) {
@@ -1084,11 +1137,16 @@ sub _by_alias_by_name {
           : "all_feature_names afn ";
 
     my $alias_only_where;
-    if ($wildcard) {
-      $alias_only_where = "where lower(afn.name) like ?";
+    # There is no difference in the wildcard or non-wildcard call to 
+    # the full-text search [LP]
+    if ($self->fulltext) {
+        $alias_only_where = "where afn.searchable_name @@ to_tsquery(?)";
+    }
+    elsif ($wildcard) {
+        $alias_only_where = "where lower(afn.name) like ?";
     }
     else {
-      $alias_only_where = "where lower(afn.name) = ?";
+        $alias_only_where = "where lower(afn.name) = ?";
     }
 
     $where_part = $where_part ?
@@ -1103,14 +1161,20 @@ sub _by_alias_by_name {
           : "feature_synonym fs, synonym s ";
 
     my $alias_only_where;
-    if ($wildcard) {
-      $alias_only_where  = "where fs.synonym_id = s.synonym_id and\n"
-                    . "lower(s.synonym_sgml) like ?";
-    } 
-    else {
-      $alias_only_where  = "where fs.synonym_id = s.synonym_id and\n"
-                    . "lower(s.synonym_sgml) = ?";
+    # Again, with full-text there's no difference in wildcard/non-wildcard [LP]
+    if ($self->fulltext) {
+        $alias_only_where = "where fs.synonym_id = s.synonym_id and\n"
+                   . "s.searchable_synonym_sgml @@ to_tsquery(?)";
     }
+    elsif ($wildcard) {
+        $alias_only_where  = "where fs.synonym_id = s.synonym_id and\n"
+                   . "lower(s.synonym_sgml) like ?";
+    }
+    else {
+        $alias_only_where  = "where fs.synonym_id = s.synonym_id and\n"
+                   . "lower(s.synonym_sgml) = ?";
+    }
+
 
     $where_part = $where_part ?
                     "$alias_only_where $where_part"
@@ -1122,12 +1186,18 @@ sub _by_alias_by_name {
     $from_part   = " feature f ";
 
     my $name_only_where;
-    if ($wildcard) {
-      $name_only_where = "where lower(f.name) like ?";
+    # Using full text search we only need create one WHERE clause, regardless of
+    # the presence of any wildcards... [LP]
+    if ($self->fulltext) {
+        $name_only_where = "where f.searchable_name @@ to_tsquery(?)";
+    }
+    elsif ($wildcard) {
+        $name_only_where = "where lower(f.name) like ?";
     }
     else {
-      $name_only_where = "where lower(f.name) = ?";
+        $name_only_where = "where lower(f.name) = ?";
     }
+
 
     $where_part = $where_part ?
                     "$name_only_where $where_part" 
@@ -1135,6 +1205,11 @@ sub _by_alias_by_name {
   }
 
   my $query = $select_part . ' FROM ' . $from_part . $where_part;
+
+  # Added at suggestion of James Ward to strip confusing/fatal whitespace,
+  # so we trim leading and trailing whitespace before processing query [LP]
+  $query =~ s/^[ \t\r\n]+|[ \t\r\n]$//g;
+
 
   warn "first get_feature_by_name query:$query" if DEBUG;
 
@@ -1438,6 +1513,19 @@ sub _by_alias_by_name {
   return @features;
 }
 
+# Handle spaces in search query; we need to avoid replacing 
+# ' & ' with ' & & & ', though... [LP]
+sub _search_name_prep_spaces {
+    my $self = shift;
+    my $name = shift;
+
+    $name =~ s/\s&\s/ /g;   # Replace any user-defined ' & ' with spaces...
+    $name =~ s/\s/ & /g;    # then replace all spaces with ' & '
+
+    return $name;
+}
+
+
 *fetch_feature_by_name = \&get_feature_by_name; 
 
 sub get_feature_by_feature_id {
@@ -1493,10 +1581,26 @@ sub _search_name_prep {
   my $self = shift;
   my $name = shift;
 
-  $name =~ s/_/\\_/g;  # escape underscores in name
-  $name =~ s/\%/\\%/g; # ditto for percent signs
+  if ($self->fulltext) {
 
-  $name =~ s/\*/%/g;
+  # For full-text search, the appropriate extension wildcard
+  # is ':*' for prefix-matching.  There are limitations to 
+  # full-text search in that we cannot find internal parts of
+  # words, so wildcards can only come at the ends of phrases/
+  # lexemes.  Internal * are converted by tsquery into & [LP]
+    $name =~ s/_/\\_/g;             # escape underscores in name
+    $name =~ s/(?<=\s)\*//g;        # lose prefix wildcards (word start)
+    $name =~ s/(?<=^)\*//g;         # lose prefix wildcards (query start)
+    $name =~ s/\*(?=$)/:\*/g;       # convert trailing * (query end) into :*
+    $name =~ s/\*(?=\s)/:\*/g;      # convert trailing * (word end) into :*
+
+  }
+  else {
+    $name =~ s/_/\\_/g;  # escape underscores in name
+    $name =~ s/\%/\\%/g; # ditto for percent signs
+
+    $name =~ s/\*/%/g;
+  }
 
   return $name;
 }

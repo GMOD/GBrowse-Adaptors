@@ -1,0 +1,83 @@
+929d928
+< 
+932,934d930
+<   # According to James Ward it helps to off PostgreSQL prepared statements [LP]
+<   $self->dbh->{pg_server_prepare} = 0;
+< 
+1006,1008c1002,1007
+<     # There is no difference in the wildcard or non-wildcard call to 
+<     # the full-text search [LP]
+<     $alias_only_where = "where afn.searchable_name @@ to_tsquery(?)";
+---
+>     if ($wildcard) {
+>       $alias_only_where = "where lower(afn.name) like ?";
+>     }
+>     else {
+>       $alias_only_where = "where lower(afn.name) = ?";
+>     }
+1022,1024c1021,1028
+<     # Again, with full-text there's no difference in wildcard/non-wildcard [LP]
+<     $alias_only_where = "where fs.synonym_id = s.synonym_id and\n"
+< 	             . "s.searchable_synonym_sgml @@ to_tsquery(?)";
+---
+>     if ($wildcard) {
+>       $alias_only_where  = "where fs.synonym_id = s.synonym_id and\n"
+>                     . "lower(s.synonym_sgml) like ?";
+>     } 
+>     else {
+>       $alias_only_where  = "where fs.synonym_id = s.synonym_id and\n"
+>                     . "lower(s.synonym_sgml) = ?";
+>     }
+1036,1038c1040,1045
+<     # Using full text search we only need create one WHERE clause, regardless of
+<     # the presence of any wildcards... [LP]
+<     $name_only_where = "where f.searchable_name @@ to_tsquery(?)";
+---
+>     if ($wildcard) {
+>       $name_only_where = "where lower(f.name) like ?";
+>     }
+>     else {
+>       $name_only_where = "where lower(f.name) = ?";
+>     }
+1047,1050d1053
+<   # Added at suggestion of James Ward to strip confusing/fatal whitespace,
+<   # so we trim leading and trailing whitespace before processing query [LP]
+<   $query =~ s/^[ \t\r\n]+|[ \t\r\n]$//g;
+< 
+1055,1056d1057
+<   # We need to modify the _search_name_prep function to handle wildcards, replacing
+<   # 'query_term%' and 'query_term*' with 'query_term:*', for example [LP]
+1062,1065d1062
+<   # We need to split the query on whitespaces, and replace the whitespace with &
+<   # so that we can get proper full test search on allquery terms [LP]
+<   $name = $self->_search_name_prep_spaces($name);
+< 
+1414,1423c1411,1414
+<   # For full-text search, the appropriate extension wildcard
+<   # is ':*' for prefix-matching.  There are limitations to 
+<   # full-text search in that we cannot find internal parts of
+<   # words, so wildcards can only come at the ends of phrases/
+<   # lexemes.  Internal * are converted by tsquery into & [LP]
+<   $name =~ s/_/\\_/g;             # escape underscores in name
+<   $name =~ s/(?<=\s)\*//g;        # lose prefix wildcards (word start)
+<   $name =~ s/(?<=^)\*//g;         # lose prefix wildcards (query start)
+<   $name =~ s/\*(?=$)/:\*/g;       # convert trailing * (query end) into :*
+<   $name =~ s/\*(?=\s)/:\*/g;      # convert trailing * (word end) into :*
+---
+>   $name =~ s/_/\\_/g;  # escape underscores in name
+>   $name =~ s/\%/\\%/g; # ditto for percent signs
+> 
+>   $name =~ s/\*/%/g;
+1429,1440d1419
+< # Handle spaces in search query; we need to avoid replacing 
+< # ' & ' with ' & & & ', though... [LP]
+< sub _search_name_prep_spaces {
+<     my $self = shift;
+<     my $name = shift;
+< 
+<     $name =~ s/\s&\s/ /g;   # Replace any user-defined ' & ' with spaces...
+<     $name =~ s/\s/ & /g;    # then replace all spaces with ' & '
+< 
+<     return $name;
+< }
+< 
