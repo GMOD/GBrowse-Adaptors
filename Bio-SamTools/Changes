@@ -1,3 +1,6 @@
+Version 1.20
+    * Added Bio::DB::Tam->header_read() method.
+
 Version 1.19
     * Added Bio::DB::Bam::Alignment->mate_seq_id() method.	
     * Added Bio::DB::Bam::Alignment->aux() method.	

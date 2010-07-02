@@ -207,6 +207,15 @@ tam_header_read2(packname="Bio::DB::Tam", filename)
     OUTPUT:
       RETVAL
 
+Bio::DB::Bam::Header
+tam_header_read(tam)
+    Bio::DB::Tam            tam
+    PROTOTYPE: $$
+    CODE:
+      RETVAL = sam_header_read(tam);
+    OUTPUT:
+      RETVAL
+
 int
 tam_read1(tam,header,alignment)
     Bio::DB::Tam            tam

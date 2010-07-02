@@ -1,7 +1,7 @@
 package Bio::DB::Sam;
 # $Id$
 
-our $VERSION = '1.19';
+our $VERSION = '1.20';
 
 =head1 NAME
 
@@ -934,6 +934,20 @@ files; they often have a .sam extension.
 
 Given the path to a SAM file, opens it for reading. The file can be
 compressed with gzip if desired.
+
+=item $header = $tam->header_read()
+
+Create and return a Bio::DB::Bam::Header object from the information
+contained within @SQ header lines of the Sam file. If there are no @SQ
+lines, then the header will not be useful, and you should call
+header_read2() to generate the missing information from the
+appropriate indexed Fasta file. Here is some code to illustrate the
+suggested logic:
+
+ my $header = $tam->header_read;
+ unless ($header->n_targets > 0) {
+    $header = $tam->header_read2('/path/to/file.fa.fai');
+ }
 
 =item $header = $tam->header_read2('/path/to/file.fa.fai')
 
