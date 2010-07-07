@@ -1,0 +1,80 @@
+---
+name: Bio-BigFile
+version: 1.03
+author:
+  - 'Lincoln Stein <lincoln.stein@gmail.com>'
+abstract: Manipulate Jim Kent's BigWig and BigBed index files for genomic features.
+license: perl
+resources:
+  license: http://dev.perl.org/licenses/
+requires:
+  Bio::Root::Version: 1.005009001
+  IO::String: 0
+  perl: 5.008
+build_requires:
+  ExtUtils::CBuilder: 0
+recommends:
+  LWP: 0
+  URI::URL: 0
+provides:
+  Bio::DB::BigBed:
+    file: lib/Bio/DB/BigBed.pm
+  Bio::DB::BigBed::BinIterator:
+    file: lib/Bio/DB/BigBed.pm
+  Bio::DB::BigBed::Feature:
+    file: lib/Bio/DB/BigBed.pm
+  Bio::DB::BigBed::FeatureIterator:
+    file: lib/Bio/DB/BigBed.pm
+  Bio::DB::BigBed::Summary:
+    file: lib/Bio/DB/BigBed.pm
+  Bio::DB::BigBed::SummaryIterator:
+    file: lib/Bio/DB/BigBed.pm
+  Bio::DB::BigFile:
+    file: lib/Bio/DB/BigFile.pm
+    version: 1.03
+  Bio::DB::BigFile::BinIterator:
+    file: lib/Bio/DB/BigFile/Iterators.pm
+  Bio::DB::BigFile::Constants:
+    file: lib/Bio/DB/BigFile/Constants.pm
+  Bio::DB::BigFile::EmptyIterator:
+    file: lib/Bio/DB/BigFile/Iterators.pm
+  Bio::DB::BigFile::GlobalIterator:
+    file: lib/Bio/DB/BigFile/Iterators.pm
+  Bio::DB::BigFile::IntervalIterator:
+    file: lib/Bio/DB/BigFile/Iterators.pm
+  Bio::DB::BigFile::Iterators:
+    file: lib/Bio/DB/BigFile/Iterators.pm
+  Bio::DB::BigFile::Segment:
+    file: lib/Bio/DB/BigWig.pm
+  Bio::DB::BigFile::SummaryIterator:
+    file: lib/Bio/DB/BigFile/Iterators.pm
+  Bio::DB::BigWig:
+    file: lib/Bio/DB/BigWig.pm
+  Bio::DB::BigWig::Bin:
+    file: lib/Bio/DB/BigWig.pm
+  Bio::DB::BigWig::BinIterator:
+    file: lib/Bio/DB/BigWig.pm
+  Bio::DB::BigWig::Feature:
+    file: lib/Bio/DB/BigWig.pm
+  Bio::DB::BigWig::IntervalIterator:
+    file: lib/Bio/DB/BigWig.pm
+  Bio::DB::BigWig::Summary:
+    file: lib/Bio/DB/BigWig.pm
+  Bio::DB::BigWig::SummaryIterator:
+    file: lib/Bio/DB/BigWig.pm
+  Bio::DB::BigWig::binStatElement:
+    file: lib/Bio/DB/BigFile.pm
+  Bio::DB::BigWig::binStats:
+    file: lib/Bio/DB/BigFile.pm
+  Bio::DB::BigWigSet:
+    file: lib/Bio/DB/BigWigSet.pm
+  Bio::DB::BigWigSet::Iterator:
+    file: lib/Bio/DB/BigWigSet.pm
+  Bio::DB::BigWigSet::Segment:
+    file: lib/Bio/DB/BigWigSet.pm
+  Bio::DB::bbiFile:
+    file: lib/Bio/DB/BigFile.pm
+generated_by: Module::Build version 0.3
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.2.html
+  version: 1.2

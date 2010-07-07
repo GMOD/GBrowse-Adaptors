@@ -499,7 +499,6 @@ sub get_feature_by_id {
 
     my ($dbid,$fid) = ($pieces[0],join(':',@pieces[1..$#pieces]));
     my $db = $self->get_bigwig($dbid) or return;
-
     my $f = $db->get_feature_by_id($fid);
     $f->set_attributes({dbid=>$dbid});
     $f;
@@ -532,7 +531,8 @@ sub _filter_ids_by_name {
     my $self = shift;
     my ($name,$ids) = @_;
     my $atts = $self->{attributes};
-    return grep {($atts->{$_}{display_name} || $atts->{$_}{name}) eq $name} @$ids;
+    my @result = grep {($atts->{$_}{display_name} || $atts->{$_}{name}) eq $name} @$ids;
+    return @result;
 }
 
 sub _filter_ids_by_attribute {
@@ -599,7 +599,7 @@ sub readdir {
 	($wigfiles,$indices) = $self->read_local_dir($dir);
     }
 
-    # create a bigwig for each file
+    # create a lazy loading bigwig for each file
     for my $file (@$wigfiles) {
 	$self->add_bigwig($file);
 	my $name  = basename($file,'.bw');
@@ -814,6 +814,24 @@ sub segment {
 					    -end   => $end);
 }
 
+sub metadata {
+    my $self = shift;
+
+    my $att = $self->{attributes};
+
+    # obscure file names
+    my @indices = sort {
+		      $att->{$a}{display_name} cmp $att->{$b}{display_name}
+		  } keys %$att;
+    my @values  = @{$att}{@indices};
+    my @ids     = (1..@values);
+
+    my %result;
+    @result{@ids} = @values;
+
+    return \%result;
+}
+
 package Bio::DB::BigWigSet::Segment;
 use base 'Bio::DB::BigWig::Summary';
 
@@ -864,7 +882,12 @@ sub next_seq {
 	    if (my $next = $i->next_seq) {
 		my $id   = $self->{current_id};
 		my $att  = $set->{attributes}{$id};
-		$next->set_attributes($att) if $att;
+		if ($att) {
+		    $next->set_attributes($att);
+		    my ($method,$source) = split(':',$att->{type}||'');
+		    $next->primary_tag($method || $att->{primary_tag}) if $method || $att->{primary_tag};
+		    $next->source_tag ($source || $att->{source}     ) if $source || $att->{source};
+		}
 		return $next;
 	    }
 	}

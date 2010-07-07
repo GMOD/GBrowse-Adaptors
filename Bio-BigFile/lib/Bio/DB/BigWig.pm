@@ -875,6 +875,7 @@ statistical_summary() method.
 
 sub binMean {
     my $score = shift;
+    return unless $score->{validCount};
     $score->{sumData}/$score->{validCount};
 }
 
@@ -1055,11 +1056,35 @@ sub statistical_summary {
 					   $bins);
 }
 
+sub gff3_string {
+    my $self = shift;
+    {
+	no warnings;
+	local *Bio::DB::BigWig::Summary::score = \&mean_score;
+	my $string  = $self->SUPER::gff3_string(@_);
+	chomp($string);
+	my $stats   = $self->statistical_summary(1000);
+	my @coverage = map {sprintf('%.4f',Bio::DB::BigWig::binMean($_))} @$stats;
+	$string .= ";coverage=".join('%2C',@coverage);
+	$string .= "\n";
+	return $string;
+    }
+}
+
 sub score {
     my $self = shift;
     my $arry = $self->statistical_summary(1);
     return $arry->[0];
 }
+
+
+sub mean_score { 
+    my $self = shift;
+    my $arry = $self->statistical_summary(1);
+    my $score = $arry->[0];
+    my $count = $score->{validCount} or return 0;
+    return sprintf('%0.4f',$score->{sumData}/$count);
+};
 
 sub get_seq_stream {
     my $self = shift;
