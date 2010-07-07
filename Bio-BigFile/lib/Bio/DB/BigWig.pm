@@ -968,7 +968,7 @@ sub seq {
 
 sub primary_id {
     my $self = shift;
-    my $id   = join (':',$self->seq_id,$self->start,$self->end,$self->SUPER::type);
+    my $id   = join (':',$self->seq_id,$self->start,$self->end,$self->type);
     if (my $dbid = $self->attributes('dbid')) {
 	return "$dbid:$id";
     } else {

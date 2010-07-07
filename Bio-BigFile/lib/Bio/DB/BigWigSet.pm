@@ -497,10 +497,11 @@ sub get_feature_by_id {
     my @pieces = split ':',$id;
     @pieces >= 4 or return;
 
-    my ($dbid,$fid) = ($pieces[0],join(':',@pieces[1..$#pieces]));
+    my ($dbid,$fid) = ($pieces[0],join(':',@pieces[1..3],$self->feature_type));
     my $db = $self->get_bigwig($dbid) or return;
     my $f = $db->get_feature_by_id($fid);
-    $f->set_attributes({dbid=>$dbid});
+    my $type = join(':',@pieces[4..$#pieces]);
+    $f->set_attributes({dbid=>$dbid,type=>$type});
     $f;
 }
 

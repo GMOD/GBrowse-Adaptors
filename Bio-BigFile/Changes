@@ -2,6 +2,8 @@ Version 1.04
 	 * Added the following methods to Bio::DB::BigWig::Summary objects: 
 	 chr_stats(),    chr_mean(),    chr_stdev(), 
 	 global_stats(), global_mean(), global_stdev().
+	 * Fixed BigWigSet->get_feature_by_id() to return correct class of
+	   object (e.g. summary).
 
 Version 1.03
 	* Added a get_seq_stream() method to BigWig summary objects so that users can
