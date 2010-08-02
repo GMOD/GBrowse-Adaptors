@@ -90,6 +90,7 @@ use Bio::DasI;
 use Bio::PrimarySeq;
 use Bio::DB::GFF::Typename;
 use DBI;
+use Bio::SeqFeature::Lite;
 use Carp qw(longmess);
 use vars qw($VERSION @ISA);
 
@@ -322,6 +323,90 @@ sub new {
 
   return $self;
 }
+
+=head2 feature_summary
+
+=over
+
+=item Usage
+
+  $obj->feature_summary()
+
+=item Function
+
+This function is based on Bio::DB::SeqFeature::Store->feature_summary.  
+The text that follows comes from it's documtation:
+
+This method is used to get coverage density information across a
+region of interest. You provide it with a region of interest, optional
+a list of feature types, and a count of the number of bins over which
+you want to calculate the coverage density. An object is returned
+corresponding to the requested region. It contains a tag called
+"coverage" that will return an array ref of "bins" length. Each
+element of the array describes the number of features that overlap the
+bin at this postion.
+
+Note that this method uses an approximate algorithm that is only
+accurate to 500 bp, so when dealing with bins that are smaller than
+1000 bp, you may see some shifting of counts between adjacent bins.
+
+Although an -iterator option is provided, the method only ever returns
+a single feature, so this is fairly useless.
+
+=item Returns
+
+A single feature containing summary data, or an interator containing
+that one feature.
+
+=item Arguments
+
+  -seq_id        Sequence ID for the region
+  -start         Start of region
+  -end           End of region
+  -type/-types   Feature type of interest or array ref of types
+  -bins          Number of bins across region. Defaults to 1000.
+  -iterator      Return an iterator across the region
+
+=back
+
+=cut
+
+sub feature_summary {
+    my $self = shift;
+    my ($seq_name,$seq_id,$ref,$start,$stop,$end,$types,$type,$primary_tag,$bins,$iterator) =
+        $self->_rearrange(['SEQID','SEQ_ID','REF','START','STOP','END',
+                   'TYPES','TYPE','PRIMARY_TAG',
+                   'BINS',
+                   'ITERATOR',
+                  ],@_);
+
+    $seq_name ||=$seq_id ||=$ref;
+    $end      ||=$end;
+    $types    ||=$type   ||=$primary_tag;
+
+    my ($coverage,$tag) = $self->coverage_array(-seqid=> $seq_name,
+                                                -start=> $start,
+                                                -end  => $end,
+                                                -type => $types,
+                                                -bins => $bins) or return;
+    my $score = 0;
+    for (@$coverage) { $score += $_ }
+    $score /= @$coverage;
+
+    my $feature = Bio::SeqFeature::Lite->new(-seq_id => $seq_name,
+                                             -start  => $start,
+                                             -end    => $end,
+                                             -type   => $tag,
+                                             -score  => $score,
+                                             -attributes =>
+                                             { coverage => [$coverage] });
+
+    my @features = ($feature);
+    return $iterator
+           ? Bio::DB::Das::ChadoIterator->new(\@features) 
+           : $feature;
+}
+
 
 =head2 coverage_array
 
