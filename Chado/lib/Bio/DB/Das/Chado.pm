@@ -367,23 +367,14 @@ sub coverage_array {
     $seq_name ||= $seq_id ||= $ref;
     $types    ||= $type   ||= $primary_tag;
 
-    warn $seq_name;
-    warn $types;
-
     my $summary_bin_size = 1000;
     $bins  ||= 1000;
     $start ||= 1;
     my $segment = $self->segment(-name =>$seq_name) or $self->throw("unknown seq_id $seq_name");
     $end   ||= $segment->end;
   
-    warn $segment;
-    warn $segment->name;
-    warn $segment->feature_id; 
-
     my $binsize = ($end-$start+1)/$bins;
     my $seqid   = $segment->feature_id;
-
-    warn $seqid;
 
     return [] unless $seqid;
 
@@ -394,24 +385,41 @@ sub coverage_array {
     my $interval_stats    = 'gff_interval_stats';
    
     # pick up the type ids
-    my ($where,@a) = $self->_types_sql($types);
 
     my %bins;
     my $sql = <<END;
-SELECT typeid,bin,cum_count
+SELECT bin,cum_count
   FROM $interval_stats
-  WHERE $where AND srcfeature_id =?
+  WHERE typeid=? AND bin >=? AND srcfeature_id =?
+  LIMIT 1
 END
 ;
-    my $sth = $self->dbh->prepare($sql);
-    $sth->execute(@a,$seqid);
 
-    while (my $hashref = $sth->fetchrow_hashref) {
-        my $typeid    = $$hashref{typeid};
-        my $bin       = $$hashref{bin};
-        my $cum_count = $$hashref{cum_count};
-        push @{$bins{$typeid}},[$bin,$cum_count];
+    my $sth = $self->dbh->prepare($sql);
+
+    my @t;
+    if (ref $types eq 'ARRAY') {
+        @t = @$types;
     }
+    else {
+        @t = ($types);
+    }
+
+    eval {
+        for my $typeid (@t) {
+            my $typestr = $self->_types_sql($typeid); 
+
+            for (my $i=0;$i<@sum_bin_array;$i++) {
+
+                my @args = ($typestr,$sum_bin_array[$i],$seqid);
+
+                $sth->execute(@args) or $self->throw($sth->errstr);
+                my ($bin,$cum_count) = $sth->fetchrow_array;
+                push @{$bins{$typeid}},[$bin,$cum_count];
+            }
+        }
+    };
+
 
     return unless %bins;
 
@@ -442,14 +450,8 @@ END
 
 sub _types_sql {
   my $self  = shift;
-  my $types = shift;
-  my ($primary_tag,$source_tag);
-
-  my @types = ref $types eq 'ARRAY' ?  @$types : $types;
-
-  my (@matches,@args);
-
-  for my $type (@types) {
+  my $type = shift;
+  my ($primary_tag,$source_tag,$typestr);
 
     if (ref $type && $type->isa('Bio::DB::GFF::Typename')) {
       $primary_tag = $type->method;
@@ -460,21 +462,16 @@ sub _types_sql {
 
     if (defined $source_tag) {
       if (length($primary_tag)) {
-        push @matches,"typeid=?";
-        push @args,"$primary_tag:$source_tag";
+        $typestr =  "$primary_tag:$source_tag";
       }
       else {
-        push @matches,"typeid LIKE ?";
-        push @args,"%:$source_tag";
+        $typestr =  "%:$source_tag";
       }
     } else {
-      push @matches,"typeid LIKE ?";
-      push @args,"$primary_tag:%";
+      $typestr = "$primary_tag:%";
     }
-  }
-  my $matches = join ' OR ',@matches;
 
-  return ($matches,@args);
+  return ($typestr);
 }
 
 
