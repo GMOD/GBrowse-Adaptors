@@ -98,7 +98,7 @@ use Bio::DB::GFF::Typename;
 use Data::Dumper;
 #dgg;not working# use Bio::Species;
 
-use constant DEBUG => 0;
+use constant DEBUG => 1;
 
 use vars qw(@ISA $VERSION);
 @ISA = qw(Bio::Root::Root Bio::SeqI Bio::Das::SegmentI Bio::DB::Das::Chado);
@@ -332,6 +332,7 @@ sub new {
 
             warn "base_start:$base_start, stop:$stop, length:$length" if DEBUG;
 
+            $self->feature_id($landmark_feature_id);
             $self->start($base_start);
             $self->end($stop);
             $self->{'length'} = $length;
@@ -425,6 +426,32 @@ sub feature_id {
   my $self = shift;
 
   return $self->{'feature_id'} = shift if @_;
+  return $self->{'feature_id'} if $self->{'feature_id'};
+
+  my $dbh = $self->factory->dbh;
+
+  warn $self->name;
+  warn $self->type;
+  $self->factory->name2term($self->type);
+
+  my $name    = $self->name;
+  my $org_id  = $self->factory->organism_id;
+  my $type_id = $self->factory->name2term($self->type); 
+
+  my $query = "SELECT feature_id FROM feature WHERE (name = ? OR uniquename = ?)
+                  AND type_id = ? ";
+
+  my @args = ($name,$name,$type_id);
+  if ($org_id) {
+      $query .= " AND organism_id = ?";
+      push @args, $org_id;
+  }
+  my $sth = $dbh->prepare($query);
+  $sth->execute(@args);
+  return if $sth->rows > 1;
+  
+  my ($feature_id) = $sth->fetchrow_array;
+  $self->{'feature_id'} = $feature_id;
   return $self->{'feature_id'};
 }
 
