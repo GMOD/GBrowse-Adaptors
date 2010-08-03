@@ -98,7 +98,7 @@ use Bio::DB::GFF::Typename;
 use Data::Dumper;
 #dgg;not working# use Bio::Species;
 
-use constant DEBUG => 1;
+use constant DEBUG => 0;
 
 use vars qw(@ISA $VERSION);
 @ISA = qw(Bio::Root::Root Bio::SeqI Bio::Das::SegmentI Bio::DB::Das::Chado);

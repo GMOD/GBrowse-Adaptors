@@ -94,6 +94,8 @@ use Bio::SeqFeature::Lite;
 use Carp qw(longmess);
 use vars qw($VERSION @ISA);
 
+use Data::Dumper;
+
 use constant SEGCLASS => 'Bio::DB::Das::Chado::Segment';
 use constant MAP_REFERENCE_TYPE => 'MapReferenceType'; #dgg
 use constant DEBUG => 0;
@@ -445,12 +447,13 @@ Bio::DB::SeqFeature::Store::DBI::mysql
 
 sub coverage_array {
     my $self = shift;
-    my ($seq_name,$seq_id,$ref,$start,$end,$types,$type,$primary_tag,$bins) =
+    my ($seq_name,$seq_id,$ref,$start,$end,$stop,$types,$type,$primary_tag,$bins) =
         $self->_rearrange(['SEQID','SEQ_ID','REF','START','STOP','END',
                    'TYPES','TYPE','PRIMARY_TAG','BINS'],@_);
 
     $seq_name ||= $seq_id ||= $ref;
     $types    ||= $type   ||= $primary_tag;
+    $end      ||= $stop;
 
     my $summary_bin_size = 1000;
     $bins  ||= 1000;
@@ -528,7 +531,6 @@ END
     }
 
     my $report_tag = join(",",@tags);
-
     return wantarray ? (\@merged_bins,$report_tag) : \@merged_bins;
 }
 

@@ -51,3 +51,5 @@ Revision history for Perl module Bio::DB::Das::Chado
     - Added a -fulltext option for using full text searching in postgres 8.4
       or better.  See perldoc Bio::DB::Das::Chado and gmod_chado_fts_prep.pl
       for more info.
+    - Added feature_summary and coverage_array methods to Chado.pm to support
+      the feature summary functionality of GBrowse2.
