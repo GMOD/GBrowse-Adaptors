@@ -138,10 +138,10 @@ CREATE OR REPLACE FUNCTION populate_gff_interval_stats() RETURNS void AS $$
 
     FOR resrow IN SELECT cvterm.name ||':'|| dbxref.accession as typeid,
                          fl.srcfeature_id, fl.fmin, fl.fmax
-        FROM featureloc fl join feature f using (feature_id)
-         join cvterm on (f.type_id = cvterm.cvterm_id)
-         join feature_dbxref fd on (f.feature_id = fd.feature_id)
-         join dbxref on (fd.dbxref_id = dbxref.dbxref_id and dbxref.db_id = 2)
+        FROM featureloc fl left join feature f using (feature_id)
+         left join cvterm on (f.type_id = cvterm.cvterm_id)
+         left join feature_dbxref fd on (f.feature_id = fd.feature_id)
+         left join dbxref on (fd.dbxref_id = dbxref.dbxref_id and dbxref.db_id = 2)
         ORDER BY typeid, fl.srcfeature_id, fl.fmin LOOP
 
         ibin = resrow.fmin/binsize;
