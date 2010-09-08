@@ -72,7 +72,8 @@ CREATE OR REPLACE FUNCTION gff_load_bins (varchar, int, int) RETURNS void AS $$
   BEGIN
     cumcount = 0;
 
-    FOR result IN SELECT * FROM gff_interval_stats WHERE typeid = current_type
+    FOR result IN SELECT * FROM gff_interval_stats WHERE typeid is not null
+                                                   AND typeid = current_type
                                                    AND srcfeature_id = current_srcf
                                                    AND bin <= current_bin
                                                    order by bin LOOP
@@ -190,11 +191,11 @@ END
 ;
     #check to see if the functions exist already
     #if it does, don't do anything
-    my @func_exists = $dbh->selectrow_array("SELECT * FROM pg_proc WHERE proname
- = 'populate_gff_interval_stats'");
-    if (!scalar(@func_exists)) {
+#    my @func_exists = $dbh->selectrow_array("SELECT * FROM pg_proc WHERE proname
+# = 'populate_gff_interval_stats'");
+#    if (!scalar(@func_exists)) {
         $dbh->do($load_bins) or die $dbh->errstr;
         $dbh->do($populate_gff_interval_stats) or die $dbh->errstr;
-    }
+#    }
     return;
 }
