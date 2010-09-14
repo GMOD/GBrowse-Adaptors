@@ -99,7 +99,8 @@ CREATE OR REPLACE FUNCTION gff_load_bins (varchar, int) RETURNS void AS $$
   BEGIN
     cumcount = 0;
 
-    FOR result IN SELECT * FROM gff_interval_stats WHERE typeid = current_type
+    FOR result IN SELECT * FROM gff_interval_stats WHERE typeid is not null
+                                                   AND typeid = current_type
                                                    AND srcfeature_id = current_srcf
                                                    order by bin LOOP
 
@@ -174,7 +175,7 @@ CREATE OR REPLACE FUNCTION populate_gff_interval_stats() RETURNS void AS $$
                     WHERE bin = i
                       AND srcfeature_id = resrow.srcfeature_id
                       AND typeid = resrow.typeid;
-            ELSE
+            ELSEIF (resrow.typeid IS NOT NULL) THEN
                 INSERT INTO gff_interval_stats (typeid,srcfeature_id,bin,cum_count)
                     VALUES (resrow.typeid,resrow.srcfeature_id,i,1);
             END IF;
