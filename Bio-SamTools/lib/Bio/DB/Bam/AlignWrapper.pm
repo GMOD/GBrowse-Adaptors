@@ -87,7 +87,7 @@ sub score {shift->{align}->qual}
 sub can {
     my $self = shift;
     return 1 if $self->SUPER::can(@_);
-    return $self->{align}->can(@_);
+    return ref $self && $self->{align}->can(@_);
 }
 
 sub add_segment {
