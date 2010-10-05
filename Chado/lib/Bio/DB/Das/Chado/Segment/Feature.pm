@@ -560,7 +560,8 @@ sub has_tag {
 
   Title   : seq_id
   Usage   : $obj->seq_id($newval)
-  Function: ???
+  Function: Set or get the name of the reference sequence that the feature 
+            resides on.
   Returns : value of seq_id (a scalar)
   Args    : on set, new value (a scalar or undef, optional)
 
@@ -571,7 +572,23 @@ sub seq_id {
   my $self = shift;
 
   return $self->{'seq_id'} = shift if @_;
-  return $self->{'seq_id'};
+  return $self->{'seq_id'} if defined $self->{'seq_id'};
+
+  #OK, no seq_id found, we'll try to find one.
+
+  my $feature_id = $self->feature_id;
+  return unless $feature_id;
+
+  my $query =<<END
+  SELECT COALESCE(f.name,f.uniquename) AS seq_id
+  FROM feature f join featureloc fl ON (f.feature_id = fl.srcfeature_id) 
+  WHERE fl.feature_id = $feature_id AND fl.rank = 0
+END
+;
+
+  my ($seq_id) = $self->factory->dbh->selectrow_array($query);
+
+  return $self->{'seq_id'} = $seq_id;
 }
 
 ######################################################################
