@@ -1894,6 +1894,30 @@ sub species {
   return $self->{'species'}= $spp;
 }
 
+
+=head2 primary_seq
+
+  Title   : primary_seq
+  Usage   : $s->primary_seq()
+  Function: Get a Bio::PrimarySeqI compliant object
+  Returns : Bio::PrimarySeqI
+  Args    : none
+
+=cut
+
+sub primary_seq {
+    my $self = shift;
+
+    return Bio::PrimarySeq->new(
+        -seq              => $self->seq->seq,
+        -display_id       => $self->display_id,
+        -accession_number => $self->accession_number,
+        -primary_id       => $self->primary_id,
+        -desc             => $self->desc,
+    );
+}
+
+
 =head2 get_feature_stream
 
   Title   : get_feature_stream
