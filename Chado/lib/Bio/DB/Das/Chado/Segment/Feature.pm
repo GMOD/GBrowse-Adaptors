@@ -479,6 +479,7 @@ sub gff_string {
   $sth->execute($feature_id);
 
   while (my $hashref = $sth->fetchrow_hashref()) {
+      next unless $attribute;
       my $attribute = uri_escape($$hashref{'attribute'});
       $string .= "$$hashref{'type'}=$attribute;";
   } 
