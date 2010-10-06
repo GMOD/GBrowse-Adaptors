@@ -468,6 +468,7 @@ sub get_tagset_values {
 
 sub gff_string {
   my $self = shift;
+  my $recurse = shift;
   my $feature_id=$self->feature_id; 
 
   my $gff_init_query = "SELECT ref,source,type,fstart,fend,score,strand,phase FROM gff3view WHERE feature_id=$feature_id"; 
@@ -483,6 +484,13 @@ sub gff_string {
       next unless $attribute;
       $string .= "$$hashref{'type'}=$attribute;";
   } 
+
+  if ($recurse) {
+      foreach($self->sub_SeqFeature) {
+          $string .= "\n";
+          $string .= $_->gff_string(1);
+      }
+  }
 
   return $string;
 }
