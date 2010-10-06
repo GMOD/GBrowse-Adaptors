@@ -468,49 +468,22 @@ sub get_tagset_values {
 
 sub gff_string {
   my $self = shift;
-  my ($recurse,$parent) = @_;
-  my ($start,$stop) = ($self->start,$self->stop);
+  my $feature_id=$self->feature_id; 
 
-  # the defined() tests prevent uninitialized variable warnings, when dealing with clone objects
-  # whose endpoints may be undefined
-  ($start,$stop) = ($stop,$start) if defined($start) && defined($stop) && $start > $stop;
+  my $gff_init_query = "SELECT ref,source,type,fstart,fend,score,strand,phase FROM gff3view WHERE feature_id=$feature_id"; 
+  my @row_ary = $self->factory->dbh->selectrow_array($gff_init_query);
+  my $string = join("\t",@row_ary)."\t";
 
-  my $strand = ('-','.','+')[$self->strand+1];
-  my $ref = $self->refseq;
-  my $n   = ref($ref) ? $ref->name : $ref;
-  my $phase = $self->phase;
-  $phase = '.' unless defined $phase;
+  my $gff_atts_query = "SELECT type,attribute from gff3atts where feature_id=?";
+  my $sth = $self->factory->dbh->prepare($gff_atts_query);
+  $sth->execute($feature_id);
 
-  my ($class,$name) = ('','');
-  my @group;
-  if (my $g = $self->group) {
-    $class = $g->can('class') && $g->class ? $g->class : '';
-    $name  = $g->can('name')  && $g->name  ? $g->name  : '';
-    $name  = "$class:$name" if length($class) and length($name);
-    push @group,[ID =>  $name] if !defined($parent) || $name ne $parent;
-  }
+  while (my $hashref = $sth->fetchrow_hashref()) {
+      my $attribute = escape($$hashref{'attribute'});
+      $string .= "$$hashref{'type'}=$attribute;";
+  } 
 
-  push @group,[Parent => $parent] if defined $parent && $parent ne '';
-
-  if (my $t = $self->target) {
-    $strand = '-' if $t->stop < $t->start;
-    push @group, $self->flatten_target($t,3);
-  }
-
-  my @attributes = $self->attributes;
-  while (@attributes) {
-    push @group,[shift(@attributes),shift(@attributes)]
-  }
-  my $group_field = join ';',map {join '=',uri_escape($_->[0]),uri_escape($_->[1])} grep {$_->[0] =~ /\S/ and $_->[1] =~ /\S/} @group;
-  my $string = join("\t",$n,$self->source||'.',$self->method||'.',$start||'.',$stop||'.',
-                    $self->score||'.',$strand||'.',$phase||'.',$group_field);
-  $string .= "\n";
-  if ($recurse) {
-    foreach ($self->sub_SeqFeature) {
-      $string .= $_->gff_string(1,$name);
-    }
-  }
-  $string;
+  return $string;
 }
 
 =head2 has_tag()
