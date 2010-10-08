@@ -7,7 +7,7 @@ use strict;
 use ExtUtils::MakeMaker;
 use File::Temp qw(tempfile);
 use FindBin '$Bin';
-use constant TEST_COUNT => 104;
+use constant TEST_COUNT => 104 + 8; # malcolm_cook@stowers.org added spliced alignment tests
 
 use lib "$Bin/../lib","$Bin/../blib/lib","$Bin/../blib/arch";
 
@@ -24,6 +24,44 @@ BEGIN {
 }
 
 use Bio::DB::Sam;
+
+{
+  ## Following tests added by malcolm_cook@stowers.org while
+  ## diagnosing, patching "incomplete cigar/split alignments
+  ## processing of multi-gaps"
+  ## (https://sourceforge.net/tracker/?func=detail&aid=3083769&group_id=27707&atid=391291)
+  my $bamfile = "$Bin/data/dm3_3R_4766911_4767130.sam.sorted.bam";
+  my $sam     = Bio::DB::Sam->new( -bam => $bamfile, 
+				   -split_splices => 1
+				 );
+  ok($sam);
+  ok($sam->split_splices);
+  my @alignments = $sam->get_features_by_location("3R");
+  ok (75,@alignments,"count of alignments in $bamfile");
+  my @e3 = grep {my $c = $_->cigar_str; $c =~ /^\d+M124N3M91N\d+M$/} @alignments;
+  ok (9, @e3,	"count of spliced alignments which 'take' the 3bp exon according to CIGAR string");
+  my @e3_parts=map {[$_->get_SeqFeatures]} @e3;
+  ok($#e3,$#e3_parts,"all have split splices");
+  ok((grep {grep {$_->start == 4767036
+		    && $_->end == 4767038
+		      && $_->hit->seq eq "GCT"
+		    } @$_} @e3_parts),@e3_parts,
+     "split alignments harboring the 3bp exon");
+  ok((grep {grep {$_->end == 4766911 &&
+		    do {my $h = $_->hit->seq;
+			$h =~ m/GCT$/;
+		      }} @$_} @e3_parts),@e3_parts,
+     "split alignments having a part (exon) that ends at 4766911 (the donor of the upstream exon)" );
+  ok((grep {grep {$_->start == 4767130 &&
+		    do {my $h = $_->hit->seq;
+			$h =~ m/^TCTTC/;
+		      }} @$_} @e3_parts), @e3_parts,
+     # This is the test that fails without the patch that motivated
+     # these tests.  Prior to patch, 4767006 was the incorrectly computed value
+     # for the start of the downstream exon, due to incorrect cigar processing when
+     # an alignment spanned multiple introns.
+     "split alignments having a part (exon) that starts at 4767130 (the acceptor of the downstream exon)" );
+}
 
 # low level tests (defined in lib/Bio/DB/Sam.xs) 
 {
@@ -373,3 +411,6 @@ sub reversec {
     $dna    =~ tr/gatcGATC/ctagCTAG/;
     return scalar reverse $dna;
 }
+
+
+

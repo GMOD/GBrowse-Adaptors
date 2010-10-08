@@ -150,7 +150,7 @@ sub split_splices {
 	    $partial_cigar .= "$operation$count";
 	}
 	$end  += $count if $operation =~ /^[MDSHP]/i;
-	$skip  = $count if $operation eq 'N';
+	$skip += $count if $operation eq 'N';
     }
     return @results;
 }
