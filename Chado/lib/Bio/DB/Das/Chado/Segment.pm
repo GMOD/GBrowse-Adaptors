@@ -984,7 +984,7 @@ sub features {
 
     # set type variable 
 
-    $sql_types = '';
+    #$sql_types = '';
 
     my $valid_type = undef;
     if ($types && scalar @$types != 0) {
@@ -1120,7 +1120,10 @@ sub features {
     $where_part  .= " and $sql_types " 
          if defined ($sql_types);
     $where_part  .= " and fl.srcfeature_id = $srcfeature_id " 
-         if defined($srcfeature_id);
+         if (defined($srcfeature_id) and 
+            !$factory->srcfeatureslice and 
+            !(defined $interbase_start) and 
+            !(defined $rend));
   }
 
   #the ref $self check had to be added here to make gbrowse_details work
