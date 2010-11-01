@@ -1,3 +1,6 @@
+Version 1.23
+   * added missing files needed for the multi-gaps test introduced in 1.22.
+ 
 Version 1.22
 
     * fix/test for 'incomplete cigar/split alignments processing of

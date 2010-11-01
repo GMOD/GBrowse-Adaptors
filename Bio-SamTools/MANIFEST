@@ -21,6 +21,9 @@ META.yml
 README
 t/01sam.t
 t/data/00README.txt
+t/data/dm3_3R_4766911_4767130.sam
+t/data/dm3_3R_4766911_4767130.sam.bam
+t/data/dm3_3R_4766911_4767130.sam.sorted.bam
 t/data/ex1.bam
 t/data/ex1.fa
 t/data/ex1.sam.gz
