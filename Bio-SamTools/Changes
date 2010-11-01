@@ -1,4 +1,4 @@
-Version ????
+Version 1.22
 
     * fix/test for 'incomplete cigar/split alignments processing of
       multi-gaps' (https://sourceforge.net/tracker/?func=detail&aid=3083769&group_id=27707&atid=391291)"

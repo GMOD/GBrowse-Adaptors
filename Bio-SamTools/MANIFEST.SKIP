@@ -70,3 +70,4 @@ tar\.gz$
 
 \.bai
 \.fai
+^MYMETA.yml$
