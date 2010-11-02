@@ -32,7 +32,8 @@ use Bio::DB::Sam;
   ## (https://sourceforge.net/tracker/?func=detail&aid=3083769&group_id=27707&atid=391291)
   my $bamfile = "$Bin/data/dm3_3R_4766911_4767130.sam.sorted.bam";
   my $sam     = Bio::DB::Sam->new( -bam => $bamfile, 
-				   -split_splices => 1
+				   -split_splices => 1,
+				-autoindex => 1,
 				 );
   ok($sam);
   ok($sam->split_splices);
