@@ -1,5 +1,5 @@
 The files dm3_3R_4766911_4767130.* are a spliced alignments from an
-RNASeq experiment (4bp Illumina single end) measuring alternative
+RNASeq experiment (40bp Illumina single end) measuring alternative
 splicing in fly.  They align with chromosome 3R (genome build: dm3)
 spanning a region holding a small (3nt) exon on the gene 'skap'
 (CG11963).  Some of the spliced alignments join three exons, and cross
