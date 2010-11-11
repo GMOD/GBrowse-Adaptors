@@ -1638,7 +1638,6 @@ sub get_features_by_name { shift->get_feature_by_name(@_) }
 sub get_feature_by_id {
     my $self = shift;
     my $id   = shift;
-    warn "get feature by id $id";
     my ($name,$tid,$start,$end,$strand) = map {s/%3B/;/ig;$_} split ';',$id;
     return unless $name && defined $tid;
     my $seqid = $self->target_name($tid);
