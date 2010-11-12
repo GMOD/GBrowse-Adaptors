@@ -1,21 +1,17 @@
 ---
-name: Bio-BigFile
-version: 1.03
+abstract: "Manipulate Jim Kent's BigWig and BigBed index files for genomic features."
 author:
   - 'Lincoln Stein <lincoln.stein@gmail.com>'
-abstract: Manipulate Jim Kent's BigWig and BigBed index files for genomic features.
-license: perl
-resources:
-  license: http://dev.perl.org/licenses/
-requires:
-  Bio::Root::Version: 1.005009001
-  IO::String: 0
-  perl: 5.008
 build_requires:
   ExtUtils::CBuilder: 0
-recommends:
-  LWP: 0
-  URI::URL: 0
+configure_requires:
+  Module::Build: 0.36
+generated_by: 'Module::Build version 0.3603'
+license: perl
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: 1.4
+name: Bio-BigFile
 provides:
   Bio::DB::BigBed:
     file: lib/Bio/DB/BigBed.pm
@@ -31,7 +27,7 @@ provides:
     file: lib/Bio/DB/BigBed.pm
   Bio::DB::BigFile:
     file: lib/Bio/DB/BigFile.pm
-    version: 1.03
+    version: 1.04
   Bio::DB::BigFile::BinIterator:
     file: lib/Bio/DB/BigFile/Iterators.pm
   Bio::DB::BigFile::Constants:
@@ -74,7 +70,13 @@ provides:
     file: lib/Bio/DB/BigWigSet.pm
   Bio::DB::bbiFile:
     file: lib/Bio/DB/BigFile.pm
-generated_by: Module::Build version 0.3
-meta-spec:
-  url: http://module-build.sourceforge.net/META-spec-v1.2.html
-  version: 1.2
+recommends:
+  LWP: 0
+  URI::URL: 0
+requires:
+  Bio::Root::Version: 1.005009001
+  IO::String: 0
+  perl: 5.008
+resources:
+  license: http://dev.perl.org/licenses/
+version: 1.04
