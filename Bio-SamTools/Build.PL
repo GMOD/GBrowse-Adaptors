@@ -47,8 +47,12 @@ sub find_sam {
     if (my $samtools = $ENV{SAMTOOLS}) {
 	$sam_include = $samtools
 	    if -e "$samtools/$HeaderFile";
+	$sam_include = "$samtools/include"
+	    if -e "$samtools/include/$HeaderFile";
 	$sam_lib     = $samtools
 	    if -e "$samtools/$LibFile";
+	$sam_lib     = "$samtools/lib"
+	    if -e "$samtools/lib/$LibFile";
     }
 
     my @search_path = qw(/ /usr /usr/share /usr/local);
@@ -78,8 +82,12 @@ sub find_sam {
 	    last unless $path;
 	    $sam_include = $path
 		if -e "$path/$HeaderFile";
+	    $sam_include = "$path/include"
+		if -e "$path/include/$HeaderFile";
 	    $sam_lib = $path
 		if -e "$path/$LibFile";
+	    $sam_lib = "$path/lib"
+		if -e "$path/lib/$LibFile";
 	    $found = $sam_include && $sam_lib;
 	    unless ($found) {
 		print STDOUT "That didn't seem to be right.\n";
