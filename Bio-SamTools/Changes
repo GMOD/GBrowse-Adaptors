@@ -1,4 +1,4 @@
-Version ???
+Version 1.25
    * Removed debugging warning in get_feature_by_id().
    * Identify version-specific samtools installs where the prefix is xyz and the
      include/lib files are in xyz/include and xyz/lib (Contributed by John Marshall).
