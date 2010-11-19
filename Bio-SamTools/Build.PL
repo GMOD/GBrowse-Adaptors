@@ -73,7 +73,7 @@ sub find_sam {
 
 
     unless ($sam_include && $sam_lib) {
-	print STDOUT "This module requires samtools 0.1.4 or higher (samtools.sourceforge.net).\n";
+	print STDOUT "This module requires samtools 0.1.9 or higher (samtools.sourceforge.net).\n";
 	my $prompt = "Please enter the location of the bam.h and compiled libbam.a files: ";
 	my $found;
 	while (!$found) {

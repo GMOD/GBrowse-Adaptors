@@ -1068,6 +1068,14 @@ pl_is_del(pl)
     RETVAL
 
 int
+pl_is_refskip(pl)
+  Bio::DB::Bam::Pileup pl
+  CODE:
+    RETVAL = pl->is_refskip;
+  OUTPUT:
+    RETVAL
+
+int
 pl_is_head(pl)
   Bio::DB::Bam::Pileup pl
   CODE:

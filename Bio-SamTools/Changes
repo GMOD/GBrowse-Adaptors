@@ -1,3 +1,6 @@
+Version 1.26
+   * Added support for samtools >= 0.1.9 is_refskip field in pileups.
+
 Version 1.25
    * Removed debugging warning in get_feature_by_id().
    * Identify version-specific samtools installs where the prefix is xyz and the

@@ -1,7 +1,7 @@
 package Bio::DB::Sam;
 # $Id$
 
-our $VERSION = '1.25';
+our $VERSION = '1.26';
 
 =head1 NAME
 
@@ -861,6 +861,8 @@ methods:
 
  $pileup->is_del True if the base on the padded read is a deletion.
 
+ $pileup->is_refskip True if the base on the padded read is a gap relative to the reference (denoted as < or > in the pileup)
+
  $pileup->is_head Undocumented field in the bam.h header file.
 
  $pileup->is_tail Undocumented field in the bam.h header file.
@@ -1296,6 +1298,10 @@ insertion (relative to the reference), negative for a deletion
 =item $flag = $pileup->is_del
 
 True if the base on the padded read is a deletion.
+
+=item $flag = $pileup->is_refskip
+
+True if the base on the padded read is a gap relative to the reference (denoted as < or > in the pileup)
 
 =item $flag = $pileup->is_head
 
@@ -2162,7 +2168,7 @@ are a non-reference base.
         my ($total,$different);
 	for my $pileup (@$p) {
 	    my $b     = $pileup->alignment;
-            next if $pileup->indel;  # don't deal with these ;-)
+            next if $pileup->indel or $pileup->is_refskip;      # don't deal with these ;-)
 
             my $qbase  = substr($b->qseq,$pileup->qpos,1);
             next if $qbase =~ /[nN]/;
