@@ -125,9 +125,6 @@ sub split_splices {
 							  -seq_id => $self->seq_id,
 							  -strand => +1,
 							  -seq    => [$self,$start+$skip,$end-$start], # deferred rendering
-#							  -seq    => substr($self->dna,
-#									    $start+$skip,
-#									    $end-$start),
 							  -type   => $self->type);
 
 	    # in case sequence is missing?
@@ -158,6 +155,18 @@ sub split_splices {
 sub expand_flags {
     shift->{sam}->expand_flags(@_);
 }
+
+sub query {
+    my $self = shift;
+    return Bio::DB::Bam::Query->new($self);
+}
+
+sub target {
+    my $self = shift;
+    return Bio::DB::Bam::Target->new($self);
+}
+
+sub hit { shift->target(@_); }
 
 sub seq_id {
     my $self = shift;

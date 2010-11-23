@@ -2,7 +2,7 @@ package Bio::DB::Sam::SamToGBrowse;
 use Carp 'croak';
 use File::Spec;
 use File::Basename 'basename';
-use File::Temp;
+use File::Temp 'tempfile';
 
 use constant FORCE_TEMPFILES=>0;
 use constant DUMP_INTERVAL => 1_000_000;
@@ -36,8 +36,10 @@ sub msg {
 }
 sub err {
     my $self = shift;
+    $self->{error} = "@_";
     print STDERR @_,"\n";
 }
+sub last_error { shift->{error} }
 sub files {
     my $self = shift;
     my @extensions = @_; # e.g. '.sam','.sam.gz';
@@ -196,16 +198,22 @@ sub dir_path {
     return File::Spec->catfile($self->dir,$filename);
 }
 sub bam_to_wig {
-    my $self  = shift;
+    my $self        = shift;
+    my $chrom_sizes = shift;
+
+    warn "CHROM_SIZES = $chrom_sizes";
+
     $self->msg('Searching for .bai files');
     my @files = map {$self->dir_path(basename($_,'.bai'))} $self->files('.bai');
     $self->msg("\t",'Found ', @files+0,' files');
-    $self->wiggle_one_bam($_) foreach @files;
+    $self->wiggle_one_bam($_,$chrom_sizes) foreach @files;
 }
 
 sub wiggle_one_bam {
     my $self = shift;
-    my $bam  = shift;
+    my ($bam,$chrom_sizes)  = @_;
+
+    $chrom_sizes  ||= $self->fasta.".fai";
 
     my $base        = basename($bam,'.bam');
     my $bigwig      = $self->dir_path($base.'.bw');
@@ -214,17 +222,16 @@ sub wiggle_one_bam {
 	return;
     }
 
-
     if (!$self->bedgraph_path && -r '/dev/stdin' && -c _) {  # only works with linux, I think
-	$self->_wiggle_one_bam_pipe($bam,$bigwig);
+	$self->_wiggle_one_bam_pipe($bam,$bigwig,$chrom_sizes);
     } else {
-	$self->_wiggle_one_bam_tempfile($bam,$bigwig);
+	$self->_wiggle_one_bam_tempfile($bam,$bigwig,$chrom_sizes);
     }
 }
 
 sub _wiggle_one_bam_pipe {
     my $self = shift;
-    my ($bam,$bigwig)  = @_;
+    my ($bam,$bigwig,$chrom_sizes)  = @_;
 
     my $pid  = open my $pipe,"|-";
     defined $pid or die "Couldn't fork: $!";
@@ -237,7 +244,6 @@ sub _wiggle_one_bam_pipe {
 
     else {   # I'm the child; my job is to create the BigWig file from /dev/stdin
 	$self->msg("Writing bigwig file");
-	my $chrom_sizes = $self->fasta.".fai";
 	$self->make_bigwig_file('/dev/stdin',$chrom_sizes,$bigwig);
 	exit 0;
     }
@@ -296,7 +302,7 @@ sub write_coverage {
 
 sub _wiggle_one_bam_tempfile {
     my $self = shift;
-    my ($bam,$bigwig) = @_;
+    my ($bam,$bigwig,$chrom_sizes) = @_;
     my $tmpfh = File::Temp->new(TEMPLATE => 'wigfileXXXXX',
 				UNLINK   => 1,
 				DIR      => $self->dir,
@@ -305,7 +311,6 @@ sub _wiggle_one_bam_tempfile {
     close $tmpfh;
 
     $self->msg("Writing bigwig file");
-    my $chrom_sizes = $self->fasta.".fai";
     $self->make_bigwig_file($tmpfh,$chrom_sizes,$bigwig);
 }
 
@@ -371,9 +376,15 @@ sub make_bigwig_file {
     my $bedpath = $self->bedgraph_path;
     if ($bedpath) {
 	$self->msg("\t",'Found bedGraphToBigWig in path. Will use it to create BigWig index.');
+	my $stderr = tempfile();
+	open SAVE,">&STDERR";
+	open STDERR,'>&',$stderr;
 	my $result = system($bedpath,$infile,$chrom_sizes,$outfile) == 0;
+	open STDERR,">&SAVE";
 	unless ($result) {
-	    $self->err("WARNING: bedGraphToBigWig exited with an error. $outfile will be removed.");
+	    seek($stderr,0,0);
+	    my $err = <$stderr>;
+	    $self->err("bedGraphToBigWig exited with an error: \"$err\". $outfile will be removed.");
 	    unlink $outfile;
 	}
     } else {

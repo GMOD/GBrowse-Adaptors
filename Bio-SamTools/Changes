@@ -1,3 +1,7 @@
+Version 1.27
+   * Partial support for SAM/BAM files in which the sequence is given as "*".
+   Works for simple matches, but not for splices.
+
 Version 1.26
    * Added support for samtools >= 0.1.9 is_refskip field in pileups.
 

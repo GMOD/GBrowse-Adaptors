@@ -40,6 +40,7 @@ typedef struct {
   int    start;
   int    end;
   double width;
+  int    reads;
   int*   bin;
 } coverage_graph;
 typedef coverage_graph *coverage_graph_ptr;
@@ -170,7 +171,8 @@ int coverage_from_pileup_fun (uint32_t tid,
   int                 bin;
 
   cgp = (coverage_graph_ptr) data;
-  if (pos >= cgp->start && pos <= cgp->end) {
+  cgp->reads += n;
+  if (n > 0 && pos >= cgp->start && pos <= cgp->end) {
     bin = (pos-cgp->start)/cgp->width;
     cgp->bin[bin] += n;
   }
@@ -996,6 +998,7 @@ CODE:
 	  the region we are sampling */
       cg.start = start;
       cg.end   = end;
+      cg.reads = 0;
       cg.width = ((double)(end-start))/bins;
       Newxz(cg.bin,bins+1,int);
 
@@ -1008,9 +1011,10 @@ CODE:
       /* now normalize to coverage/bp and convert into an array */
       array = newAV();
       av_extend(array,bins);
-      for  (i=0;i<bins;i++)
-	av_store(array,i,newSVnv(((float)cg.bin[i])/cg.width));
-
+      if (cg.reads > 0) {
+            for  (i=0;i<bins;i++)
+	    	av_store(array,i,newSVnv(((float)cg.bin[i])/cg.width));
+      }
       Safefree(cg.bin);
       RETVAL = array;
       sv_2mortal((SV*)RETVAL);  /* this fixes a documented bug in perl typemap */

@@ -19,7 +19,8 @@ aligned.
 
 sub dna {
     my $self = shift;
-    return $$self->strand > 0 ? $$self->qseq : reversec($$self->qseq);
+    my $qseq = $self->SUPER::dna;
+    return $$self->strand > 0 ? $qseq : reversec($qseq);
 }
 
 sub qscore {

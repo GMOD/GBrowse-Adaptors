@@ -187,7 +187,7 @@ The DNA string in reference sequence orientation.
 
 sub dna {
     my $self = shift;
-    return $$self->qseq;
+    return $$self->qseq || eval{$$self->dna};
 }
 
 =item $strand = $query->strand
