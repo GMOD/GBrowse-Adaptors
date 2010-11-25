@@ -1,6 +1,6 @@
 Version 1.27
-   * Partial support for SAM/BAM files in which the sequence is given as "*".
-   Works for simple matches, but not for splices.
+   *Support for SAM/BAM files in which the sequence is given as "*".
+   This will return a completely ambiguous read (NNNNNNNN) of the proper length.
 
 Version 1.26
    * Added support for samtools >= 0.1.9 is_refskip field in pileups.
