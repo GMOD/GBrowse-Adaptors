@@ -1,6 +1,7 @@
 Version 1.27
    *Support for SAM/BAM files in which the sequence is given as "*".
    This will return a completely ambiguous read (NNNNNNNN) of the proper length.
+   *SamToGBrowse functions will now work properly under a fastCGI environment.
 
 Version 1.26
    * Added support for samtools >= 0.1.9 is_refskip field in pileups.

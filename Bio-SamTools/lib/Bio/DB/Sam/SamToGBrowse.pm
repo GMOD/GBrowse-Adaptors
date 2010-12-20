@@ -2,7 +2,7 @@ package Bio::DB::Sam::SamToGBrowse;
 use Carp 'croak';
 use File::Spec;
 use File::Basename 'basename';
-use File::Temp 'tempfile';
+use File::Temp 'tempfile','tmpnam';
 
 use constant FORCE_TEMPFILES=>0;
 use constant DUMP_INTERVAL => 1_000_000;
@@ -200,9 +200,6 @@ sub dir_path {
 sub bam_to_wig {
     my $self        = shift;
     my $chrom_sizes = shift;
-
-    warn "CHROM_SIZES = $chrom_sizes";
-
     $self->msg('Searching for .bai files');
     my @files = map {$self->dir_path(basename($_,'.bai'))} $self->files('.bai');
     $self->msg("\t",'Found ', @files+0,' files');
@@ -212,6 +209,9 @@ sub bam_to_wig {
 sub wiggle_one_bam {
     my $self = shift;
     my ($bam,$chrom_sizes)  = @_;
+
+    die "$bam does not exist or is not readable"         unless -r $bam;
+    die "$chrom_sizes does not exist or is not readable" unless -r $chrom_sizes;
 
     $chrom_sizes  ||= $self->fasta.".fai";
 
@@ -311,7 +311,9 @@ sub _wiggle_one_bam_tempfile {
     close $tmpfh;
 
     $self->msg("Writing bigwig file");
+    warn "MAKING BIGWIG";
     $self->make_bigwig_file($tmpfh,$chrom_sizes,$bigwig);
+    warn "MAKING BIGWIG DONE";
 }
 
 sub make_conf {
@@ -376,17 +378,17 @@ sub make_bigwig_file {
     my $bedpath = $self->bedgraph_path;
     if ($bedpath) {
 	$self->msg("\t",'Found bedGraphToBigWig in path. Will use it to create BigWig index.');
-	my $stderr = tempfile();
-	open SAVE,">&STDERR";
-	open STDERR,'>&',$stderr;
-	my $result = system($bedpath,$infile,$chrom_sizes,$outfile) == 0;
-	open STDERR,">&SAVE";
-	unless ($result) {
-	    seek($stderr,0,0);
-	    my $err = <$stderr>;
+	# BUG: potential race condition here, but fastCGI prevents us from
+	# redirecting STDERR
+	my $error_file = tmpnam();  
+	system("$bedpath '$infile' '$chrom_sizes' '$outfile' 2>$error_file");
+	if (-s $error_file) {
+	    open (F,'<',$error_file);
+	    my $err = <F>;
 	    $self->err("bedGraphToBigWig exited with an error: \"$err\". $outfile will be removed.");
 	    unlink $outfile;
 	}
+	unlink $error_file;
     } else {
 	$self->err('WARNING: No bedGraphToBigWig found in path. Will use memory-intensive library function to create BigWig index.');
 	Bio::DB::BigFile->createBigWig($infile,$chrom_sizes,$outfile);
