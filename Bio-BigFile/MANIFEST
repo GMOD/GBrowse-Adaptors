@@ -21,6 +21,7 @@ lib/Bio/DB/BigWigSet.pm
 LICENSE
 MANIFEST			This list of files
 META.yml
+patches/kent_src_patch_macosx.diff
 README
 t/01.bigwig.t
 t/02.bigbed.t

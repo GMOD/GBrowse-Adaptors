@@ -1,3 +1,7 @@
+Version 1.05
+	* Added patch to Jim Kent build tree to allow for compilation on
+	MacOS X.
+
 Version 1.04 
 	 * Added the following methods to Bio::DB::BigWig::Summary objects: 
 	 chr_stats(),    chr_mean(),    chr_stdev(), 
