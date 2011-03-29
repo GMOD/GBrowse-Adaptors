@@ -4,36 +4,66 @@ accessed across the network. Please see
 http://genome.ucsc.edu/FAQ/FAQformat.html for information about
 creating these files.
 
+Step 1) COMPILE JIM KENT SOURCE TREE
+
 To compile this module, you must first download, unpack and compile
 the Jim Kent source tree, located at
-http://hgdownload.cse.ucsc.edu/admin/jksrc.zip. Please follow the
-instructions contained in the source tree to create the main library
-file jkweb.a
+http://hgdownload.cse.ucsc.edu/admin/jksrc.zip. The commands needed to
+get, unpack and compile the necessary file are:
 
-This module will prompt you for the location of the Kent source tree
-the first time you build it. This should be the "src" directory which
-contains the subdirectories "inc" and "lib". If you do not wish to be
-prompted, set the environment variable KENT_SRC to point to the
-directory.
+ wget http://hgdownload.cse.ucsc.edu/admin/jksrc.zip
+ unzip jksrc.zip
+ cd kent/src/lib
+ export    MACHTYPE=i686    # for a 64-bit system
+ # export  MACHTYPE=i386    # for a 32-bit system
+ make
+ cd ..
+ export KENT_SRC=`pwd`
 
-You will also need to install a recent version of Bio::Perl from CPAN.
+Step 2) INSTALL BIO::PERL
 
-Then run:
+You will need to install a recent version of Bio::Perl from CPAN:
+
+  perl -MCPAN -e 'install Bio::Perl'
+
+Step 3) COMPILE BIO::DB::BIGWIG
+
+From within this directory, run:
 
   perl Build.PL
   ./Build
   ./Build test
-  (sudo) ./Build install
+  sudo ./Build install
 
-MAC OSX ISSUES:
+If you did not define the environment KENT_SRC in step 1, the "perl
+Build.PL" step will prompt you for the location of the Kent source
+tree. Please provide the "src" directory which contains the
+subdirectories "inc" and "lib". If you do not wish to be prompted, set
+the environment variable KENT_SRC to point to this directory.
 
-On Mac OSX platforms prior to Snow Leopard you may encounter the
-following fatal error when building this module:
+ ** ISSUES AND TROUBLESHOOTING **
 
-   Symbol not found: _environ
+PROBLEM 1) Compilation fails with a "relocation error" or warnings about
+recompiling with "-fPIC".
 
-This is due to a problem in the Macintosh header files that causes one
-of the Kent sources to compile incorrectly.
+Some combinations of Perl, GCC and jksrc do not play well together. If
+you see warnings like these, you will need to patch and recompile the
+kent source. Find the file kent/src/inc/common.mk and modify the
+following line:
+
+ Old:
+  CFLAGS=
+     
+ New:
+  CFLAGS=-fPIC
+
+Then run make again from within kent/src/lib
+
+PROBLEM 2) On Mac OSX systems, compilation fails with "Symbol not found: _environ"
+
+This occurs on Mac OSX platforms prior to Snow Leopard. It is due to a
+problem in the Macintosh header files that causes one of the Kent
+sources to compile incorrectly.
 
 If you encounter this problem, then do the following:
 
@@ -48,12 +78,12 @@ If you encounter this problem, then do the following:
 
  4) Rerun "./Build" in the Bio-BigFile directory.
 
-TROUBLESHOOTING:
+PROBLEM 3) Compilation of the Kent surce fails.
 
-If you encounter problems during compiling, you may need to set the
-environment variable MACHTYPE to point to the appropriate architecture
-for your system. This is described in the installation directions for
-the Jim Kent source tree.
+If you encounter errors while compiling the Kent source, you may need
+to set the environment variable MACHTYPE to point to the appropriate
+architecture for your system. This is described in the installation
+directions for the Jim Kent source tree.
 
 AUTHOR: 
 

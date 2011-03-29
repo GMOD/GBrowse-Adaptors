@@ -27,7 +27,7 @@ provides:
     file: lib/Bio/DB/BigBed.pm
   Bio::DB::BigFile:
     file: lib/Bio/DB/BigFile.pm
-    version: 1.04
+    version: 1.05
   Bio::DB::BigFile::BinIterator:
     file: lib/Bio/DB/BigFile/Iterators.pm
   Bio::DB::BigFile::Constants:
@@ -79,4 +79,4 @@ requires:
   perl: 5.008
 resources:
   license: http://dev.perl.org/licenses/
-version: 1.04
+version: 1.05

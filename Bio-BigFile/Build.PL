@@ -16,10 +16,11 @@ my $build = Module::Build->new(
     dist_abstract      => "Manipulate Jim Kent's BigWig and BigBed index files for genomic features.",
     license            => 'perl',
     include_dirs       => [$jk_include],
-    extra_linker_flags => ["$jk_lib/$LibFile",'-lz'],
+    extra_linker_flags => ["$jk_lib/$LibFile",'-lz','-lssl'],
 
     extra_compiler_flags=>[
 	# turn off warnings originating in Perl's Newx* calls
+	'-Wno-format',
 	'-Wformat=0',
 	"-DMACHTYPE_$ENV{MACHTYPE}"
     ],
