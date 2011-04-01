@@ -1,7 +1,7 @@
 package Bio::DB::Sam;
 # $Id$
 
-our $VERSION = '1.27';
+our $VERSION = '1.28';
 
 =head1 NAME
 
@@ -888,6 +888,12 @@ create AlignWrapper objects on an as needed basis:
     }
   };
 
+=item $sam->coverage2BedGraph([$fh])
+
+This special-purpose method will compute a four-column BED graph of
+the coverage across the entire SAM/BAM file and print it to STDOUT.
+You may provide a filehandle to redirect output to a file or pipe.
+
 =back
 
 The next sections correspond to the low-level API, which let you
@@ -1336,6 +1342,8 @@ use Bio::DB::Bam::PileupWrapper;
 use Bio::DB::Bam::FetchIterator;
 use Bio::DB::Bam::ReadIterator;
 
+use constant DUMP_INTERVAL => 1_000_000;
+
 sub new {
     my $class         = shift;
     my %args          = $_[0] =~ /^-/ ? @_ : (-bam=>shift);
@@ -1775,6 +1783,48 @@ sub features {
 
     return $iterator ? Bio::DB::Bam::FetchIterator->new(\@result,$self->last_feature_count)
 	             : @result;
+}
+
+sub coverage2BedGraph {
+    my $self = shift;
+    my $fh   = shift;
+    $fh ||= \*STDOUT;
+    
+    my $header  = $self->header;
+    my $index   = $self->bam_index;
+    my $seqids  = $header->target_name;
+    my $lengths = $header->target_len;
+    my $b       = $self->bam;
+
+    for my $tid (0..$header->n_targets-1) {
+	my $seqid = $seqids->[$tid];
+	my $len   = $lengths->[$tid];
+	
+	my $sec_start = -1;
+	my $last_val = -1;
+	
+	for (my $start=0;$start <= $len;$start += DUMP_INTERVAL) {
+	    my $end = $start+DUMP_INTERVAL;
+	    $end    = $len if $end > $len;
+	    my $coverage = $index->coverage($b,$tid,$start,$end);
+	    for (my $i=0; $i<@$coverage; $i++) {
+		if($last_val == -1) {
+		    $sec_start = 0;
+		    $last_val = $coverage->[$i];
+		}
+		if($last_val != $coverage->[$i]) {
+		    print $fh $seqid,"\t",$sec_start,"\t",$start+$i,"\t",$last_val,"\n"
+			unless $last_val == 0;
+		    $sec_start = $start+$i;
+		    $last_val = $coverage->[$i];
+		}
+		elsif($start+$i == $len-1) {
+		    print $fh $seqid,"\t",$sec_start,"\t",$start+$i,"\t",$last_val,"\n"
+			unless $last_val == 0;
+		}
+	    }
+	}
+    }
 }
 
 sub _filter_features {

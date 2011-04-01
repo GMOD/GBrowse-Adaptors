@@ -1,11 +1,11 @@
 package Bio::DB::Sam::SamToGBrowse;
 use Carp 'croak';
+use Bio::DB::Sam;
 use File::Spec;
 use File::Basename 'basename';
 use File::Temp 'tempfile','tmpnam';
 
 use constant FORCE_TEMPFILES=>0;
-use constant DUMP_INTERVAL => 1_000_000;
 
 sub new {
     my $class = shift;
@@ -98,18 +98,7 @@ sub convert_one_sam {
     }
 
     $self->msg("\t","$bam: creating");
-
-    # This is to create the .fai file. Do this in a block so that handle
-    # goes out of scope when not needed.
-    my $fasta = $self->fasta;
-    -r $fasta or croak "$fasta is not readable";
-    my $fai  = $fasta.".fai";
-
-    unless ($self->up_to_date($fasta,$fai))
-    {
-	my $fai = Bio::DB::Sam::Fai->load($fasta)
-	    or die "Could not load reference FASTA file for indexing this SAM file: $!";
-    }
+    my $fai = $self->make_fai;
 
     my $tam = Bio::DB::Tam->open($sam)
 	or die "Could not open SAM file for reading: $!";
@@ -132,6 +121,24 @@ sub convert_one_sam {
 
     $self->msg("\tConverted $lines lines");
     $self->sort_bam($bam);
+}
+
+sub make_fai {
+    my $self = shift;
+
+    # This is to create the .fai file. Do this in a block so that handle
+    # goes out of scope when not needed.
+    my $fasta = $self->fasta;
+    -r $fasta or croak "FASTA file '$fasta' is not readable";
+    my $fai  = $fasta.".fai";
+
+    unless ($self->up_to_date($fasta,$fai))
+    {
+	my $fai = Bio::DB::Sam::Fai->load($fasta)
+	    or die "Could not load reference FASTA file for indexing this SAM file: $!";
+    }
+
+    return $fai;
 }
 
 sub sort_bam {
@@ -203,6 +210,7 @@ sub bam_to_wig {
     $self->msg('Searching for .bai files');
     my @files = map {$self->dir_path(basename($_,'.bai'))} $self->files('.bai');
     $self->msg("\t",'Found ', @files+0,' files');
+    $chrom_sizes ||= $self->make_fai;
     $self->wiggle_one_bam($_,$chrom_sizes) foreach @files;
 }
 
@@ -210,10 +218,10 @@ sub wiggle_one_bam {
     my $self = shift;
     my ($bam,$chrom_sizes)  = @_;
 
+    $chrom_sizes  ||= $self->fasta.".fai";
+
     die "$bam does not exist or is not readable"         unless -r $bam;
     die "$chrom_sizes does not exist or is not readable" unless -r $chrom_sizes;
-
-    $chrom_sizes  ||= $self->fasta.".fai";
 
     my $base        = basename($bam,'.bam');
     my $bigwig      = $self->dir_path($base.'.bw');
@@ -256,47 +264,23 @@ sub write_coverage {
     my ($bamfile,$fh) = @_;
 
     $self->msg("Calculating coverage for $bamfile");
-    my $bam = Bio::DB::Sam->new(-bam=>$bamfile) 
- 	or die "Couldn't open $bamfile: $!";
 
-    my $header  = $bam->header;
-    my $index   = $bam->bam_index;
-    my $seqids  = $header->target_name;
-    my $lengths = $header->target_len;
-    my $b       = eval{$bam->bam} || $bam->{bam}; # for debugging
-
-    for my $tid (0..$header->n_targets-1) {
-	my $seqid = $seqids->[$tid];
-	my $len   = $lengths->[$tid];
-	
-	my $sec_start = -1;
-	my $last_val = -1;
-	
-	for (my $start=0;$start <= $len;$start += DUMP_INTERVAL) {
-	    my $end = $start+DUMP_INTERVAL;
-	    $end    = $len if $end > $len;
-	    $self->msg("\t","Calculating coverage for interval $seqid:",$start+1,'..',$end);
-	    my $coverage = $index->coverage($b,$tid,$start,$end);
-	    for (my $i=0; $i<@$coverage; $i++) {
-	    if($last_val == -1) {
-	    	$sec_start = 0;
-	    	$last_val = $coverage->[$i];
-	    }
-	    if($last_val != $coverage->[$i]) {
-	    	print $fh $seqid,"\t",$sec_start,"\t",$start+$i,"\t",$last_val,"\n";
-	    	$sec_start = $start+$i;
-	    	$last_val = $coverage->[$i];
-	    	if($start+$i == $len-1) {
-	    		$self->msg("\t","Completing chromosome at ", $start+$i);
-	    	}
-	    }
-	    elsif($start+$i == $len-1) {
-	    	$self->msg("\t","Completing chromosome via tail catch at ", $start+$i);
-	    	print $fh $seqid,"\t",$sec_start,"\t",$start+$i,"\t",$last_val,"\n";
-	    }
-	    }
+    if (my $genomeCoverageBed = $self->genomeCoverageBed) {
+	$self->msg("\t",'genomeCoverageBed found in path; will use it to calculate coverage graph.');
+	my $fai = $self->make_fai;
+	open my $gcb,"$genomeCoverageBed -ibam '$bamfile' -split -bg -g '$fai'|" 
+	    or die "Couldn't open $genomeCoverageBed pipe: $!";
+	while (<$gcb>) {
+	    print $fh $_;
 	}
-	
+	close $gcb;
+	return;
+    } else {
+
+	# if we get here we are doing it ourselves
+	my $bam = Bio::DB::Sam->new(-bam=>$bamfile) 
+	    or die "Couldn't open $bamfile: $!";
+	$bam->coverage2BedGraph($fh);
     }
 }
 
@@ -307,13 +291,13 @@ sub _wiggle_one_bam_tempfile {
 				UNLINK   => 1,
 				DIR      => $self->dir,
 				SUFFIX   => '.wig');
+    my $time = time();
     $self->write_coverage($bam,$tmpfh);
+    print STDERR time()-$time," seconds\n";
     close $tmpfh;
 
     $self->msg("Writing bigwig file");
-    warn "MAKING BIGWIG";
     $self->make_bigwig_file($tmpfh,$chrom_sizes,$bigwig);
-    warn "MAKING BIGWIG DONE";
 }
 
 sub make_conf {
@@ -359,6 +343,11 @@ sub parse_conf {
 sub bedgraph_path {
     my $self = shift;
     return $self->{_bedgraph_path} ||= $self->search_for_binary('bedGraphToBigWig');
+}
+
+sub genomeCoverageBed {
+    my $self = shift;
+    return $self->{_genomeCoverageBed} ||= $self->search_for_binary('genomeCoverageBed');
 }
 
 sub search_for_binary {

@@ -1,3 +1,11 @@
+Version 1.28
+   *Fixed coverage calculations so that sections of reads that cover 
+    the reference genome which are marked in the CIGAR string as
+    'N' (skip) or 'D' (delete) do not contribute to coverage.
+   *The bamToGBrowse.pl script now takes advantage of genomeCoveragetoBed
+    from the BedTools package. If this executable is installed, BigWig
+    generation will speed up noticeably.
+
 Version 1.27
    *Support for SAM/BAM files in which the sequence is given as "*".
    This will return a completely ambiguous read (NNNNNNNN) of the proper length.

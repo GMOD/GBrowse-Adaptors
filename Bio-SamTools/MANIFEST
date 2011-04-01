@@ -1,4 +1,5 @@
 bin/bamToGBrowse.pl
+bin/genomeCoverageBed.pl
 Build.PL
 Changes
 DISCLAIMER

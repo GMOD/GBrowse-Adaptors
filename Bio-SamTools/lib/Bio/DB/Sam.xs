@@ -169,12 +169,21 @@ int coverage_from_pileup_fun (uint32_t tid,
 			      void *data) {
   coverage_graph_ptr  cgp;
   int                 bin;
+  int                 i;
+  int                 valid;
 
   cgp = (coverage_graph_ptr) data;
   cgp->reads += n;
+
+  valid = 0;
+  for (i=0;i<n;i++) {
+    if (!pl[i].is_del && !pl[i].is_refskip)
+        valid++;
+  }
+
   if (n > 0 && pos >= cgp->start && pos <= cgp->end) {
     bin = (pos-cgp->start)/cgp->width;
-    cgp->bin[bin] += n;
+    cgp->bin[bin] += valid;
   }
 
   return 0;
