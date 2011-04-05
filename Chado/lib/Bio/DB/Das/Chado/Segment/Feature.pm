@@ -30,7 +30,7 @@ use constant DEBUG => 0;
 use vars qw(@ISA $AUTOLOAD %CONSTANT_TAGS $VERSION);
 @ISA = qw(Bio::DB::Das::Chado::Segment Bio::SeqFeatureI
           Bio::Root::Root);
-$VERSION = 0.30;
+$VERSION = 0.31;
 
 %CONSTANT_TAGS = ();
 

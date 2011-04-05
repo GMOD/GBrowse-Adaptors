@@ -1,3 +1,5 @@
+bin/gmod_chado_fts_prep.pl
+bin/gmod_create_summary_statistics.pl
 Build.PL
 Changes
 lib/Bio/DB/Das/Chado.pm
