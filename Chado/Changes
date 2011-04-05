@@ -55,3 +55,14 @@ Revision history for Perl module Bio::DB::Das::Chado
     - Added feature_summary and coverage_array methods to Chado.pm to support
       the feature summary functionality of GBrowse2; see the GMOD wiki page
       describing this feature: http://gmod.org/wiki/Chado_gbrowse_summary_view
+
+0.31 Tue Apr  5 12:32:31 EDT 2011
+    - Added gmod_chado_fts_prep.pl and gmod_create_summary_statistics.pl to
+      the MANIFEST.
+    - Improved how the interval stats table data get generated.
+    - Added support for the primary_seq method to the Segment object.
+    - Added support for using srcfeatureslice in command line instances.
+    - Improved GFF and other dump formats from GBrowse (though they are still
+      probably less than perfect).
+    
+
