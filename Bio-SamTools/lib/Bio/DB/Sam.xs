@@ -870,7 +870,7 @@ bam_text(bamh, ...)
     RETVAL = newSVpv(bamh->text,bamh->l_text);
     if (items > 1) {
       newtext = (char*) SvPV(ST(1),n);
-      bamh->text   = newtext;
+      strcpy(bamh->text,newtext);
       bamh->l_text = n;
     }
   OUTPUT:

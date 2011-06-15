@@ -1,3 +1,7 @@
+Version 1.29
+   * Apply patch from Hongwen Qiu to fix memory allocation error in 
+   bam header generation.
+
 Version 1.28
    *Fixed coverage calculations so that sections of reads that cover 
     the reference genome which are marked in the CIGAR string as
