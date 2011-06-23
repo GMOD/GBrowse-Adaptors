@@ -386,6 +386,8 @@ sub feature_summary {
     $end      ||=$end;
     $types    ||=$type   ||=$primary_tag;
 
+    warn $types if DEBUG;
+
     my ($coverage,$tag) = $self->coverage_array(-seqid=> $seq_name,
                                                 -start=> $start,
                                                 -end  => $end,
@@ -464,6 +466,8 @@ sub coverage_array {
     my $binsize = ($end-$start+1)/$bins;
     my $seqid   = $segment->feature_id;
 
+    warn "$seqid in coverage array" if DEBUG;
+
     return [] unless $seqid;
 
     # where each bin starts
@@ -474,11 +478,19 @@ sub coverage_array {
    
     # pick up the type ids
 
+#WARNING: potential bug below.  This query and the loop that processes
+#it is from Lincoln's implementation for SeqFeature::Store.  The query
+#seems to rely on getting the results back sorted even though the
+#query doesn't explicitly sort (the ORDER BY commented out was from me)
+#With sorting the processing takes much longer, so I'm leaving it out
+#for now, but reimplementing might be a good idea.
+
     my %bins;
     my $sql = <<END;
 SELECT bin,cum_count
   FROM $interval_stats
-  WHERE typeid=? AND bin >=? AND srcfeature_id =?
+  WHERE (typeid=? OR typeid like ? ) AND bin >=? AND srcfeature_id =?
+ -- ORDER BY bin 
   LIMIT 1
 END
 ;
@@ -493,13 +505,17 @@ END
         @t = ($types);
     }
 
+    warn join(" ", @t) . " types in coverage array" if DEBUG;
+
     eval {
         for my $typeid (@t) {
             my $typestr = $self->_types_sql($typeid); 
 
+            warn "$typestr typestr in coverage array" if DEBUG;
+
             for (my $i=0;$i<@sum_bin_array;$i++) {
 
-                my @args = ($typestr,$sum_bin_array[$i],$seqid);
+                my @args = ($typestr,$typestr,$sum_bin_array[$i],$seqid);
 
                 $sth->execute(@args) or $self->throw($sth->errstr);
                 my ($bin,$cum_count) = $sth->fetchrow_array;
