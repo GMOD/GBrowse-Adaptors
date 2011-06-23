@@ -65,4 +65,6 @@ Revision history for Perl module Bio::DB::Das::Chado
     - Improved GFF and other dump formats from GBrowse (though they are still
       probably less than perfect).
     
-
+0.32 Thu Jun 23 16:08:33 EDT 2011
+    - Fixed a bug that caused the density plot to fail when in the summary
+      view when the source of the feature isn't provided in the track def.

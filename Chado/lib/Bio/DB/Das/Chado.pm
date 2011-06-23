@@ -100,7 +100,7 @@ use constant SEGCLASS => 'Bio::DB::Das::Chado::Segment';
 use constant MAP_REFERENCE_TYPE => 'MapReferenceType'; #dgg
 use constant DEBUG => 0;
 
-$VERSION = 0.31;
+$VERSION = 0.32;
 @ISA = qw(Bio::Root::Root Bio::DasI);
 
 =head2 new

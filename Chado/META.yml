@@ -3,7 +3,7 @@ abstract: 'DAS-style access to a chado database'
 author: []
 configure_requires:
   Module::Build: 0.36
-generated_by: 'Module::Build version 0.3603'
+generated_by: 'Module::Build version 0.3607'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -12,13 +12,13 @@ name: Bio-DB-Das-Chado
 provides:
   Bio::DB::Das::Chado:
     file: lib/Bio/DB/Das/Chado.pm
-    version: 0.3
+    version: 0.31
   Bio::DB::Das::Chado::Segment:
     file: lib/Bio/DB/Das/Chado/Segment.pm
-    version: 0.3
+    version: 0.31
   Bio::DB::Das::Chado::Segment::Feature:
     file: lib/Bio/DB/Das/Chado/Segment/Feature.pm
-    version: 0.3
+    version: 0.31
   Bio::DB::Das::ChadoIterator:
     file: lib/Bio/DB/Das/Chado.pm
 requires:
@@ -28,4 +28,4 @@ requires:
   URI::Escape: 0
 resources:
   license: http://dev.perl.org/licenses/
-version: 0.3
+version: 0.31
