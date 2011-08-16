@@ -1,3 +1,7 @@
+Version 1.30
+   * Apply patch from Jason Walker to return full arrays across 0-depth coverage
+     and to max the count at a certain coverage.
+
 Version 1.29
    * Apply patch from Hongwen Qiu to fix memory allocation error in 
    bam header generation.

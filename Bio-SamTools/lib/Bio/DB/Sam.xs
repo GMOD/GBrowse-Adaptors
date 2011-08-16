@@ -24,6 +24,8 @@
 /* stolen from bam_aux.c */
 #define MAX_REGION 1<<29
 
+#define MAX_DEPTH 2000000
+
 typedef tamFile         Bio__DB__Tam;
 typedef faidx_t*        Bio__DB__Sam__Fai;
 typedef bamFile         Bio__DB__Bam;
@@ -181,7 +183,7 @@ int coverage_from_pileup_fun (uint32_t tid,
         valid++;
   }
 
-  if (n > 0 && pos >= cgp->start && pos <= cgp->end) {
+  if (pos >= cgp->start && pos <= cgp->end) {
     bin = (pos-cgp->start)/cgp->width;
     cgp->bin[bin] += valid;
   }
@@ -978,13 +980,14 @@ CODE:
   bam_plbuf_destroy(pileup);
 
 AV*
-bami_coverage(bai,bfp,ref,start,end,bins=0)
+bami_coverage(bai,bfp,ref,start,end,bins=0,maxcnt=8000)
     Bio::DB::Bam::Index bai
     Bio::DB::Bam        bfp
     int             ref
     int             start
     int             end
     int             bins
+    int             maxcnt
 PREINIT:
     coverage_graph  cg;
     bam_plbuf_t    *pileup;
@@ -994,6 +997,7 @@ PREINIT:
     bam_header_t   *bh;
 CODE:
   {
+ 
       if (end >= MAX_REGION) {
           bgzf_seek(bfp,0,0);
           bh  = bam_header_read(bfp);
@@ -1013,6 +1017,7 @@ CODE:
 
       /* accumulate coverage into the coverage graph */
       pileup   = bam_plbuf_init(coverage_from_pileup_fun,(void*)&cg);
+      bam_plp_set_maxcnt(pileup->iter,maxcnt);
       bam_fetch(bfp,bai,ref,start,end,(void*)pileup,add_pileup_line);
       bam_plbuf_push(NULL,pileup);
       bam_plbuf_destroy(pileup);
@@ -1020,10 +1025,8 @@ CODE:
       /* now normalize to coverage/bp and convert into an array */
       array = newAV();
       av_extend(array,bins);
-      if (cg.reads > 0) {
-            for  (i=0;i<bins;i++)
-	    	av_store(array,i,newSVnv(((float)cg.bin[i])/cg.width));
-      }
+      for  (i=0;i<bins;i++)
+           av_store(array,i,newSVnv(((float)cg.bin[i])/cg.width));
       Safefree(cg.bin);
       RETVAL = array;
       sv_2mortal((SV*)RETVAL);  /* this fixes a documented bug in perl typemap */
