@@ -1,7 +1,7 @@
 package Bio::DB::Sam;
 # $Id$
 
-our $VERSION = '1.30';
+our $VERSION = '1.31';
 
 =head1 NAME
 
@@ -888,6 +888,19 @@ create AlignWrapper objects on an as needed basis:
     }
   };
 
+=item Bio::DB::Sam->max_pileup_cnt([$new_cnt])
+
+=item $sam->max_pileup_cnt([$new_cnt])
+
+The Samtools library caps pileups at a set level, defaulting to
+8000. The callback will not be invoked on a single position more than
+the level set by the cap, even if there are more reads. Called with no
+arguments, this method returns the current cap value. Called with a
+numeric argument, it changes the cap. There is currently no way to 
+specify an unlimited cap.
+
+This method can be called as an instance method or a class method.
+
 =item $sam->coverage2BedGraph([$fh])
 
 This special-purpose method will compute a four-column BED graph of
@@ -1186,7 +1199,7 @@ it is in the high-level API.
 The Bio::DB::Bam::Pileup object was described earlier in the
 description of the high-level pileup() method.
 
-=item $coverage = $index->coverage($bam,$tid,$start,$end [,$bins])
+=item $coverage = $index->coverage($bam,$tid,$start,$end [,$bins [,maxcnt]])
 
 Calculate coverage for the region on the target sequence given by $tid
 between positions $start and $end (zero-based coordinates). This
@@ -1196,6 +1209,13 @@ the number of reads aligning over that position. If you provide an
 option binsize in $bins, the array will be $bins elements in length,
 and each element will contain the average coverage over that region as
 a floating point number.
+
+By default, the underlying Samtools library caps coverage counting at
+a fixed value of 8000. You may change this default by providing an
+optional numeric sixth value, which changes the cap for the duration
+of the call, or by invoking Bio::DB::Sam->max_pileup_cnt($new_value),
+which changes the cap permanently. Unfortunately there is no way of
+specifying that you want an unlimited cap.
 
 =back
 
@@ -2026,6 +2046,11 @@ sub _features_fh {
 sub tam_fh {
     my $self   = shift;
     return $self->features(-fh=>1);
+}
+
+sub max_pileup_cnt { 
+    my $self = shift;
+    return Bio::DB::Bam->max_pileup_cnt(@_);
 }
 
 # return a fragment of code that will be placed in the eval "" filter

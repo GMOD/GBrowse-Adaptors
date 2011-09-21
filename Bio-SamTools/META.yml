@@ -1,17 +1,21 @@
 ---
-abstract: 'Perl interface to SamTools library for DNA sequencing'
+name: Bio-SamTools
+version: 1.30
 author:
   - 'Lincoln Stein <lincoln.stein@gmail.com>'
+abstract: Perl interface to SamTools library for DNA sequencing
+license: perl
 build_requires:
   ExtUtils::CBuilder: 0
+requires:
+  Bio::Root::Version: 1.005009001
+  perl: 5.008
 configure_requires:
-  Module::Build: 0.36
-generated_by: 'Module::Build version 0.3607'
-license: perl
+  Module::Build: 0.340201
+generated_by: Module::Build version 0.340201
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
   version: 1.4
-name: Bio-SamTools
 provides:
   Bio::DB::Bam:
     file: lib/Bio/DB/Sam.pm
@@ -35,7 +39,7 @@ provides:
     file: lib/Bio/DB/Bam/Target.pm
   Bio::DB::Sam:
     file: lib/Bio/DB/Sam.pm
-    version: 1.29
+    version: 1.30
   Bio::DB::Sam::Constants:
     file: lib/Bio/DB/Sam/Constants.pm
   Bio::DB::Sam::Fai:
@@ -48,9 +52,5 @@ provides:
     file: lib/Bio/DB/Sam/Segment.pm
   Bio::SeqFeature::Coverage:
     file: lib/Bio/DB/Sam.pm
-requires:
-  Bio::Root::Version: 1.005009001
-  perl: 5.008
 resources:
   license: http://dev.perl.org/licenses/
-version: 1.29

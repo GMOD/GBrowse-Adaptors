@@ -24,8 +24,6 @@
 /* stolen from bam_aux.c */
 #define MAX_REGION 1<<29
 
-#define MAX_DEPTH 2000000
-
 typedef tamFile         Bio__DB__Tam;
 typedef faidx_t*        Bio__DB__Sam__Fai;
 typedef bamFile         Bio__DB__Bam;
@@ -46,6 +44,8 @@ typedef struct {
   int*   bin;
 } coverage_graph;
 typedef coverage_graph *coverage_graph_ptr;
+
+static int MaxPileupCnt=8000;
 
 void XS_pack_charPtrPtr( SV * arg, char ** array, int count) {
   int i;
@@ -277,6 +277,15 @@ fai_fetch(fai,reg)
 
 
 MODULE = Bio::DB::Sam PACKAGE = Bio::DB::Bam PREFIX=bam_
+
+int
+max_pileup_cnt(packname,...)
+CODE:
+	if (items > 1)
+	   MaxPileupCnt = SvIV(ST(1));
+	RETVAL = MaxPileupCnt;
+OUTPUT:
+        RETVAL
 
 Bio::DB::Bam
 bam_open(packname, filename, mode="r")
@@ -975,6 +984,7 @@ CODE:
   fcd.callback = (SV*) callback;
   fcd.data     = callbackdata;
   pileup       = bam_plbuf_init(invoke_pileup_callback_fun,(void*)&fcd);
+  bam_plp_set_maxcnt(pileup->iter,MaxPileupCnt);	
   bam_fetch(bfp,bai,ref,start,end,(void*)pileup,add_pileup_line);
   bam_plbuf_push(NULL,pileup);
   bam_plbuf_destroy(pileup);
@@ -1017,7 +1027,10 @@ CODE:
 
       /* accumulate coverage into the coverage graph */
       pileup   = bam_plbuf_init(coverage_from_pileup_fun,(void*)&cg);
-      bam_plp_set_maxcnt(pileup->iter,maxcnt);
+      if (items >= 7)
+            bam_plp_set_maxcnt(pileup->iter,maxcnt);
+      else
+            bam_plp_set_maxcnt(pileup->iter,MaxPileupCnt);
       bam_fetch(bfp,bai,ref,start,end,(void*)pileup,add_pileup_line);
       bam_plbuf_push(NULL,pileup);
       bam_plbuf_destroy(pileup);

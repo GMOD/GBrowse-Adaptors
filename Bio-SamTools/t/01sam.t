@@ -142,7 +142,9 @@ use Bio::DB::Sam;
     # try to get coverage
     my $coverage = $index->coverage($bam,
 				   $header->parse_region('seq2'),
-				    100);
+				    100,
+				    9000
+	);
     ok(scalar @$coverage,100);
     my @c = sort {$a<=>$b} @$coverage;
     ok($c[0]  >= 0);
