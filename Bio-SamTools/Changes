@@ -1,3 +1,7 @@
+Version 1.31
+   * Added Bio::DB::Sam->max_pileup_cnt() and Bio::DB::Bam->max_pileup_cnt() method
+     to allow users to adjust Samtools cap on pileup depth.
+
 Version 1.30
    * Apply patch from Jason Walker to return full arrays across 0-depth coverage
      and to max the count at a certain coverage.
