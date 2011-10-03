@@ -1,3 +1,6 @@
+Version 1.06
+	* Strip whitespace from the ends of BigWigSet metadata files.
+
 Version 1.05
 	* Added patch to Jim Kent build tree to allow for compilation on
 	MacOS X.

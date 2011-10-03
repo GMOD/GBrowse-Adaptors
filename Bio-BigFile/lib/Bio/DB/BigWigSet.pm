@@ -764,6 +764,7 @@ sub read_index {
 
     while (<$f>) {
 	chomp;
+	s/\s+$//;   # strip whitespace at ends of lines
 	# strip right-column comments unless they look like colors or html fragments
 	s/\s*\#.*$// unless /\#[0-9a-f]{6,8}\s*$/i || /\w+\#\w+/ || /\w+\"*\s*\#\d+$/;   
 	if (/^\[([^\]]+)\]/) {  # beginning of a configuration section
