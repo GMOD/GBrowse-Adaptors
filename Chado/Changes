@@ -68,3 +68,6 @@ Revision history for Perl module Bio::DB::Das::Chado
 0.32 Thu Jun 23 16:08:33 EDT 2011
     - Fixed a bug that caused the density plot to fail when in the summary
       view when the source of the feature isn't provided in the track def.
+
+0.33 Thu Oct 20 10:52:55 EDT 2011
+    - Added rudimentary support for non-public schemas (mostly for Tripal).
