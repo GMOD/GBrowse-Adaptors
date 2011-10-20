@@ -46,14 +46,16 @@ $DBPROFILE ||='default';
 
 my $gmod_conf = Bio::GMOD::Config->new();
 my $db_conf   = Bio::GMOD::DB::Config->new($gmod_conf, $DBPROFILE);
+my $schema    = $db_conf->schema;
+$schema       ||= 'public';
 
 print STDERR "Making ".$db_conf->name()." database ready for use with\nfull text searching in Bio::DB::Das::Chado.\n\n";
 
 my $dbh = $db_conf->dbh();
 
 validate_prereqs($dbh);
-create_searchable_columns($dbh);
-create_all_feature_names($DBPROFILE);
+create_searchable_columns($dbh,$schema);
+create_all_feature_names($DBPROFILE,$schema);
 create_search_triggers($dbh);
 
 exit(0);
@@ -135,9 +137,10 @@ The DBI database handle for the database to be modified.
 =cut
 
 sub create_searchable_columns {
-    my $dbh = shift;
+    my $dbh    = shift;
+    my $schema = shift;
 
-    my $exists_query = "select count(*) from information_schema.columns where table_schema='public' and table_name='feature' and column_name='searchable_name'";
+    my $exists_query = "select count(*) from information_schema.columns where table_schema='$schema' and table_name='feature' and column_name='searchable_name'";
     my $arrayref = $dbh->selectall_arrayref($exists_query);
     if ( $$arrayref[0]->[0] == 1) {
         warn "Dropping feature.searchable_name so it can be replaced.\n";
@@ -157,7 +160,7 @@ sub create_searchable_columns {
     $dbh->do("ALTER TABLE synonym ADD COLUMN searchable_synonym_sgml tsvector") or die;
     $dbh->do("UPDATE synonym SET searchable_synonym_sgml = to_tsvector('pg_catalog.english', synonym_sgml)") or die;
 
-    $exists_query = "select count(*) from information_schema.columns where table_schema='public' and table_name='dbxref' and column_name='searchable_accession'";
+    $exists_query = "select count(*) from information_schema.columns where table_schema='$schema' and table_name='dbxref' and column_name='searchable_accession'";
     $arrayref = $dbh->selectall_arrayref($exists_query);
     if ( $$arrayref[0]->[0] == 1) {
         warn "Dropping dbxref.searchable_accession so it can be replaced.\n\n";
@@ -260,11 +263,12 @@ The name of the Bio::GMOD::DB::Config profile.
 
 sub create_all_feature_names {
     my $dbprof = shift;
+    my $schema = shift;
 
     system("gmod_materialized_view_tool.pl --dbprof $dbprof --dem all_feature_names --yes" );
 
     system( <<END
-gmod_materialized_view_tool.pl --create_view --view_name all_feature_names --table_name public.all_feature_names --refresh_time daily --column_def "feature_id integer,name varchar(255),organism_id integer,searchable_name tsvector" --sql_query "SELECT feature_id, CAST(substring(uniquename FROM 0 FOR 255) AS varchar(255)) AS name, organism_id, to_tsvector('english', CAST(substring(uniquename FROM 0 FOR 255) AS varchar(255))) AS searchable_name FROM feature UNION SELECT feature_id, name, organism_id, to_tsvector('english', name) AS searchable_name FROM feature WHERE name IS NOT NULL UNION SELECT fs.feature_id, s.name, f.organism_id, to_tsvector('english', s.name) AS searchable_name FROM feature_synonym fs, synonym s, feature f WHERE fs.synonym_id = s.synonym_id AND fs.feature_id = f.feature_id UNION SELECT fp.feature_id, CAST(substring(fp.value FROM 0 FOR 255) AS varchar(255)) AS name, f.organism_id, to_tsvector('english',CAST(substring(fp.value FROM 0 FOR 255) AS varchar(255))) AS searchable_name FROM featureprop fp, feature f WHERE f.feature_id = fp.feature_id UNION SELECT fd.feature_id, d.accession, f.organism_id,to_tsvector('english',d.accession) AS searchable_name FROM feature_dbxref fd, dbxref d,feature f WHERE fd.dbxref_id = d.dbxref_id AND fd.feature_id = f.feature_id" --index_fields "feature_id,name" --special_index "CREATE INDEX searchable_all_feature_names_idx ON all_feature_names USING gin(searchable_name)" --yes --dbprof $dbprof
+gmod_materialized_view_tool.pl --create_view --view_name all_feature_names --table_name $schema.all_feature_names --refresh_time daily --column_def "feature_id integer,name varchar(255),organism_id integer,searchable_name tsvector" --sql_query "SELECT feature_id, CAST(substring(uniquename FROM 0 FOR 255) AS varchar(255)) AS name, organism_id, to_tsvector('english', CAST(substring(uniquename FROM 0 FOR 255) AS varchar(255))) AS searchable_name FROM feature UNION SELECT feature_id, name, organism_id, to_tsvector('english', name) AS searchable_name FROM feature WHERE name IS NOT NULL UNION SELECT fs.feature_id, s.name, f.organism_id, to_tsvector('english', s.name) AS searchable_name FROM feature_synonym fs, synonym s, feature f WHERE fs.synonym_id = s.synonym_id AND fs.feature_id = f.feature_id UNION SELECT fp.feature_id, CAST(substring(fp.value FROM 0 FOR 255) AS varchar(255)) AS name, f.organism_id, to_tsvector('english',CAST(substring(fp.value FROM 0 FOR 255) AS varchar(255))) AS searchable_name FROM featureprop fp, feature f WHERE f.feature_id = fp.feature_id UNION SELECT fd.feature_id, d.accession, f.organism_id,to_tsvector('english',d.accession) AS searchable_name FROM feature_dbxref fd, dbxref d,feature f WHERE fd.dbxref_id = d.dbxref_id AND fd.feature_id = f.feature_id" --index_fields "feature_id,name" --special_index "CREATE INDEX searchable_all_feature_names_idx ON all_feature_names USING gin(searchable_name)" --yes --dbprof $dbprof
 END
 );
 

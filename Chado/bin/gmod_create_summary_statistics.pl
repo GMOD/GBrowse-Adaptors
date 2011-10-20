@@ -15,9 +15,11 @@ GetOptions(
 my $gmod_conf = Bio::GMOD::Config->new();
 my $db_conf   = Bio::GMOD::DB::Config->new($gmod_conf, $DBPROFILE);
 
-my $dbh = $db_conf->dbh;
+my $dbh    = $db_conf->dbh;
+my $schema = $db_conf->schema;
+$schema    ||= 'public';
 
-create_table($dbh);
+create_table($dbh, $schema);
 create_functions($dbh);
 populate_table($dbh);
 
@@ -33,6 +35,7 @@ sub populate_table {
 
 sub create_table {
     my $dbh = shift;
+    my $schema = shift;
     my $table_def =<<END
 CREATE TABLE gff_interval_stats (
    typeid            varchar(1024) not null,
@@ -46,7 +49,7 @@ END
 
 #determine if the table already exists
     my @table_exists = $dbh->selectrow_array("SELECT * FROM pg_tables WHERE tablename
- = 'gff_interval_stats' AND schemaname = 'public'");
+ = 'gff_interval_stats' AND schemaname = '$schema'");
     if (!scalar(@table_exists)) {
         $dbh->do($table_def) or die $dbh->errstr;
     }
