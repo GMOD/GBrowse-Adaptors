@@ -150,7 +150,7 @@ sub create_searchable_columns {
     $dbh->do("ALTER TABLE feature ADD COLUMN searchable_name tsvector") or die;
     $dbh->do("UPDATE feature SET searchable_name = to_tsvector('pg_catalog.english', COALESCE((name,'') || ' ' || (uniquename,'')))") or die;
 
-    $exists_query = "select count(*) from information_schema.columns where table_schema='public' and table_name='synonym' and column_name='searchable_synonym_sgml'";
+    $exists_query = "select count(*) from information_schema.columns where table_schema='$schema' and table_name='synonym' and column_name='searchable_synonym_sgml'";
     $arrayref = $dbh->selectall_arrayref($exists_query);
     if ( $$arrayref[0]->[0] == 1) {
         warn "Dropping synonym.searchable_synonym_sgml so it can be replaced.\n";
