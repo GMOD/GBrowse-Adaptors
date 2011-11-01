@@ -1099,7 +1099,7 @@ sub features {
     }
 
   } else {
-    my $featureslice;
+    my ($featureslice,$morewhere);
     if ($factory->srcfeatureslice 
        && $srcfeature_id 
        && defined $interbase_start 
@@ -1110,6 +1110,7 @@ sub features {
       $featureslice = "featureslice($interbase_start, $rend)";
     }else {
       $featureslice = "featureloc";
+      $morewhere    = " and fl.srcfeature_id = $srcfeature_id " if defined($srcfeature_id);
     }
     $from_part   = "from (feature f left join $featureslice fl ON (f.feature_id = fl.feature_id)) "
                   ."left join feature_dbxref fd ON (f.feature_id = fd.feature_id 
@@ -1119,11 +1120,7 @@ sub features {
     $where_part  = "where fl.rank=0 ";
     $where_part  .= " and $sql_types " 
          if defined ($sql_types);
-    $where_part  .= " and fl.srcfeature_id = $srcfeature_id " 
-         if (defined($srcfeature_id) and 
-            !$factory->srcfeatureslice and 
-            !(defined $interbase_start) and 
-            !(defined $rend));
+    $where_part  .= $morewhere if $morewhere;
   }
 
   #the ref $self check had to be added here to make gbrowse_details work
