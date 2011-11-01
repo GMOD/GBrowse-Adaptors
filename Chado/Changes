@@ -71,3 +71,5 @@ Revision history for Perl module Bio::DB::Das::Chado
 
 0.33 Thu Oct 20 10:52:55 EDT 2011
     - Added rudimentary support for non-public schemas (mostly for Tripal).
+    - Fixed a bug that caused all features to show up when only features
+      for one seq_id was requested and srcfeatureslice isn't set.
