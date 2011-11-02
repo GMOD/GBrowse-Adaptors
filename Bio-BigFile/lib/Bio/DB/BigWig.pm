@@ -653,6 +653,7 @@ sub features {
 
     my $iterator = $self->get_seq_stream(%options);
     return $iterator if $options{-iterator};
+    return unless $iterator;
     
     my @result;
     while (my $f = $iterator->next_seq) {

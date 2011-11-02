@@ -29,3 +29,4 @@ t/03.bigwig_high.t
 t/04.bigbed_high.t
 t/05.bigwig_set.t
 typemap
+META.json

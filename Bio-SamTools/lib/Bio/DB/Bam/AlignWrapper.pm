@@ -123,7 +123,7 @@ sub split_splices {
 							  -start  => $s,
 							  -end    => $e,
 							  -seq_id => $self->seq_id,
-							  -strand => +1,
+							  -strand => $self->strand,
 							  -seq    => [$self,$start+$skip,$end-$start], # deferred rendering
 							  -type   => $self->type);
 
