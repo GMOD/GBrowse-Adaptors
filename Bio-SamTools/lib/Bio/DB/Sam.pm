@@ -1672,10 +1672,12 @@ sub get_features_by_name { shift->get_feature_by_name(@_) }
 sub get_feature_by_id {
     my $self = shift;
     my $id   = shift;
-    my ($name,$tid,$start,$end,$strand) = map {s/%3B/;/ig;$_} split ';',$id;
+    my ($name,$tid,$start,$end,$strand,$type) = map {s/%3B/;/ig;$_} split ';',$id;
     return unless $name && defined $tid;
+    $type ||= 'match';
     my $seqid = $self->target_name($tid);
     my @features = $self->features(-name=>$name,
+				   -type  => $type,
 				   -seq_id=>$seqid,
 				   -start=>$start,
 				   -end=>$end,
@@ -1964,6 +1966,20 @@ sub _build_mates {
 		);
 	}
 	$read_pairs{$name}->add_SeqFeature($a);
+    }
+    for my $name (keys %read_pairs) {
+	my $f = $read_pairs{$name};
+	my $primary_id = join(';',
+			      map {s/;/%3B/g; $_}
+			      ($f->display_name,
+			       ($f->get_SeqFeatures)[0]->tid,
+			       $f->start,
+			       $f->end,
+			       $f->strand,
+			       $f->type,
+			      )
+	    );
+	$read_pairs{$name}->primary_id($primary_id);
     }
     push @$dest,values %read_pairs;
 }

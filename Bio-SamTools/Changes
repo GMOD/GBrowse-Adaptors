@@ -1,5 +1,6 @@
 Version 1.32
    * Fix loss of strand information when joining split alignments.
+   * Give read_pair objects a primary_id that will allow them to be retrieved intact using get_feature_by_id().
 
 Version 1.31
    * Added Bio::DB::Sam->max_pileup_cnt() and Bio::DB::Bam->max_pileup_cnt() method
