@@ -9,5 +9,8 @@ Module::Build->new
                            'DBI'                => '0',
                            'DBD::Pg'            => '0',
                            'URI::Escape'        => '0',
-                         }
+                         },
+      recommends      => {
+                           'Bio::GMOD::DB::Config' => '1.22',
+                         },
     )->create_build_script;
