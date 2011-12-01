@@ -3,6 +3,7 @@ use Module::Build;
 
 Module::Build->new
     ( module_name     => 'Bio::DB::Das::Chado',
+      all_from        => 'lib/Bio/DB/Das/Chado.pm',
       license         => 'perl',
       requires        => {
                            'Bio::Root::Version' => '1.006',
