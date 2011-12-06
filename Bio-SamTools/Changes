@@ -1,3 +1,8 @@
+Version 1.33
+   * Fix compile error on perl 5.8.7 and lower.
+   * Fix "substr outside of string" errors when processing split alignments with a hard clip
+   at beginning of CIGAR string.
+
 Version 1.32
    * Fix loss of strand information when joining split alignments.
    * Give read_pair objects a primary_id that will allow them to be retrieved intact using get_feature_by_id().

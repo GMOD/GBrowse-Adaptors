@@ -113,6 +113,10 @@ sub split_splices {
     my $skip     = 0;
     my $partial_cigar = '';
 
+    # in case sequence is missing?
+    my $qseq = $self->qseq;
+    $qseq  ||= 'N' x $self->length;
+
     for my $op (@$cigar,['N',0]) {
 	my ($operation,$count) = @$op;
 
@@ -126,10 +130,6 @@ sub split_splices {
 							  -strand => $self->strand,
 							  -seq    => [$self,$start+$skip,$end-$start], # deferred rendering
 							  -type   => $self->type);
-
-	    # in case sequence is missing?
-	    my $qseq = $self->qseq;
-	    $qseq  ||= 'N' x $self->length;
 
 	    $f->hit(-name   => $self->display_name,
 		    -seq_id => $self->display_name,
@@ -148,6 +148,9 @@ sub split_splices {
 	}
 	$end  += $count if $operation =~ /^[MDSHP]/i;
 	$skip += $count if $operation eq 'N';
+	if ($operation eq 'H' and $start == 0) {
+	    $qseq = 'N' x $count . $qseq;
+	}
     }
     return @results;
 }

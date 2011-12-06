@@ -46,7 +46,7 @@ provides:
     version: 0
   Bio::DB::Sam:
     file: lib/Bio/DB/Sam.pm
-    version: 1.31
+    version: 1.32
   Bio::DB::Sam::Constants:
     file: lib/Bio/DB/Sam/Constants.pm
     version: 0
@@ -66,8 +66,8 @@ provides:
     file: lib/Bio/DB/Sam.pm
     version: 0
 requires:
-  Bio::Root::Version: 1.005009001
+  Bio::Root::Version: 1.006009001
   perl: 5.008
 resources:
   license: http://dev.perl.org/licenses/
-version: 1.31
+version: 1.32
