@@ -1,7 +1,6 @@
 package Bio::DB::Sam;
-# $Id$
 
-our $VERSION = '1.32';
+our $VERSION = '1.33';
 
 =head1 NAME
 
@@ -1950,12 +1949,12 @@ sub _build_mates {
 
     my %read_pairs;
     for my $a (@$src) {
-	my $name = $a->display_name;
-	unless ($read_pairs{$name}) {
-	    my $isize = $a->isize;
-	    my $start = $isize >= 0 ? $a->start : $a->end+$isize+1;
-	    my $end   = $isize <= 0 ? $a->end   : $a->start+$isize-1;
-	    $read_pairs{$name} = 
+        my $name = $a->display_name;
+        unless ($read_pairs{$name}) {
+            my $isize = $a->isize;
+            my $start = $isize >= 0 ? $a->start : $a->end+$isize+1;
+            my $end   = $isize <= 0 ? $a->end   : $a->start+$isize-1;
+            $read_pairs{$name} =
 		Bio::SeqFeature::Lite->new(
 		    -display_name => $name,
 		    -seq_id       => $a->seq_id,
@@ -1964,8 +1963,21 @@ sub _build_mates {
 		    -type  => 'read_pair',
 		    -class => 'read_pair',
 		);
-	}
-	$read_pairs{$name}->add_SeqFeature($a);
+        }
+        my $d = $self->{split_splices};
+        if ($d) {
+	    my @parts = $a->get_SeqFeatures;
+	    if (!@parts) {
+                $read_pairs{$name}->add_SeqFeature($a);
+	    }
+	    else {
+		for my $x (@parts){
+                    $read_pairs{$name}->add_SeqFeature($x);
+		}
+	    }
+        } else {
+            $read_pairs{$name}->add_SeqFeature($a);
+        }
     }
     for my $name (keys %read_pairs) {
 	my $f = $read_pairs{$name};

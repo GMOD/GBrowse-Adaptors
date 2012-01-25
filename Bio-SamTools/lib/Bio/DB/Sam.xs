@@ -15,6 +15,14 @@
  #include <perlio.h>
 #endif
 
+#ifndef Newx
+#  define Newx(v,n,t) New(0,v,n,t)
+#endif
+
+#ifndef Newxz
+#  define Newxz(v,n,t) Newz(0,v,n,t)
+#endif
+
 #include <unistd.h>
 #include <math.h>
 #include "bam.h"
@@ -116,15 +124,6 @@ int invoke_pileup_callback_fun(uint32_t tid,
 
   /* turn the bam_pileup1_t into the appropriate object */
   /* this causes a compiler warning -- ignore it */
- if (0) {
-  Newxz(pileups,n,SV*);
-  for (i=0;i<n;i++)
-        pileups[i] = sv_setref_pv(sv_2mortal(newSV(sizeof(bam_pileup1_t))),
-			      "Bio::DB::Bam::Pileup",
-			      (void*) &pl[i]);
-  pileup = av_make(n,pileups);
-  Safefree(pileups);
-} else {
   pileup = newAV();
   av_extend(pileup,n);
   for (i=0;i<n;i++) {
@@ -132,9 +131,8 @@ int invoke_pileup_callback_fun(uint32_t tid,
     sv_setref_pv(p,"Bio::DB::Bam::Pileup",(void*) &pl[i]);
     av_push(pileup,p);
   } 
-}
   
-    /* set up subroutine stack for the call */
+  /* set up subroutine stack for the call */
   ENTER;
   SAVETMPS;
 
