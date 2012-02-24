@@ -420,6 +420,7 @@ sub get_seq_stream {
     } else {
 	%options = @_;
     }
+    $options{-type} ||= $options{-types};
 
     my @ids = keys %{$self->{bigwigs}};
     @ids    = $self->_filter_ids_by_type($options{-type},           \@ids) if $options{-type};

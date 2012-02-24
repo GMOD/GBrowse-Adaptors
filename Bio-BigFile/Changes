@@ -1,3 +1,7 @@
+Version 1.07
+        * Allow -types to be used as an alias for -type in calls to features()
+	  and get_seq_stream().
+
 Version 1.06
 	* Strip whitespace from the ends of BigWigSet metadata files.
 
