@@ -1,6 +1,6 @@
 package Bio::DB::Sam;
 
-our $VERSION = '1.35';
+our $VERSION = '1.36';
 
 =head1 NAME
 
@@ -1017,7 +1017,8 @@ Example:
 =item $header = $bam->header()
 
 Given an open BAM file, return a Bio::DB::Bam::Header object
-containing information about the reference sequence(s).
+containing information about the reference sequence(s). Note that you
+must invoke header() at least once before calling read1().
 
 =item $status_code = $bam->header_write($header)
 
@@ -1037,7 +1038,8 @@ Set the current position of the BAM file read/write pointer.
 =item $alignment = $bam->read1()
 
 Read one alignment from the BAM file and return it as a
-Bio::DB::Bam::Alignment object.
+Bio::DB::Bam::Alignment object. Note that you
+must invoke header() at least once before calling read1().
 
 =item $bytes = $bam->write1($alignment)
 

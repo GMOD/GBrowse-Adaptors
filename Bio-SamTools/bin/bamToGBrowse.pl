@@ -46,7 +46,6 @@ and memory consumption, you can install the following C binaries:
   bedGraphToBigWig  -- download from http://hgdownload.cse.ucsc.edu/admin/exe
                        or build from source downloadable from
                        http;//hgdownload.cse.ucsc.edu/admin/jksrc.zip
-  genomeCoverageBed -- download from http://code.google.com/p/bedtools/
 
 Place these executables into your path, e.g. /usr/local/bin or ~/bin.
 USAGE

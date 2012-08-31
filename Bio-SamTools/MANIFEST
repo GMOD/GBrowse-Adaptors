@@ -1,6 +1,9 @@
 bin/bamToGBrowse.pl
+bin/chrom_sizes.pl
 bin/genomeCoverageBed.pl
+Bio-SamTools-1.33-tamline.diff
 Build.PL
+c_bin/makefile
 Changes
 DISCLAIMER
 lib/Bio/DB/Bam/Alignment.pm
@@ -17,7 +20,9 @@ lib/Bio/DB/Sam/Constants.pm
 lib/Bio/DB/Sam/SamToGBrowse.pm
 lib/Bio/DB/Sam/Segment.pm
 LICENSE
+makefile
 MANIFEST			This list of files
+META.json
 META.yml
 README
 t/01sam.t
@@ -29,4 +34,3 @@ t/data/ex1.bam
 t/data/ex1.fa
 t/data/ex1.sam.gz
 typemap				Don't delete this!
-META.json

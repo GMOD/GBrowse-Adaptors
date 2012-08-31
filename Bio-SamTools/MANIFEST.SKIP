@@ -37,6 +37,9 @@
 \#$
 \.#
 \.rej$
+\.orig$
+\.out$
+\.patch$
 
 # Avoid OS-specific files/dirs
 #   Mac OSX metadata
@@ -62,12 +65,18 @@
 # No tar files
 tar\.gz$
 
-# avoid this directory
+# avoid these directories
 ^test_gbrowse_db
+^timing_tests
 
-# avoid top level fa, bam and fai files
-^[^/]+\.(?:bam|fa|sam|fai)
+# avoid top level fa, bam, bed and fai files
+^[^/]+\.(?:bam|fa|sam|fai|bed)
+
+# avoid compiled files in c_bin
+c_bin/bam2bedgraph
 
 \.bai
 \.fai
 ^MYMETA.yml$
+^MYMETA\.json$
+
