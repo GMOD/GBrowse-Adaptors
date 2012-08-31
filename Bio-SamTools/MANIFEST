@@ -1,7 +1,6 @@
 bin/bamToGBrowse.pl
 bin/chrom_sizes.pl
 bin/genomeCoverageBed.pl
-Bio-SamTools-1.33-tamline.diff
 Build.PL
 c_bin/bam2bedgraph.c
 c_bin/makefile
@@ -21,7 +20,6 @@ lib/Bio/DB/Sam/Constants.pm
 lib/Bio/DB/Sam/SamToGBrowse.pm
 lib/Bio/DB/Sam/Segment.pm
 LICENSE
-makefile
 MANIFEST			This list of files
 META.json
 META.yml
