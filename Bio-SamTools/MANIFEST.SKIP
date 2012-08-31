@@ -49,8 +49,8 @@
 # Avoid archives of this distribution
 \bBio-BigFile-[\d\.\_]+
 
-# avoid .c files
-\.c$
+# avoid .c and .o files
+^lib/.+\.c$
 \.o$
 
 # avoid .pl files in the top level directory
@@ -73,7 +73,7 @@ tar\.gz$
 ^[^/]+\.(?:bam|fa|sam|fai|bed)
 
 # avoid compiled files in c_bin
-c_bin/bam2bedgraph
+c_bin/bam2bedgraph$
 
 \.bai
 \.fai

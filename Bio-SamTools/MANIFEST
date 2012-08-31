@@ -3,6 +3,7 @@ bin/chrom_sizes.pl
 bin/genomeCoverageBed.pl
 Bio-SamTools-1.33-tamline.diff
 Build.PL
+c_bin/bam2bedgraph.c
 c_bin/makefile
 Changes
 DISCLAIMER
@@ -33,4 +34,4 @@ t/data/dm3_3R_4766911_4767130.sam.sorted.bam
 t/data/ex1.bam
 t/data/ex1.fa
 t/data/ex1.sam.gz
-typemap				Don't delete this!
+typemap
