@@ -30,7 +30,7 @@ use constant DEBUG => 0;
 use vars qw(@ISA $AUTOLOAD %CONSTANT_TAGS $VERSION);
 @ISA = qw(Bio::DB::Das::Chado::Segment Bio::SeqFeatureI
           Bio::Root::Root);
-$VERSION = 0.33;
+$VERSION = 0.34;
 
 %CONSTANT_TAGS = ();
 
@@ -966,6 +966,17 @@ sub sub_SeqFeature {
     $derivesfrom = join ',', @$derivesfrom if ref($derivesfrom) eq 'ARRAY';
     $partof .= ",$derivesfrom";
 
+    #deal with Tripal oddness
+    my $analsysfeature_part ='';
+    unless ($self->tripal()) {
+        $analsysfeature_part = <<END
+    left join
+       analysisfeature as af on
+        (child.feature_id = af.feature_id)
+END
+;  
+    }
+
     warn "partof = $partof" if DEBUG;
 
     #silencing unit warnings
@@ -987,9 +998,7 @@ sub sub_SeqFeature {
     inner join
       featureloc as childloc on
         (child.feature_id = childloc.feature_id)
-    left join
-       analysisfeature as af on
-        (child.feature_id = af.feature_id)
+    $analsysfeature_part
     $join_part
     where parent.feature_id = $parent_id
           and childloc.rank = 0
@@ -1029,9 +1038,7 @@ sub sub_SeqFeature {
        inner join
          featureloc as parentloc on
            (parent.feature_id = parentloc.feature_id)
-       left join
-          analysisfeature as af on
-           (child.feature_id = af.feature_id)
+       $analsysfeature_part
        where parent.feature_id = $parent_id
              and childloc.rank = 0
              and fr0.type_id in ($partof)

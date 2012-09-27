@@ -75,3 +75,11 @@ Revision history for Perl module Bio::DB::Das::Chado
       for one seq_id was requested and srcfeatureslice isn't set.
     - Added a build time "recommends" for Bio::GMOD::DB::Config 1.22
       so that the support for schemas will work.
+
+0.34 Thu Sep 27 15:09:34 EDT 2012
+    - Made -srcfeatureslice on by default
+    - Added a -tripal option to fix a failure to find features when there are
+      foreign key links from analysisfeature to features to which those analyses
+      don't belong (that is, Tripal links a BLAST result to the mRNA that was
+      searched with, rather than the standard behavior of linking it with a 
+      match feature that has two srcfeatures in featureloc).

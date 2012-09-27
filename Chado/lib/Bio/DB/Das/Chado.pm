@@ -100,7 +100,7 @@ use constant SEGCLASS => 'Bio::DB::Das::Chado::Segment';
 use constant MAP_REFERENCE_TYPE => 'MapReferenceType'; #dgg
 use constant DEBUG => 0;
 
-$VERSION = 0.33;
+$VERSION = 0.34;
 @ISA = qw(Bio::Root::Root Bio::DasI);
 
 =head2 new
@@ -141,7 +141,7 @@ and it corresponds to more than one organism_id, the Chado adaptor will die.
 Since the combination is guaranteed to be unique by table constraints, 
 supplying "Genus species" should always work.
 
-=item -srcfeatureslice [1|0] default: 0
+=item -srcfeatureslice [1|0] default: 1
 
 Setting this to 1 will enable searching for features using a function and
 a corresponding index that can significantly speed searches, as long as
@@ -210,6 +210,14 @@ mapped to chromosomes and motifs that are mapped to polypeptides.  If you
 want to display the motifs on the polypeptide, you need to set "polypeptide"
 as the argument for -reference_class.
 
+=item -tripal [1|0] default: 0
+
+If turned on, the tripal flag tells the adaptor that it is dealing with
+a Chado instance that is working with Tripal, and so the query to fetch
+features may fail with regard to analysis features.  This flag attempts to 
+prevent that.  It may mean that analysis features (like similarity results)
+will be inaccessible to the adaptor.
+
 =back
 
 =cut
@@ -226,6 +234,7 @@ sub new {
   my $username = $arg{-user};
   my $password = $arg{-pass};
   my $refclass = $arg{-reference_class};
+  my $tripal   = $arg{-tripal};
 
   $self->{db_args}->{dsn}      = $dsn;
   $self->{db_args}->{username} = $username;
@@ -308,7 +317,7 @@ sub new {
     $self->dbh->do("set enable_seqscan=0");
   }
 
-  $self->srcfeatureslice($arg{-srcfeatureslice} ? $arg{-srcfeatureslice} : 0);
+  $self->srcfeatureslice(defined $arg{-srcfeatureslice} ? $arg{-srcfeatureslice} : 1);
   $self->do2Level($arg{-do2Level} ? $arg{-do2Level} : 0);
 
   if ($arg{-organism}) {
@@ -322,6 +331,7 @@ sub new {
   $self->refclass($self->name2term($refclass));
 
   $self->fulltext($arg{-fulltext});
+  $self->tripal($arg{-tripal});
 
   return $self;
 }
@@ -575,6 +585,38 @@ sub _types_sql {
     }
 
   return ($typestr);
+}
+
+=head2 tripal 
+
+=over
+
+=item Usage
+
+  $obj->tripal()        #get existing value
+  $obj->tripal($newval) #set new value
+
+=item Function
+
+Flag to identfy Chado database that are working with Tripal
+
+=item Returns
+
+value of tripal (a scalar)
+
+=item Arguments
+
+new value of tripal (to set)
+
+=back
+
+=cut
+
+sub tripal {
+    my $self = shift;
+    my $tripal = shift if defined(@_);
+    return $self->{'tripal'} = $tripal if defined($tripal);
+    return $self->{'tripal'};
 }
 
 
