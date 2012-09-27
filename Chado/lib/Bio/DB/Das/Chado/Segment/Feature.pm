@@ -968,13 +968,15 @@ sub sub_SeqFeature {
 
     #deal with Tripal oddness
     my $analsysfeature_part ='';
-    unless ($self->tripal()) {
+    my $score_part = 0;
+    unless ($self->factory->tripal()) {
         $analsysfeature_part = <<END
     left join
        analysisfeature as af on
         (child.feature_id = af.feature_id)
 END
 ;  
+        $score_part = 'COALESCE(af.significance,af.identity,af.normscore,af.rawscore)';
     }
 
     warn "partof = $partof" if DEBUG;
@@ -986,7 +988,7 @@ END
 
     my $sql = "
     select child.feature_id, child.name, child.type_id, child.uniquename, parent.name as pname, child.is_obsolete,
-      childloc.fmin, childloc.fmax, childloc.strand, childloc.locgroup, childloc.phase, COALESCE(af.significance,af.identity,af.normscore,af.rawscore) as score,
+      childloc.fmin, childloc.fmax, childloc.strand, childloc.locgroup, childloc.phase, $score_part as score,
       childloc.srcfeature_id
     from feature as parent
     inner join
