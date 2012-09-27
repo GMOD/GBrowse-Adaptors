@@ -62,7 +62,7 @@ sub up_to_date {
 sub find_fasta {
     my $self  = shift;
     my $dir   = shift;
-    my @files = glob(File::Spec->catfile($dir,"*.fa"));
+    my @files = (glob(File::Spec->catfile($dir,"*.fa")),glob(File::Spec->catfile($dir,"*.fasta")));
     return unless @files == 1;
     return $files[0];
 }
@@ -121,6 +121,21 @@ sub convert_one_sam {
 
     $self->msg("\tConverted $lines lines");
     $self->sort_bam($bam);
+}
+
+sub make_chrom_sizes {
+    my $self  = shift;
+    my @files = $self->files('.bam');
+    my $sizes = $self->dir_path('chrom_sizes.txt');
+    open my $fh,'>',$sizes or die "$sizes: $!";
+    for my $f (@files) {
+	my $b = Bio::DB::Sam->new(-bam=>$f) or die "Couldn't open $f";
+	for my $s (sort $b->seq_ids) {
+	    print $fh join("\t",$s,$b->length($s)),"\n";
+	}
+    }
+    close $fh;
+    return $sizes;
 }
 
 sub make_fai {
@@ -210,7 +225,7 @@ sub bam_to_wig {
     $self->msg('Searching for .bai files');
     my @files = map {$self->dir_path(basename($_,'.bai'))} $self->files('.bai');
     $self->msg("\t",'Found ', @files+0,' files');
-    $chrom_sizes ||= $self->make_fai;
+    $chrom_sizes ||= $self->make_chrom_sizes;
     $self->wiggle_one_bam($_,$chrom_sizes) foreach @files;
 }
 
@@ -265,11 +280,10 @@ sub write_coverage {
 
     $self->msg("Calculating coverage for $bamfile");
 
-    if (my $genomeCoverageBed = $self->genomeCoverageBed) {
-	$self->msg("\t",'genomeCoverageBed found in path; will use it to calculate coverage graph.');
-	my $fai = $self->make_fai;
-	open my $gcb,"$genomeCoverageBed -ibam '$bamfile' -split -bg -g '$fai'|" 
-	    or die "Couldn't open $genomeCoverageBed pipe: $!";
+    if (my $bam2bedgraph = $self->bam2bedgraph) {
+	$self->msg("\t",'bam2bedgraph found in path; will use it to calculate coverage graph.');
+	open my $gcb,"$bam2bedgraph '$bamfile' |" 
+	    or die "Couldn't open $bam2bedgraph pipe: $!";
 	while (<$gcb>) {
 	    print $fh $_;
 	}
@@ -345,9 +359,9 @@ sub bedgraph_path {
     return $self->{_bedgraph_path} ||= $self->search_for_binary('bedGraphToBigWig');
 }
 
-sub genomeCoverageBed {
+sub bam2bedgraph {
     my $self = shift;
-    return $self->{_genomeCoverageBed} ||= $self->search_for_binary('genomeCoverageBed');
+    return $self->{_genomeCoverageBed} ||= $self->search_for_binary('bam2bedgraph');
 }
 
 sub search_for_binary {

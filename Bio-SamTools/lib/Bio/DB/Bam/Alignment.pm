@@ -81,6 +81,26 @@ coordinates.
 
 Return the length of the alignment on the reference sequence.
 
+=item $mseqid = $align->mate_seq_id
+
+Return the seq_id of the mate's reference (target) sequence. This method
+is only available in the Bio::DB::AlignWrapper extension.
+
+=item $mstart = $align->mate_start
+
+For paired reads, return the start of the mate's alignment in
+1-based reference sequence coordinates.
+
+=item $mend = $align->mate_end
+
+For paired reads, return the end position of the mate's alignment in
+1-based reference sequence coordinates.
+
+=item $mlen = $align->mate_len
+
+For mate-pairs, retrieve the length of the mate's alignment on the
+reference sequence. 
+
 =item $strand = $align->strand
 
 Return the strand of the alignment as -1 for reversed, +1 for
@@ -294,6 +314,15 @@ The quality score for the alignment as a whole.
 
 The bitwise flag field (see the SAM documentation).
 
+=item $mtid = $align->mtid
+
+For paired reads, the target ID of the mate's alignemnt.
+
+=item $mpos = $align->mpos
+
+For paired reads, the 0-based leftmost coordinate of the mate's
+alignment on the reference sequence.
+
 =item $n_cigar = $align->n_cigar
 
 Number of CIGAR operations in this alignment.
@@ -380,26 +409,6 @@ aligning.
 Return true if the aligned read's mate was reverse complemented prior
 to aligning.
 
-=item $mseqid  = $align->mate_seq_id
-
-Return the seqid of the mate.
-
-=item $mstart  = $align->mate_start
-
-For paired reads, return the start of the mate's alignment in
-reference sequence coordinates.
-
-
-=item $mend  = $align->mate_end
-
-For paired reads, return the end position of the mate's alignment. in
-reference sequence coordinates.
-
--item $len   = $align->mate_len
-
-For mate-pairs, retrieve the length of the mate's alignment on the
-reference sequence. 
-
 =item $isize = $align->isize
 
 For mate-pairs, return the computed insert size.
@@ -466,7 +475,7 @@ sub get_all_tags {
 
 sub start {
     my $self = shift;
-    return if $self->unmapped;
+    return if $self->pos < 0 || $self->unmapped;
     return $self->pos+1;
 }
 
@@ -558,7 +567,9 @@ sub length {
 }
 
 sub mate_start {
-    shift->mpos+1;
+    my $self = shift;
+    return if $self->mpos < 0 || $self->munmapped;
+    return $self->mpos+1;
 }
 
 sub mate_len {

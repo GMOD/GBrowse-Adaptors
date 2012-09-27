@@ -34,7 +34,7 @@ provides:
     version: 0
   Bio::DB::BigFile:
     file: lib/Bio/DB/BigFile.pm
-    version: 1.06
+    version: 1.07
   Bio::DB::BigFile::BinIterator:
     file: lib/Bio/DB/BigFile/Iterators.pm
     version: 0
@@ -107,4 +107,4 @@ requires:
   perl: 5.008
 resources:
   license: http://dev.perl.org/licenses/
-version: 1.06
+version: 1.07

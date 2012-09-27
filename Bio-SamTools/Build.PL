@@ -9,7 +9,29 @@ my $ReadLine;
 
 my ($sam_include,$sam_lib) = find_sam(); # may exit with error here
 
-my $build = Module::Build->new(
+my $class = Module::Build->subclass(code=><<EOF);
+    sub process_c_bin_files {
+	my \$self = shift;
+	chomp(my \$make  = `which make`);
+	chomp(my \$nmake = `which nmake`);
+	\$make ||= \$nmake;
+	system "cd c_bin; \$make INCLUDES=-I$sam_include LIBPATH=-L$sam_lib";
+	mkdir "blib/bin" unless -e "blib/bin";
+        my \@exec = grep {-x \$_} <c_bin/*>;
+	\$self->copy_if_modified(from   =>\$_,
+				 to_dir => "./blib/bin/",
+				 flatten=>1,
+	    ) foreach \@exec;
+    }
+
+    sub ACTION_clean {
+	my \$self = shift;
+	\$self->SUPER::ACTION_clean();
+        system "cd c_bin; make -s clean";
+    }
+EOF
+
+my $build = $class->new(
     module_name        => 'Bio::SamTools',
     dist_version_from  => 'lib/Bio/DB/Sam.pm',
     dist_author        => 'Lincoln Stein <lincoln.stein@gmail.com>',
@@ -27,6 +49,9 @@ my $build = Module::Build->new(
 	'-Wformat=0'
     ],
 
+    c_source    => 'c_bin',
+    c_bin_files => {'./bin/bam2bedgraph' => 'bin/bam2bedgraph'},
+
     build_requires => {
       'ExtUtils::CBuilder' => 0,
     },
@@ -37,6 +62,7 @@ my $build = Module::Build->new(
 #    create_makefile_pl => 'passthrough',
     );
 
+$build->add_build_element('c_bin');
 $build->create_build_script;
 
 exit 0;

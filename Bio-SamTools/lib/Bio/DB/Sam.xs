@@ -551,8 +551,6 @@ PROTOTYPE: $;$
 CODE:
     if (items > 1)
       b->core.mpos = SvIV(ST(1));
-    if (b->core.pos <= 0)
-      XSRETURN_UNDEF;
     RETVAL=b->core.mpos;
 OUTPUT:
     RETVAL

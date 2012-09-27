@@ -23,7 +23,9 @@ L<Bio::DB::Bam::Alignment/High-level Bio::DB::Bam::Alignment methods>.
  seq_id()              return human-readable reference sequence name
  seq()                 return Bio::PrimarySeq object for reference sequence
  subseq()              return a subsequence across the indicated range
+ mate_seq_id()         return human-readable mate reference sequence name
  dna()                 return the DNA of the reference sequence
+ tam_line()            return the text representation of the alignment
  attributes()          synonym for get_tag_values()
  get_all_tags()        return all tag names
  get_tag_values()      return the values of the given tag
@@ -174,13 +176,14 @@ sub hit { shift->target(@_); }
 sub seq_id {
     my $self = shift;
     my $tid  = $self->tid;
+    return if $tid < 0 || $self->unmapped;
     $self->{sam}->target_name($tid);
 }
 
 sub mate_seq_id {
     my $self = shift;
     my $tid  = $self->mtid;
-    return unless $tid >= 0;
+    return if $tid < 0 || $self->munmapped;
     $self->{sam}->target_name($tid);
 }
 
@@ -403,16 +406,16 @@ sub tam_line {
     return join ("\t",
 		 $self->qname,
 		 $self->flag,
-		 $self->seq_id,
+		 $self->tid >= 0 ? $self->{sam}->target_name($self->tid) : '*',
 		 $self->pos+1,
 		 $self->qual,
-		 $self->cigar_str,
-		 $self->mate_seq_id ? ($self->mate_seq_id eq $self->seq_id ? '=' : $self->mate_seq_id) : '*',
-		 $self->mpos || 0,
+		 $self->cigar_str || '*',
+		 $self->mtid >= 0 ? ($self->mtid == $self->tid ? '=' : $self->{sam}->target_name($self->mtid)) : '*',
+		 $self->mpos+1,
 		 $self->isize,
 		 $self->qseq,
 		 join('',map{chr($_+33)} $self->qscore),
-		 $self->aux
+		 $self->aux || ()
 	);
 }
 
