@@ -42,9 +42,9 @@ Bio::DB::Das::Chado - DAS-style access to a chado database
 
 =head1 DESCRIPTION
 
-Chado is the GMOD database schema, and chado is a specific instance
-of it.  It is still somewhat of a moving target, so this package will 
-probably require several updates over the coming months to keep it working.
+Bio::DB::Das::Chado allows DAS style access to a Chado database, getting
+SeqFeatureI-compliant BioPerl objects and allowing GBrowse to access
+a Chado database directly.
 
 =head1 FEEDBACK
 
@@ -216,7 +216,8 @@ If turned on, the tripal flag tells the adaptor that it is dealing with
 a Chado instance that is working with Tripal, and so the query to fetch
 features may fail with regard to analysis features.  This flag attempts to 
 prevent that.  It may mean that analysis features (like similarity results)
-will be inaccessible to the adaptor.
+will be inaccessible to the adaptor, or at least scores associated with them
+will be, depending on how they were loaded.
 
 =back
 

@@ -1,7 +1,7 @@
 ---
 abstract: 'DAS-style access to a chado database'
 author:
-  - unknown
+  - 'Scott Cain <scain@cpan.org>'
 build_requires: {}
 configure_requires:
   Module::Build: 0.38
