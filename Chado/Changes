@@ -84,3 +84,5 @@ Revision history for Perl module Bio::DB::Das::Chado
       result to the mRNA that was searched with, rather than the standard behavior
       of linking it with a match feature that has two srcfeatures in featureloc).
 
+0.35 Thu Oct 25 15:53:05 EDT 2012
+    - Added "as_string" as an alias to asString (ugh--Javaish) in Segment.pm

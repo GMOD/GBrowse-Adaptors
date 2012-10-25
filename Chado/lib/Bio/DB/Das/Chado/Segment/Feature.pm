@@ -30,7 +30,7 @@ use constant DEBUG => 0;
 use vars qw(@ISA $AUTOLOAD %CONSTANT_TAGS $VERSION);
 @ISA = qw(Bio::DB::Das::Chado::Segment Bio::SeqFeatureI
           Bio::Root::Root);
-$VERSION = 0.34;
+$VERSION = 0.35;
 
 %CONSTANT_TAGS = ();
 
@@ -1646,6 +1646,8 @@ sub asString {
 #  my $id   = $self->group || 'unidentified';
 #  return join '/',$id,$type,$self->SUPER::asString;
 }
+
+*as_string = \&asString;
 
 =head2 synonyms()
 

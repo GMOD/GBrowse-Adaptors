@@ -102,7 +102,7 @@ use constant DEBUG => 0;
 
 use vars qw(@ISA $VERSION);
 @ISA = qw(Bio::Root::Root Bio::SeqI Bio::Das::SegmentI Bio::DB::Das::Chado);
-$VERSION = 0.34;
+$VERSION = 0.35;
 
 #use overload '""' => 'asString';
 
@@ -2077,6 +2077,8 @@ sub asString {
   my $stop  = $self->stop;
   return "$label:$start,$stop";
 }
+
+*as_string = \&asString;
 
 sub rel2abs {
   shift;
