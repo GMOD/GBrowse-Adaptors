@@ -102,7 +102,7 @@ use constant DEBUG => 0;
 
 use vars qw(@ISA $VERSION);
 @ISA = qw(Bio::Root::Root Bio::SeqI Bio::Das::SegmentI Bio::DB::Das::Chado);
-$VERSION = 0.35;
+$VERSION = 0.34;
 
 #use overload '""' => 'asString';
 
@@ -1658,7 +1658,7 @@ sub dna {
     return $seq;
   }
 
-  my $feat_id = $self->{srcfeature_id};
+  my $feat_id = $self->srcfeature_id();
 
   my $has_start = defined $base_start;
   my $has_stop  = defined $stop;
@@ -1670,6 +1670,8 @@ sub dna {
   } elsif ($strand && $strand < 0 ) {
     $reversed++;
   }
+
+  warn Dumper($self) if DEBUG;
 
   my $sth;
   if (!$has_start and !$has_stop) {
@@ -1785,7 +1787,32 @@ sub srcfeature_id {
   return $self->{'srcfeature_id'} = shift if @_;
  
   confess "how did I get into srcfeature_id method" if (DEBUG and !ref $self); 
-  return $self->{'srcfeature_id'};
+  return $self->{'srcfeature_id'} if $self->{'srcfeature_id'};
+
+  #OK, got here and don't have a srcfeature_id--try to get one
+  my $seq_id  = $self->seq_id;
+  my $type_id = $self->factory->refclass;
+  my $org_id  = $self->factory->organism_id;
+  warn $seq_id;
+  warn $type_id;
+  warn $org_id;
+  return unless $seq_id and $type_id and $org_id;
+
+  my $query =<<END
+   SELECT feature_id FROM feature WHERE (name=? OR uniquename=?) 
+                                  AND type_id =?
+                                  AND organism_id = ?
+END
+;
+
+  my $sth = $self->factory->dbh->prepare($query);
+  $sth->execute($seq_id,$seq_id,$type_id,$org_id) or die;
+  
+  my $arrayref = $sth->fetchall_arrayref;
+  die "too many potential srcfeatures found." if @$arrayref > 1;
+  return if @$arrayref == 0;
+  my ($srcfeature_id) = $$arrayref[0];  
+  return $self->{'srcfeature_id'} = $srcfeature_id;
 }
 
 =head2 source
@@ -2077,8 +2104,6 @@ sub asString {
   my $stop  = $self->stop;
   return "$label:$start,$stop";
 }
-
-*as_string = \&asString;
 
 sub rel2abs {
   shift;
