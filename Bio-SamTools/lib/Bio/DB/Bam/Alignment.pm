@@ -578,9 +578,9 @@ sub mate_len {
     my $len     = $self->length;
 
     my $adjust = 0;
-    my @cigar   = $self->cigar_str =~ /(\w)(\d+)/g;
+    my @cigar   = $self->cigar_str =~ /(\d+)(\w)/g;
     while (@cigar) {
-	my ($op,$len) = splice(@cigar,0,2);
+	my ($len,$op) = splice(@cigar,0,2);
 	$adjust += $len if $op eq 'I';
 	$adjust -= $len if $op eq 'D';
     }
