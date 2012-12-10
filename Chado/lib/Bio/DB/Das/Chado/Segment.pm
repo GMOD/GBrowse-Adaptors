@@ -214,7 +214,7 @@ sub new {
 
     if ( ref $ref eq 'ARRAY' ) {    #more than one result returned
 
-        warn "\n\n@$ref\n\n";
+        warn "\n\n@$ref\n\n" if DEBUG;
 
         my @segments;
 
