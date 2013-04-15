@@ -1031,9 +1031,13 @@ always zero.
 
 Return the current position of the BAM file read/write pointer.
 
-=item $bam->seek($integer)
+=item $bam->seek($integer,$pos)
 
-Set the current position of the BAM file read/write pointer.
+Set the current position of the BAM file read/write pointer. $pos is
+one of SEEK_SET, SEEK_CUR, SEEK_END. These constants can be obtained
+from the Fcntl module by importing the ":seek" group:
+
+ use Fcntl ':seek';
 
 =item $alignment = $bam->read1()
 
