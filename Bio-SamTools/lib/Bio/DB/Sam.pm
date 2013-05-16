@@ -1,6 +1,6 @@
 package Bio::DB::Sam;
 
-our $VERSION = '1.37';
+our $VERSION = '1.38';
 
 =head1 NAME
 

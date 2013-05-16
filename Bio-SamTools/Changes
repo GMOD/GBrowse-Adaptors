@@ -1,3 +1,6 @@
+Version 1.38
+   * Add -lpthread to linker flags to allow to run with samtools 0.1.19.
+
 Version 1.37
    * Fix incorrect calculation of mate_len and mate_end when CIGAR string
      contains insertions and deletions. Thanks to Ian Sealy for the patch!
