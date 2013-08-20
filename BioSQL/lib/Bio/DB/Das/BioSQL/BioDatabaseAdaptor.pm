@@ -1,16 +1,6 @@
-# BioPerl module for Bio::DB::BioSQL::BioDatabaseAdaptor
-#
-# Modified by Vsevolod (Simon) Ilyushchenko (simonf@cshl.edu)
-#
-# Copyright Ewan Birney
-#
-# You may distribute this module under the same terms as perl itself
-
-# POD documentation - main docs before the code
-
 =head1 NAME
 
-Bio::DB::BioSQL::BioDatabaseAdaptor - Low level interface for Bio::DB::BioDB classes
+Bio::DB::Das::BioSQL::BioDatabaseAdaptor - Low level interface for Bio::DB::BioDB classes
 
 =head1 SYNOPSIS
 
@@ -45,10 +35,6 @@ Emails birney@ebi.ac.uk, simonf@cshl.edu
 
 =cut
 
-
-# Let the code begin...
-
-
 package Bio::DB::Das::BioSQL::BioDatabaseAdaptor;
 use strict;
 
@@ -64,7 +50,6 @@ use Bio::DB::Query::BioQuery;
  Returns : 
  Args    :
 
-
 =cut
 
 sub new_from_registry{
@@ -75,12 +60,12 @@ sub new_from_registry{
 
    my $db = Bio::DB::BioDB->new(
                                 -database => 'FastBioSQL',
-                                -dbname=>$conf{'dbname'},
-                                -host=>$conf{'location'},
-                                -driver=>$conf{'driver'},
-                                -user=>$conf{'user'},
-                                -pass=>$conf{'pass'},
-                                -port=>$conf{'port'}
+                                -dbname   => $conf{'dbname'},
+                                -host     => $conf{'location'},
+                                -driver   => $conf{'driver'},
+                                -user     => $conf{'user'},
+                                -pass     => $conf{'pass'},
+                                -port     => $conf{'port'}
                                 );
 
     my $self = bless {}, ref($class) || $class;
@@ -105,15 +90,15 @@ sub new_from_registry{
 
 =cut
 
-sub fetch_Seq_by_accession
-{
+sub fetch_Seq_by_accession {
   my ( $self, $acc ) = @_;
   my $namespace = $self->namespace;
   my $version   = $self->version;
   my $query = Bio::DB::Query::BioQuery->new(
        -datacollections =>
          [ "Bio::SeqI seq", "Bio::DB::Persistent::BioNamespace=>Bio::SeqI db" ],
-       -where => [ "db.namespace ='$namespace'", "seq.accession_number = '$acc'", $version && $version < 100 ? ("seq.version = '$version'") : () ]
+       -where => [ "db.namespace ='$namespace'", "seq.accession_number = '$acc'", 
+       $version && $version < 100 ? ("seq.version = '$version'") : () ]
   );
 
   my $adp     = $self->db->get_object_adaptor("Bio::Seq");
@@ -122,31 +107,21 @@ sub fetch_Seq_by_accession
   return  wantarray ? @results : $results[0];
 }
 
-
-#sub top_SeqFeatures{
-#    my ($self,$segment) = @_;
-#    
-#    return $segment->top_SeqFeatures;
-#}
-
-sub db
-{
+sub db {
     my $self = shift;
-    if (@_) {$self->{db} = shift;}
+    $self->{db} = shift if (@_);
     return $self->{db};
 }
 
-sub namespace
-{
+sub namespace {
     my $self = shift;
-    if (@_) {$self->{namespace} = shift;}
+    $self->{namespace} = shift if (@_);
     return $self->{namespace};
 }
 
-sub version
-{
+sub version {
     my $self = shift;
-    if (@_) {$self->{version} = shift;}
+    $self->{version} = shift if (@_);
     return $self->{version};
 }
 

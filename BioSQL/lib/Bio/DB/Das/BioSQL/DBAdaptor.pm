@@ -4,7 +4,7 @@ Bio::DB::Das::BioSQL::DBAdaptor - class that helps to use custom object adaptors
 
 =head1 SYNOPSIS
 
-    This is a private class.
+This is a private class.
 
 =head1 DESCRIPTION
 
@@ -26,12 +26,10 @@ use base 'Bio::DB::BioSQL::DBAdaptor';
 
 use Bio::DB::Das::BioSQL::PartialSeqAdaptor;
 
-sub _get_object_adaptor_class
-{
+sub _get_object_adaptor_class {
     my ($self, $class) = @_;
     
-    if ($class eq "Bio::Seq")
-    {
+    if ($class eq "Bio::Seq") {
         return "Bio::DB::Das::BioSQL::PartialSeqAdaptor";
     }
     

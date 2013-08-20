@@ -1,3 +1,9 @@
+=head1 NAME
+
+Bio::DB::Das::BioSQL::Iterator
+
+=cut
+
 package Bio::DB::Das::BioSQL::Iterator;
 
 sub new {

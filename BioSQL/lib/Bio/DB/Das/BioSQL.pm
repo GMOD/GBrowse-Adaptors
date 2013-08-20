@@ -1,5 +1,3 @@
-# Das adaptor for BioSQL
-
 =head1 NAME
 
 Bio::DB::Das::BioSQL - DAS-style access to a BioSQL database
@@ -8,29 +6,28 @@ Bio::DB::Das::BioSQL - DAS-style access to a BioSQL database
 
  # Open up a feature database
  $db = Bio::DB::Das::BioSQL->new(
-				 driver   => 'mysql',
-				 dbname => 'biosql',
-				 biodbname => 'test',
-				 host   => 'swiss',
-				 user   => 'lstein',
-				 pass   => undef,
-				 port   => undef,
-				 namespace   => 'namespace',
-				 version   => version_number,
-				) or die;
-
-  @segments = $db->segment(-name  => 'NT_29921.4',
-                           -start => 1,
-			   -end   => 1000000);
+         driver    => 'mysql',
+         dbname    => 'biosql',
+         biodbname => 'test',
+         host      => 'swiss',
+         user      => 'lstein',
+         pass      => undef,
+         port      => undef,
+         namespace => 'namespace',
+         version   => version_number );
 
   # segments are Bio::Das::SegmentI - compliant objects
+  @segments = $db->segment(-name  => 'NT_29921.4',
+                           -start => 1,
+                           -end   => 1000000);
 
   # fetch a list of features
   @features = $db->features(-segment=>$segment, -type=>['type1','type2','type3']);
 
   $stream   = $db->get_seq_stream(-type=>['type1','type2','type3']);
+  # each feature is a Bio::SeqFeatureI-compliant object
   while (my $feature = $stream->next_seq) {
-     # each feature is a Bio::SeqFeatureI-compliant object
+    # do something ...
   }
 
   # get all feature types
@@ -60,10 +57,9 @@ In addition to a name, each feature has a "class", which is
 essentially a namespace qualifier and a "type", which describes what
 type of feature it is.  Das uses the GO consortium's ontology of
 feature types, and so the type is actually an object of class
-Bio::Das::FeatureTypeI (see
-L<Bio::Das::FeatureTypeI>). Bio::DB::Das::BioSQL provides methods for
-interrogating the database for the types it contains and the counts of
-each type.
+Bio::Das::FeatureTypeI (see L<Bio::Das::FeatureTypeI>). Bio::DB::Das::BioSQL 
+provides methods forinterrogating the database for the types it contains 
+and the counts of each type.
 
 =head1 FEEDBACK
 
@@ -84,7 +80,9 @@ or the web:
   bioperl-bugs@bio.perl.org
   http://bio.perl.org/bioperl-bugs/
 
-=head1 AUTHORS - Lincoln Stein, Vsevolod (Simon) Ilyushchenko
+=head1 AUTHORS
+
+Lincoln Stein, Vsevolod (Simon) Ilyushchenko, Brian Osborne
 
 Email lstein@cshl.edu, simonf@cshl.edu
 
@@ -95,39 +93,37 @@ methods. Internal methods are usually preceded with a _
 
 =cut
 
-#'
-
 package Bio::DB::Das::BioSQL;
-use strict;
 
+use strict;
 use Bio::DB::Das::BioSQL::BioDatabaseAdaptor;
 use Bio::DB::Das::BioSQL::Segment;
+use Bio::DB::Das::BioSQL::Iterator;
 use Bio::Root::Root;
 use Bio::DasI;
 use vars qw($VERSION @ISA);
 
-use constant SEGCLASS => 'Bio::DB::Das::BioSQL::Segment';
-use constant ADAPTOR_CLASS => 'Bio::DB::Das::BioSQL::BioDatabaseAdaptor';
+use constant SEG_CLASS      => 'Bio::DB::Das::BioSQL::Segment';
+use constant ADAPTOR_CLASS  => 'Bio::DB::Das::BioSQL::BioDatabaseAdaptor';
+use constant ITERATOR_CLASS => 'Bio::DB::Das::BioSQL::Iterator';
 
-$VERSION = 0.03;
+$VERSION = 0.04;
 @ISA     = qw(Bio::Root::Root Bio::DasI);
 
-# Install horrible patch for gbrowse compatibility
+# Install horrible patch for GBrowse compatibility
 use Bio::SeqFeature::Generic;
-use Bio::DB::GFF::Util::Rearrange 'rearrange';
 
 =head2 new
 
  Title   : new
  Usage   : $db    = Bio::DB::Das::BioSQL(
-				    driver    => 'mysql',
-				    dbname    => 'biosql',
-				    biodbname => 'swissprot',
-				    host      => 'localhost',
-				    user      => 'jimbo',
-				    pass      => 'supersecret',
-				    port      => 3306,
-                                       );
+            driver    => 'mysql',
+            dbname    => 'biosql',
+            biodbname => 'swissprot',
+            host      => 'localhost',
+            user      => 'jimbo',
+            pass      => 'supersecret',
+            port      => 3306 );
 
  Function: Open up a Bio::DB::DasI interface to a BioSQL database
  Returns : a new Bio::DB::Das::BioSQL object
@@ -139,14 +135,14 @@ use Bio::DB::GFF::Util::Rearrange 'rearrange';
 # create new database accessor object
 # takes all the same args as a Bio::DB::BioDB class
 sub new {
-  my $class = shift;
-  my $self  = $class->SUPER::new(@_);
-  
-  # may throw an exception on new_from_registry()
-  my $biosql   = $self ->_adaptorclass->new_from_registry(@_);
+    my $class = shift;
+    my $self  = $class->SUPER::new(@_);
 
-  $self->biosql($biosql);
-  $self;
+    # may throw an exception on new_from_registry()
+    my $biosql = $self->_adaptorclass->new_from_registry(@_);
+
+    $self->biosql($biosql);
+    $self;
 }
 
 =head2 segment
@@ -158,7 +154,7 @@ sub new {
  Args    : see below
 
 This method generates a Bio::Das::SegmentI object (see
-L<Bio::Das::SegmentI>).  The segment can be used to find overlapping
+L<Bio::Das::SegmentI>). The segment can be used to find overlapping
 features and the raw sequence.
 
 When making the segment() call, you specify the ID of a sequence
@@ -193,44 +189,64 @@ Otherwise, the method must throw a "multiple segment exception".
 
 =cut
 
-sub get_feature_by_name
-{
-  my ($self) = shift;
-  my ($name,$start,$end,$class,$version,$id) = $self->_rearrange([qw(NAME
-					 			     START
-								     END
-								     CLASS
-								     VERSION
-                                                                     FEATURE_ID
-                                                  )],@_);
-  if ($id) {
-      return $self->get_feature_by_primary_key($id);
-  }
-  my @seq = $self->biosql->fetch_Seq_by_accession($name);
-  return unless @seq;
-  return map {$self->_segclass->new(-bioseq => $_, -dbadaptor => $self)} @seq;
+sub segment {
+    my $self = shift;
+    my ( $name, $start, $end, $class, $version, $absolute ) = $self->_rearrange(
+        [
+            [ 'NAME', 'REF' ],
+            'START',
+            [ 'END', 'STOP' ],
+            qw(CLASS VERSION ABSOLUTE)
+        ],
+        @_
+    );
+
+    my @seq = $self->biosql->fetch_Seq_by_accession($name);
+
+    return unless @seq;
+    return map {
+        $self->_segclass->new(
+            -bioseq    => $_,
+            -dbadaptor => $self,
+            -start     => $start,
+            -end       => $end,
+            -absolute  => $absolute
+          )
+    } @seq;
+}
+
+sub get_feature_by_name {
+    my ($self) = shift;
+    my ( $name, $start, $end, $class, $version, $id ) = $self->_rearrange(
+        [
+            qw(NAME
+              START
+              END
+              CLASS
+              VERSION
+              FEATURE_ID
+              )
+        ],
+        @_
+    );
+
+    return $self->get_feature_by_primary_key($id) if $id;
+
+    my @seq = $self->biosql->fetch_Seq_by_accession($name);
+    return unless @seq;
+    return
+      map { $self->_segclass->new( -bioseq => $_, -dbadaptor => $self ) } @seq;
 }
 
 sub get_feature_by_primary_key {
-    my $self = shift;
-    my $key  = shift;
+    my $self    = shift;
+    my $key     = shift;
     my $adaptor = $self->biosql->db->get_object_adaptor("Bio::SeqFeatureI");
-    map {Bio::DB::Das::BioSQL::Segment->wrap_feature($_)} $adaptor->find_by_primary_key($key);
+    map { Bio::DB::Das::BioSQL::Segment->wrap_feature($_) }
+      $adaptor->find_by_primary_key($key);
 }
 
-sub get_feature_by_primary_id {shift->get_feature_by_primary_key(@_)}
-
-sub segment {
-  my $self = shift;
-  my ($name,$start,$end,$class,$version, $absolute) =
-    rearrange([['NAME','REF'],'START',['END','STOP'],qw(CLASS VERSION ABSOLUTE)],@_);
-
-  my @seq = $self->biosql->fetch_Seq_by_accession($name);
-  
-  return unless @seq;
-  return map {$self->_segclass->new(-bioseq => $_, -dbadaptor => $self, -start => $start, -end => $end, -absolute => $absolute)} @seq;
-}
-
+sub get_feature_by_primary_id { shift->get_feature_by_primary_key(@_) }
 
 =head2 features
 
@@ -247,14 +263,16 @@ their type
 
 Arguments are -option=E<gt>value pairs as follows:
 
-  -types     List of feature types to return.  Argument is an array
-             of Bio::Das::FeatureTypeI objects or a set of strings
-             that can be converted into FeatureTypeI objects.
+  -types      List of feature types to return.  Argument is an array
+              of Bio::Das::FeatureTypeI objects or a set of strings
+              that can be converted into FeatureTypeI objects.
 
   -callback   A callback to invoke on each feature.  The subroutine
               will be passed each Bio::SeqFeatureI object in turn.
 
   -attributes A hash reference containing attributes to match.
+
+  -segment    A segment
 
 The -attributes argument is a hashref containing one or more attributes
 to match against:
@@ -273,11 +291,19 @@ interrupted.  When a callback is provided, the method returns undef.
 
 sub features {
     my $self = shift;
-    my ($types,$callback,$attributes, $segment) = 
-       $self->_rearrange([qw(TYPES CALLBACK ATTRIBUTES SEGMENT)],
-			@_);
-    my @features = $segment->top_SeqFeatures();
-    return @features;
+    my ( $type, $callback, $attributes, $segment ) =
+      $self->_rearrange( [qw(TYPE CALLBACK ATTRIBUTES SEGMENT)], @_ );
+
+    my @features = $segment->top_SeqFeatures;
+
+    $type = [$type] if ($type && !ref $type);
+
+    if ($type) {
+        my %types = map { lc $_ => 1 } @$type;
+        @features = grep { $types{ lc $_->method } } @features;
+    }
+
+    @features;
 }
 
 =head2 types
@@ -309,9 +335,9 @@ BioSQL API does not appear to provide this functionality.
 =cut
 
 sub types {
-  my $self = shift;
-  my ($enumerate) =  $self->_rearrange([qw(ENUMERATE)],@_);
-  $self->throw_not_implemented;
+    my $self = shift;
+    my ($enumerate) = $self->_rearrange( [qw(ENUMERATE)], @_ );
+    $self->throw_not_implemented;
 }
 
 =head2 search_notes
@@ -321,7 +347,6 @@ sub types {
  Function: full-text search on features, ENSEMBL-style
  Returns : an array of [$name,$description,$score]
  Args    : see below
- Status  : public
 
 This routine performs a full-text search on feature attributes (which
 attributes depend on implementation) and returns a list of
@@ -334,8 +359,6 @@ TO WORK.
 
 =cut
 
-
-
 =head2 biosql
 
  Title   : biosql
@@ -346,41 +369,62 @@ TO WORK.
 
 =cut
 
-sub biosql
-{
+sub biosql {
     my $self = shift;
-    if (@_) {$self->{biosql} = shift;}
+    if (@_) { $self->{biosql} = shift; }
     return $self->{biosql};
 }
 
-=head2 _segclass
+=head2
 
- Title   : _segclass
- Usage   : $class = $db->_segclass
- Function: returns the perl class that we use for segment() calls
- Returns : a string containing the segment class
- Args    : none
- Status  : reserved for subclass use
+Accessor methods to return module names
 
 =cut
 
-sub _segclass { return SEGCLASS }
+sub _segclass      { return SEG_CLASS }
 
-=head2 _adaptorclass
+sub _adaptorclass  { return ADAPTOR_CLASS }
 
- Title   : _adaptorclass
- Usage   : $class = $db->_adaptorclass
- Function: returns the perl class that we use as a BioSQL database adaptor
- Returns : a string containing the segment class
- Args    : none
- Status  : reserved for subclass use
+sub _iteratorclass { return ITERATOR_CLASS }
+
+=head2 get_seq_stream
+
+ Title   : get_seq_stream
+ Usage   : my $seqio = $self->get_seq_stream(-type => $types, -seq_id => $id)
+ Function: Performs a query and returns an iterator over it
+ Returns : a stream returning Bio::DB::Das::BioSQL::Feature objects
+ Args    : -type, -seq_id, -start, -end
+           Types should be passed as an array reference or one string.
+
+ Use it like this:
+
+ $stream = $db->get_seq_stream(-type => 'exon', -seq_id => 'NC_122444');
+ while (my $exon = $stream->next_seq) {
+   print $exon->name,"\n";
+ }
 
 =cut
 
-sub _adaptorclass { return ADAPTOR_CLASS }
+sub get_seq_stream {
+    my $self = shift;
+    my $segment;
+    my ( $type, $seq_id, $start, $end ) =
+      $self->_rearrange( [qw(TYPE SEQ_ID START END)], @_ );
 
+    if ( $start && $end ) {
+        ($segment) = $self->segment( -name => $seq_id, 
+                                     -start => $start, 
+                                     -end => $end );
+    } else {
+        ($segment) = $self->segment( -name => $seq_id );
+    }
 
+    # Make $type an array reference if it's not
+    $type = [$type] if ( $type && !ref $type);
+
+    my @features = $self->features( -type => $type, -segment => $segment );
+
+    return $self->_iteratorclass->new( \@features );
+}
 
 1;
-
-

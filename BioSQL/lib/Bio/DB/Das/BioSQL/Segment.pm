@@ -1,4 +1,3 @@
-
 =head1 NAME
 
 Bio::DB::Das::BioSQL::Segment - DAS-style access to a BioSQL database
@@ -84,7 +83,7 @@ use overload '""' => 'asString';
 use vars '@ISA';
 @ISA = qw(Bio::Root::Root Bio::SeqI Bio::Das::SegmentI);
 
-#Construct a virtual segment.
+# Construct a virtual segment.
 sub new {
   my $self = shift;
   my ($bioseq, $dbadaptor, $start, $end, $absolute) =
@@ -94,9 +93,9 @@ sub new {
   $start = 1 unless defined $start;
   $end   = $bioseq->length unless defined $end;
   
-  #I'd like to do that. However, this means that $end will be greater than length,
-  #and biosql code does not like it.
-  #$bioseq->seq(substr($bioseq->seq, $start-1, ($end-$start)));
+  # I'd like to do that. However, this means that $end will be greater than length,
+  # and biosql code does not like it.
+  # $bioseq->seq(substr($bioseq->seq, $start-1, ($end-$start)));
   
   return bless {bioseq    =>  $bioseq,
 		dbadaptor =>  $dbadaptor,
@@ -162,8 +161,7 @@ Return the absolute start of the segment
 
 =cut
 
-sub abs_start
-{
+sub abs_start {
     return 1;
 }
 
@@ -180,8 +178,7 @@ Return the absolute end of the segment
 
 =cut
 
-sub abs_end
-{
+sub abs_end {
     my ($self) = @_;
     return $self->end - $self->start + 1;
 }
@@ -256,7 +253,7 @@ pairs.
   --------   ------------
 
   -types      An array reference to type names in the format
-	      "method:source"
+	            "method:source"
 
   -attributes A hashref containing a set of attributes to match
 
@@ -470,31 +467,28 @@ sub asString {
    return "$label:$start,$stop";
 }
 
-sub name { shift->asString }
-sub type { 'Segment' }
-sub source_tag  {'BioSQL'}
-sub class  {'Segment'}
+sub name       { shift->asString }
+sub type       { 'Segment' }
+sub source_tag {'BioSQL'}
+sub class      {'Segment'}
 
-#Have to return bioseq->obj, not the wrapper around it (bioseq),
-#because some classes check for the exact class name.
+# Have to return bioseq->obj, not the wrapper around it (bioseq),
+# because some classes check for the exact class name.
 sub primary_seq {return shift->bioseq->obj}
 sub dna {return shift->seq}
 
-#Forwarding various access methods to the underlying objects.
-sub alphabet   { shift->bioseq->alphabet(@_) }
-sub display_id { shift->bioseq->display_id(@_) }
+# Forwarding various access methods to the underlying objects.
+sub alphabet         { shift->bioseq->alphabet(@_) }
+sub display_id       { shift->bioseq->display_id(@_) }
 sub accession_number { shift->bioseq->display_id(@_) }
-sub desc       { shift->bioseq->desc(@_) }
-
-sub display_name {shift->bioseq->display_id(@_)}
-sub location {return shift}
-
-sub is_circular {return shift->bioseq->is_circular}
-sub annotation {return shift->bioseq->annotation}
-sub species {return shift->bioseq->species}
-sub version {return shift->bioseq->version}
-
-sub subseq { shift->seq }
+sub desc             { shift->bioseq->desc(@_) }
+sub display_name     { shift->bioseq->display_id(@_)}
+sub location         { return shift}
+sub is_circular      { return shift->bioseq->is_circular}
+sub annotation       { return shift->bioseq->annotation}
+sub species          { return shift->bioseq->species}
+sub version          { return shift->bioseq->version}
+sub subseq           { shift->seq }
 
 sub overlaps {
   my $self          = shift;
@@ -524,6 +518,7 @@ sub new {
     my $obj   = shift;
     return bless $obj,ref $class || $class;
 }
+
 sub seq_id {
     my $self = shift;
     return eval{$self->seq->id};
@@ -534,19 +529,21 @@ sub ref { shift->seq_id }
 sub display_name {
     my $self = shift;
     for my $tag (qw(name label locus_tag db_xref product)) {
-	next unless $self->has_tag($tag);
-	my ($value) = $self->get_tag_values($tag);
-	return $value;
+        next unless $self->has_tag($tag);
+        my ($value) = $self->get_tag_values($tag);
+        return $value;
     }
-    return $self->primary_tag."(".$self->primary_key.")";
+    return $self->primary_tag . "(" . $self->primary_key . ")";
 }
 
 sub attributes {
     shift->get_tag_values();
 }
+
 sub method { 
     shift->primary_tag;
 }
+
 sub type {
     my $self = shift;
     my $method = $self->primary_tag;
@@ -554,12 +551,13 @@ sub type {
     $method .= ":$source" if defined $source;
     return $method;
 }
+
 sub name       { shift->display_name }
 sub primary_id { shift->primary_key }
-sub abs_ref   { shift->ref }
-sub abs_start { shift->start }
-sub abs_end   { shift->end  }
-sub abs_stop  { shift->end  }
-sub class     { shift->method  }
+sub abs_ref    { shift->ref }
+sub abs_start  { shift->start }
+sub abs_end    { shift->end  }
+sub abs_stop   { shift->end  }
+sub class      { shift->method  }
 
 1;
