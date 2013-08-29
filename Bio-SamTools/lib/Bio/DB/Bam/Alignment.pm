@@ -489,9 +489,7 @@ sub stop { shift->end }
 
 # in SAM format, alignment is always to the forward strand
 sub strand {
-    my $self     = shift;
-    return $self->reversed ? -1 : 1;
-#     return 1;
+    return shift->reversed ? -1 : 1;
 }
 
 sub abs_strand { shift->strand }

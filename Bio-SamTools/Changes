@@ -1,3 +1,8 @@
+Version 1.39 
+
+   * Bio::DB::Bam::Alinment->strand() performance
+     patch from: https://rt.cpan.org/Ticket/Display.html?id=88203.
+
 Version 1.38
    * Add -lpthread to linker flags to allow to run with samtools 0.1.19.
 
