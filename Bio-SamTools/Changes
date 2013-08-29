@@ -1,3 +1,7 @@
+Version 1.40
+  * Add Bio::DB::Bam::Alinment->qstring() convenience method.
+  * Add reference to GitHub site for this module.
+  
 Version 1.39 
 
    * Bio::DB::Bam::Alinment->strand() performance

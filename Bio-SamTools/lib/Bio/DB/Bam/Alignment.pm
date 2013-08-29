@@ -30,6 +30,7 @@ Bio::DB::Bam::Alignment -- The SAM/BAM alignment object
    
     my $cigar     = $a->cigar_str;
     my @scores    = $a->qscore;     # per-base quality scores
+    my $score     = $a->qstring;    # TAM-style quality string
     my $match_qual= $a->qual;       # quality of the match
 
     my $paired = $a->get_tag_values('PAIRED');
@@ -352,6 +353,11 @@ quality scores for each base of the query sequence. In a list context
 return a list of the scores. This array is in the same orientation as
 the reference sequence.
 
+=item $score_str = $align->qstring
+
+Returns the quality string in the same format used in the SAM (TAM)
+file.
+
 =item $length = $align->isize
 
 The calculated insert size for mapped paired reads.
@@ -508,6 +514,10 @@ sub qscore {
     my $scores = $self->_qscore;
     my @scores  = unpack('C*',$scores);
     return wantarray ? @scores : \@scores;
+}
+
+sub qstring {
+    return join('',map{chr($_+33)} shift->qscore);
 }
 
 sub primary_id {
