@@ -81,7 +81,7 @@ typedef struct asTypeInfo *Bio__DB__asTypeInfo;
 MODULE = Bio::DB::BigFile PACKAGE = Bio::DB::BigFile PREFIX=bf_
 
 void
-bf_bigWigFileCreate(package="Bio::DB::BigFile",inName,chromSizes,blockSize=1024,itemsPerSlot=512,clipDontDie=TRUE,compress=TRUE,outName)
+bf_bigWigFileCreate(package="Bio::DB::BigFile",inName,chromSizes,blockSize=1024,itemsPerSlot=512,clipDontDie=TRUE,compress=TRUE,keepAllChromosomes=TRUE,fixedSummaries=TRUE,outName)
   char             *package
   char             *inName
   char             *chromSizes
@@ -89,9 +89,11 @@ bf_bigWigFileCreate(package="Bio::DB::BigFile",inName,chromSizes,blockSize=1024,
   int               itemsPerSlot
   int               clipDontDie
   int               compress
+  int               keepAllChromosomes
+  int               fixedSummaries
   char             *outName
   CODE:
-  bigWigFileCreate(inName,chromSizes,blockSize,itemsPerSlot,clipDontDie,compress,outName);
+  bigWigFileCreate(inName,chromSizes,blockSize,itemsPerSlot,clipDontDie,compress,keepAllChromosomes,fixedSummaries,outName);
 
 void
 bf_udcSetDefaultDir(packname="Bio::DB::BigFile",path)
