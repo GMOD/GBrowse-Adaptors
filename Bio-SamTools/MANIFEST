@@ -24,6 +24,7 @@ MANIFEST			This list of files
 META.json
 META.yml
 README
+INSTALL.pl
 t/01sam.t
 t/data/00README.txt
 t/data/dm3_3R_4766911_4767130.sam
