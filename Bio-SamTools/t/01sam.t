@@ -7,7 +7,7 @@ use strict;
 use ExtUtils::MakeMaker;
 use File::Temp qw(tempfile);
 use FindBin '$Bin';
-use constant TEST_COUNT => 104 + 8; # malcolm_cook@stowers.org added spliced alignment tests
+use constant TEST_COUNT => 170;
 
 use lib "$Bin/../lib","$Bin/../blib/lib","$Bin/../blib/arch";
 
@@ -33,7 +33,7 @@ use Bio::DB::Sam;
   my $bamfile = "$Bin/data/dm3_3R_4766911_4767130.sam.sorted.bam";
   my $sam     = Bio::DB::Sam->new( -bam => $bamfile, 
 				   -split_splices => 1,
-				-autoindex => 1,
+				   -autoindex => 1,
 				 );
   ok($sam);
   ok($sam->split_splices);
@@ -215,11 +215,12 @@ use Bio::DB::Sam;
 }
 
 # high level tests (defined in lib/Bio/DB/Sam.pm)
-{
+for my $use_fasta (0,1) {
     my $sam = Bio::DB::Sam->new(-fasta=>"$Bin/data/ex1.fa",
 			        -bam  =>"$Bin/data/ex1.bam",
 				-expand_flags => 1,
 				-autoindex => 1,
+				-force_refseq => $use_fasta,
 	);
     ok($sam);
     ok($sam->n_targets,2);
@@ -391,9 +392,18 @@ use Bio::DB::Sam;
     
     $sam->pileup('seq2:1-100',$fetch_back);
     ok($matches{matched}/$matches{total} > 0.99);
+}
 
-    exit 0;
+exit 0;
 
+sub reversec {
+    my $dna = shift;
+    $dna    =~ tr/gatcGATC/ctagCTAG/;
+    return scalar reverse $dna;
+}
+
+
+__END__
 # this is not a unit test, but a piece of demo to show cigar string
 # processing
     for my $a (@alignments) {
@@ -407,13 +417,3 @@ use Bio::DB::Sam;
 	$a->mate_start,'..',$a->mate_end,
 	"\n";
     }
-}
-
-sub reversec {
-    my $dna = shift;
-    $dna    =~ tr/gatcGATC/ctagCTAG/;
-    return scalar reverse $dna;
-}
-
-
-

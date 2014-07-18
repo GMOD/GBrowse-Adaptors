@@ -1,6 +1,9 @@
 Version 1.40
   * Add Bio::DB::Bam::Alinment->qstring() convenience method.
   * Add reference to GitHub site for this module.
+  * Add -force_refseq option to Bio::DB::Sam->new() constructor
+    to force module to use the FASTA file for reference sequence
+    retrieval even when MD flag is available.
   
 Version 1.39 
 

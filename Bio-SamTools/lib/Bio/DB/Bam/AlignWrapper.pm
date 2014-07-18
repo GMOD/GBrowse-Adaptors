@@ -257,8 +257,9 @@ sub padded_alignment {
 sub dna {
     my $self = shift;
 
-    my $sam  = $self->{sam};
-    if (my $md   = $self->get_tag_values('MD')) {  # try to use MD string
+    my $sam   = $self->{sam};
+    my $force = $sam->force_refseq;
+    if (!$force && (my $md   = $self->get_tag_values('MD'))) {  # try to use MD string
 	my $qseq = $self->qseq;
 
 	#preprocess qseq using cigar array

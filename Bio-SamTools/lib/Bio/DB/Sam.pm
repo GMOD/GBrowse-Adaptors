@@ -1,6 +1,6 @@
 package Bio::DB::Sam;
 
-our $VERSION = '1.39';
+our $VERSION = '1.40';
 
 =head1 NAME
 
@@ -254,6 +254,13 @@ follows:
                   alignments (default false).
 
   -split          The same as -split_splices.
+
+  -force_refseq   Always use the reference sequence file to derive the
+                   reference sequence, even when the sequence can be
+                   derived from the MD tag. This is slower, but safer
+                   when working with BAM files derived from buggy aligners
+                   or when the reference contains non-canonical (modified)
+                   bases.
 
   -autoindex      Create a BAM index file if one does not exist
                    or the current one has a modification date
@@ -1377,6 +1384,7 @@ sub new {
     my $expand_flags  = $args{-expand_flags};
     my $split_splices = $args{-split} || $args{-split_splices};
     my $autoindex     = $args{-autoindex};
+    my $force_refseq  = $args{-force_refseq};
 
     # file existence checks
     unless ($class->is_remote($bam_path)) {
@@ -1396,6 +1404,7 @@ sub new {
 	expand_flags  => $expand_flags,
 	split_splices => $split_splices,
 	autoindex     => $autoindex,
+	force_refseq  => $force_refseq,
     },ref $class || $class;
     $self->header;  # catch it
 
@@ -1479,6 +1488,13 @@ sub autoindex {
     my $self = shift;
     my $d    = $self->{autoindex};
     $self->{autoindex} = shift if @_;
+    $d;
+}
+
+sub force_refseq {
+    my $self = shift;
+    my $d    = $self->{force_refseq};
+    $self->{force_refseq} = shift if @_;
     $d;
 }
 
