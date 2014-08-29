@@ -326,6 +326,11 @@ B<subsequently.>
 Return the Bio::DB::Bam::Header object associated with the BAM
 file. You can manipulate the header using the low-level API.
 
+=item $bam_path = $sam->bam_path
+
+Return the path of the bam file used to create the sam object. This 
+makes the sam object more portable.
+
 =item $bam    = $sam->bam
 
 Returns the low-level Bio::DB::Bam object associated with the opened
@@ -1428,6 +1433,11 @@ sub clone {
 sub header {
     my $self = shift;
     return $self->{header} ||= $self->{bam}->header;
+}
+
+sub bam_path {
+    my $self = shift;
+    return $self->{bam_path};
 }
 
 sub fai { shift->{fai} }
