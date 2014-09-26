@@ -8,7 +8,7 @@ my $HeaderFile = "bam.h";
 my $LibFile    = "libbam.a";
 my $ReadLine;
 
-my ($sam_include,$sam_lib) = find_sam(); # may exit with error here
+my ($sam_include,$sam_lib,$hts_include,$hts_lib) = find_sam(); # may exit with error here
 
 my $class = Module::Build->subclass(code=><<EOF);
     sub process_c_bin_files {
@@ -16,7 +16,7 @@ my $class = Module::Build->subclass(code=><<EOF);
 	chomp(my \$make  = `which make`);
 	chomp(my \$nmake = `which nmake`);
 	\$make ||= \$nmake;
-	system "cd c_bin; \$make INCLUDES=-I$sam_include LIBPATH=-L$sam_lib";
+	system "cd c_bin; \$make INCLUDES='-I$sam_include -I$hts_include' LIBPATH='-L$sam_lib -L$hts_lib'";
 	mkdir "blib/bin" unless -e "blib/bin";
         my \@exec = grep {-x \$_} <c_bin/*>;
 	\$self->copy_if_modified(from   =>\$_,
@@ -38,8 +38,8 @@ my $build = $class->new(
     dist_author        => 'Lincoln Stein <lincoln.stein@gmail.com>',
     dist_abstract      => 'Perl interface to SamTools library for DNA sequencing',
     license            => 'perl',
-    include_dirs       => [$sam_include],
-    extra_linker_flags => ["-L$sam_lib",'-lbam','-lpthread','-lz'],
+    include_dirs       => [$sam_include,$hts_include],
+    extra_linker_flags => ["-L$sam_lib","-L$hts_lib",'-lbam','-lhts','-lpthread','-lz'],
 
     extra_compiler_flags=>[
 
@@ -134,8 +134,16 @@ containing the compiled $LibFile and $HeaderFile files.
 END
 }
 
+    my ($hts_include,$hts_lib);
+    if (my @glob = glob("$sam_include/htslib*")) {
+	$hts_include = $glob[0];
+	$hts_lib     = $glob[0];
+    }
+
     print STDOUT "Found $sam_include/$HeaderFile and $sam_lib/$LibFile.\n";
-    return ($sam_include,$sam_lib);
+    print STDOUT "Found hts includes at $hts_include.\n" if $hts_include;
+    
+    return ($sam_include,$sam_lib,$hts_include,$hts_lib);
 }
 
 

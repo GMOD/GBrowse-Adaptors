@@ -36,7 +36,8 @@ use Bio::DB::Sam::Constants qw(CIGAR_SYMBOLS BAM_CREF_SKIP BAM_CSOFT_CLIP BAM_CH
 
 use constant CIGAR_SKIP      => {CIGAR_SYMBOLS->[BAM_CREF_SKIP]  => 1,
  				 CIGAR_SYMBOLS->[BAM_CSOFT_CLIP] => 1,
- 				 CIGAR_SYMBOLS->[BAM_CHARD_CLIP] => 1};
+# 				 CIGAR_SYMBOLS->[BAM_CHARD_CLIP] => 1
+};
 
 
 sub new {

@@ -26,8 +26,8 @@
 #include <unistd.h>
 #include <math.h>
 #include "bam.h"
-#include "khash.h"
-#include "faidx.h"
+#include "htslib/khash.h"
+#include "htslib/faidx.h"
 
 /* stolen from bam_aux.c */
 #define MAX_REGION 1<<29
@@ -566,6 +566,7 @@ CODE:
 OUTPUT:
     RETVAL
 
+/*
 int
 bama_l_aux(b,...)
     Bio::DB::Bam::Alignment b
@@ -576,6 +577,7 @@ CODE:
     RETVAL=b->l_aux;
 OUTPUT:
     RETVAL
+*/
 
 char*
 bama_aux(b)

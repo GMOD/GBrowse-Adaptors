@@ -9,12 +9,12 @@ PROG=		bam2bedgraph
 .PHONY: all lib
 
 .c.o:
-		$(CC) -c $(CFLAGS) $(DFLAGS) $(INCLUDES) $< -o $@
+	$(CC) -c $(CFLAGS) $(DFLAGS) $(INCLUDES) $< -o $@
 
 all:$(PROG)
 
 bam2bedgraph: bam2bedgraph.o
-	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS) $(LIBPATH) -lbam -lpthread -lm -lz
+	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS) $(LIBPATH) -lhts -lbam -lpthread -lm -lz
 
 clean:
 	rm -f *.o $(PROG)
