@@ -31,7 +31,7 @@ use Bio::DB::Sam;
   ## processing of multi-gaps"
   ## (https://sourceforge.net/tracker/?func=detail&aid=3083769&group_id=27707&atid=391291)
   my $bamfile = "$Bin/data/dm3_3R_4766911_4767130.sam.sorted.bam";
-  my $sam     = Bio::DB::Sam->new( -bam => $bamfile, 
+  my $sam     = Bio::DB::Sam->new( -bam => $bamfile,
 				   -split_splices => 1,
 				   -autoindex => 1,
 				 );
@@ -64,7 +64,7 @@ use Bio::DB::Sam;
      "split alignments having a part (exon) that starts at 4767130 (the acceptor of the downstream exon)" );
 }
 
-# low level tests (defined in lib/Bio/DB/Sam.xs) 
+# low level tests (defined in lib/Bio/DB/Sam.xs)
 {
     my $bamfile = "$Bin/data/ex1.bam";
     my $bam     = Bio::DB::Bam->open($bamfile);
@@ -78,19 +78,19 @@ use Bio::DB::Sam;
     ok($target_names);
     ok(scalar @$target_names,2);
     ok($target_names->[0],'seq1');
-    
+
     my $target_lens = $header->target_len;
     ok($target_lens);
     ok(scalar @$target_lens,2);
     ok($target_lens->[0],1575);
-    
+
     my $text = $header->text;
     ok(length $text > 0);
 
     my $c = "\@CO\tThis is a comment\n";
     $header->text($c);
     ok($header->text,$c);
-    
+
     my $fai  = Bio::DB::Sam::Fai->open("$Bin/data/ex1.fa");
     my $seq  = $fai->fetch('seq2:51-1000');
     ok(length $seq,950);
@@ -100,13 +100,13 @@ use Bio::DB::Sam;
 	$count++;
     }
     ok($count,3307);
-    
+
     my @result = $header->parse_region('seq2:51-1000');
     ok($result[0],1);
     ok($result[1],50);
     @result    = $header->parse_region('seq_invalid:51-1000');
     ok(scalar @result,0);
-    
+
     my $index = Bio::DB::Bam->index($bamfile,1);
     ok($index);
 
@@ -135,7 +135,7 @@ use Bio::DB::Sam;
 	    $matches{total}++;
 	}
     };
-    
+
     $index->pileup($bam,$header->parse_region('seq2:1-100'),$fetch_back);
     ok($matches{matched}/$matches{total} > 0.99);
 
@@ -196,7 +196,7 @@ use Bio::DB::Sam;
     ok($target_names);
     ok(scalar @$target_names,2);
     ok($target_names->[0],'seq1');
-    
+
     $target_lens = $header->target_len;
     ok($target_lens);
     ok(scalar @$target_lens,2);
@@ -251,8 +251,8 @@ for my $use_fasta (0,1) {
 					-bam  =>"invalid_path.txt")};
     ok($dummy,undef);
     ok($@ =~ /does not exist/);
-    
-    my @alignments = 
+
+    my @alignments =
 	$sam->get_features_by_location(
 	    -seq_id => 'seq2',
 	    -start  => 500,
@@ -264,11 +264,11 @@ for my $use_fasta (0,1) {
     ok(scalar @{$alignments[0]->qscore},length $alignments[0]->dna);
 
     my @keys = $alignments[0]->get_all_tags;
-    ok(scalar @keys,17);
+    ok(scalar @keys,18);
     ok($alignments[0]->get_tag_values('MF'),18);
 
     my %att  = $alignments[0]->attributes;
-    ok(scalar(keys %att),17);
+    ok(scalar(keys %att),18);
     ok($alignments[0]->cigar_str,'35M');
 
     $sam->expand_flags(0);
@@ -389,7 +389,7 @@ for my $use_fasta (0,1) {
 	    $matches{total}++;
 	}
     };
-    
+
     $sam->pileup('seq2:1-100',$fetch_back);
     ok($matches{matched}/$matches{total} > 0.99);
 }
