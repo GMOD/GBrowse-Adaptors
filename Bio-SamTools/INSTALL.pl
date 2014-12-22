@@ -5,6 +5,7 @@ use File::Temp 'tempdir';
 
 prompt_yn("This will install Bio::DB::Sam and its dependencies. Continue?") or exit 0;
 
+# STEP 0: various dependencies
 my $git = `which git`;
 $git or die <<END;
 'git' command not in path. Please install git and try again. 
@@ -12,6 +13,41 @@ On Debian/Ubuntu systems you can do this with the command:
 
   apt-get install git
 END
+
+
+`which cc` or die <<END;
+'cc' command not in path. Please install it and try again. 
+On Debian/Ubuntu systems you can do this with the command:
+
+  apt-get install build-essential
+END
+
+`which make` or die <<END;
+'make' command not in path. Please install it and try again. 
+On Debian/Ubuntu systems you can do this with the command:
+
+  apt-get install build-essential
+END
+
+-e '/usr/include/zlib.h' or die <<END;
+zlib.h library header not found in /usr/include. Please install it and try again. 
+On Debian/Ubuntu systems you can do this with the command:
+
+  apt-get install zlib1g-dev
+END
+    ;
+
+eval "require Bio::SeqFeature::Lite" or die <<END;
+BioPerl does not seem to be installed. Please install it and try again.
+On Debian/Ubuntu systems you can do this with the command:
+
+    apt-get install bioperl
+
+On other systems use the CPAN shell:
+
+    perl -MCPAN -e 'install Bio::Perl'
+END
+    ;
 
 # STEP 1: Create a clean directory for building
 my $install_dir = tempdir(CLEANUP => 1);
@@ -44,7 +80,7 @@ while (<$in>) {
     chomp;
     if (/^CFLAGS/ && !/-fPIC/) {
 	s/#.+//;  # get rid of comments
-	$_ .= " -fPIC";
+	$_ .= " -fPIC -Wno-unused -Wno-unused-result";
     }
 } continue {
     print $out $_,"\n";

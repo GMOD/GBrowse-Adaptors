@@ -1,3 +1,8 @@
+Version 1.41
+  * Make it clear that this library only works up through
+    Samtools 0.1.19.
+  * Improvements to INSTALL.pl script and documentation.
+
 Version 1.40
   * Add Bio::DB::Bam::Alinment->qstring() convenience method.
   * Add reference to GitHub site for this module.
