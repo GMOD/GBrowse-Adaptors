@@ -1,8 +1,9 @@
-This is a Perl interface to the SAMtools sequence alignment interface.
-See http://samtools.sourceforge.net/. This library is compatible with
-releases of Samtools through 0.1.4. It is NOT compatible with Samtools
-1.0 and higher due to functionality that was removed from the libsam
-library.
+This is a Perl interface to the SAMtools sequence alignment
+interface. It ONLY works on versions of Samtools up to 0.1.19. It does
+not work on version 1.0 or higher due to major changes in the library
+structure. 
+
+See http://samtools.sourceforge.net/ for samtools documentation.
 
 * ONE-STEP INSTALLATION
 
@@ -44,9 +45,11 @@ relocation R_X86_64_32 against `a local symbol' can not be used when
 making a shared object; recompile with -fPIC
 
 To fix this, edit the Makefile in the Samtools distribution by adding
-"-fPIC" to the CFLAGS line. It should look like this:
+"-fPIC" to the CFLAGS line. While you're at it, you may also wish to
+get rid of a bunch of unused variable warnings that appears under
+recent versions of gcc. The modified CFLAGS will look like this
 
-  CFLAGS=	-g -Wall -O2 -fPIC #-m64 #-arch ppc
+  CFLAGS= -g -Wall -Wno-unused -Wno-unused-result -O2 -fPIC #-m64 #-arch ppc
 
 Then do "make clean; make" in the Samtools directory to recompile the
 library. After this you should be able to build this module without

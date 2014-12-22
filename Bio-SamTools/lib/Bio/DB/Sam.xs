@@ -365,7 +365,7 @@ PROTOTYPE: $
 CODE:
     int64_t t = bam_tell(bam);
     char    string[128];
-    sprintf(string,"%llu",t);
+sprintf(string,"%llu",(long long unsigned int) t);
     RETVAL = string;
 OUTPUT:
     RETVAL

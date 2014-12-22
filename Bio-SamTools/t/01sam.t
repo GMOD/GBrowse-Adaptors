@@ -264,11 +264,11 @@ for my $use_fasta (0,1) {
     ok(scalar @{$alignments[0]->qscore},length $alignments[0]->dna);
 
     my @keys = $alignments[0]->get_all_tags;
-    ok(scalar @keys,17);
-    ok($alignments[0]->get_tag_values('MF'),18);
+    ok(scalar @keys >= 17);  # later versions of samtools returns 18 attributes, earlier versions return 17
+    ok($alignments[0]->get_tag_values('MF') >= 17);
 
     my %att  = $alignments[0]->attributes;
-    ok(scalar(keys %att),17);
+    ok(scalar(keys %att) >= 17);
     ok($alignments[0]->cigar_str,'35M');
 
     $sam->expand_flags(0);
