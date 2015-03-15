@@ -67,7 +67,7 @@ sub new {
     $self->add_segment($self->split_splices)
 	if $sam->split_splices && $align->cigar_str =~ /N/;
 
-    return $self; 
+    return $self;
 }
 
 sub AUTOLOAD {
@@ -233,10 +233,16 @@ sub padded_alignment {
 	    $pad_target .= substr($tdna,0,$count,'');
 	    $pad_match  .= ' ' x $count;
 	}
-	elsif ($op eq 'D' || $op eq 'N') {
+#	elsif ($op eq 'D' || $op eq 'N') {
+	elsif ($op eq 'D') {
 	    $pad_source .= substr($sdna,0,$count,'');
 	    $pad_target .= '-' x $count;
 	    $pad_match  .= ' ' x $count;
+	}
+	elsif ($op eq 'N') {
+	    $pad_source .= '~'.$count.'~';
+	    $pad_target .= '~'.$count.'~';
+	    $pad_match  .= '~'.$count.'~';
 	}
 	elsif ($op eq 'P') {
 	    $pad_source .= '*' x $count;
@@ -321,7 +327,7 @@ sub get_tag_values {
     my $tag  = shift;
     defined $tag or return;
 
-    return $self->{align}->get_tag_values($tag) 
+    return $self->{align}->get_tag_values($tag)
 	if $self->expand_flags;
     if ($tag eq 'FLAGS') {
 	$self->flag_str;
@@ -334,7 +340,7 @@ sub has_tag {
     my $self = shift;
     my $tag  = shift;
     defined $tag or return;
-    $self->{align}->get_tag_values($tag) 
+    $self->{align}->get_tag_values($tag)
 	if $self->expand_flags;
     if ($tag eq 'FLAGS') {
 	return 1;
@@ -373,7 +379,7 @@ sub gff3_string {
 		map {$_->gff3_string($id)} @rsf);
 }
 
-sub phase { return } 
+sub phase { return }
 
 sub escape {
   my $self     = shift;

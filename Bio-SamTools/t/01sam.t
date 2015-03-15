@@ -7,7 +7,7 @@ use strict;
 use ExtUtils::MakeMaker;
 use File::Temp qw(tempfile);
 use FindBin '$Bin';
-use constant TEST_COUNT => 170;
+use constant TEST_COUNT => 219;
 
 use lib "$Bin/../lib","$Bin/../blib/lib","$Bin/../blib/arch";
 
@@ -24,6 +24,74 @@ BEGIN {
 }
 
 use Bio::DB::Sam;
+use Bio::DB::Bam::AlignWrapper;
+
+{
+  ## Tests by keiranmraine@gmail.com (kr2@sanger.ac.uk) for fixing alignments with hard + soft clips
+  # 49 tests
+
+  my @read_pos = ([1,120], # 120M
+                  [61,120], # 60S60M
+                  [1,60], # 60M60H
+                  [1,120], # 120M
+                  [31,90], # 30H30S60M
+                  [1,30], # 30M30S60H
+                  [1,30], # 10M10N20M30S60H (N ref skip)
+                  );
+  my @ref_pos = ( [61, 180],
+                  [1081, 1140],
+                  [961, 1020],
+                  [61, 180],
+                  [1081, 1140],
+                  [961, 990],
+                  [961, 1000],
+                  );
+  my @read_padded = (
+    [ 'GTGGACCCTGCAGCCTGGCTGTGGGGGCCGCAGTGGCTGAGGGGTGCAGAGCCGAGTCACGGGGTTGCCAGCACAGGGGCTTAACCTCTGGTGACTGCCAGAGCTGCTGGCAAGCTAGAG',
+      '||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||',
+      'GTGGACCCTGCAGCCTGGCTGTGGGGGCCGCAGTGGCTGAGGGGTGCAGAGCCGAGTCACGGGGTTGCCAGCACAGGGGCTTAACCTCTGGTGACTGCCAGAGCTGCTGGCAAGCTAGAG'],
+    [ '------------------------------------------------------------TGTCCATGTACACACGCTGTCCTATGTACTTATCATGACTCTATCCCAAATTCCCAATTA',
+      '                                                            ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||',
+      'ACATGAGATTATTAGGAAATGCTTTACTGTCATAACTATGAAGAGACTATTGCCAGATGATGTCCATGTACACACGCTGTCCTATGTACTTATCATGACTCTATCCCAAATTCCCAATTA'],
+    [ 'ACATGAGATTATTAGGAAATGCTTTACTGTCATAACTATGAAGAGACTATTGCCAGATGA',
+      '||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||',
+      'ACATGAGATTATTAGGAAATGCTTTACTGTCATAACTATGAAGAGACTATTGCCAGATGA'],
+    [ 'GTGGACCCTGCAGCCTGGCTGTGGGGGCCGCAGTGGCTGAGGGGTGCAGAGCCGAGTCACGGGGTTGCCAGCACAGGGGCTTAACCTCTGGTGACTGCCAGAGCTGCTGGCAAGCTAGAG',
+      '||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||',
+      'GTGGACCCTGCAGCCTGGCTGTGGGGGCCGCAGTGGCTGAGGGGTGCAGAGCCGAGTCACGGGGTTGCCAGCACAGGGGCTTAACCTCTGGTGACTGCCAGAGCTGCTGGCAAGCTAGAG'],
+    [ '------------------------------TGTCCATGTACACACGCTGTCCTATGTACTTATCATGACTCTATCCCAAATTCCCAATTA',
+      '                              ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||',
+      'CATAACTATGAAGAGACTATTGCCAGATGATGTCCATGTACACACGCTGTCCTATGTACTTATCATGACTCTATCCCAAATTCCCAATTA'],
+    [ 'ACATGAGATTATTAGGAAATGCTTTACTGT------------------------------',
+      '||||||||||||||||||||||||||||||                              ',
+      'ACATGAGATTATTAGGAAATGCTTTACTGTCATAACTATGAAGAGACTATTGCCAGATGA'],
+    [ 'ACATGAGATT~10~ATTAGGAAATGCTTTACTGT------------------------------',
+      '||||||||||~10~||||||||||||||||||||                              ',
+      'ACATGAGATT~10~ATTAGGAAATGCTTTACTGTCATAACTATGAAGAGACTATTGCCAGATGA'],
+  );
+
+
+  my $sam     = Bio::DB::Sam->new(  -bam => "$Bin/data/ex2.bam",
+                                    -fasta => "$Bin/data/ex1.fa",
+                                  );
+  my $bam = $sam->bam;
+  my $record=0;
+  while(my $a = $bam->read1) {
+    ok($a->query->start, $read_pos[$record]->[0], "Check query start $record");
+    ok($a->query->end, $read_pos[$record]->[1], "Check query end $record");
+
+    ok($a->start, $ref_pos[$record]->[0], "Check ref pos start $record");
+    ok($a->start, $ref_pos[$record]->[0], "Check ref pos end $record");
+
+    my $aw = Bio::DB::Bam::AlignWrapper->new($a, $sam);
+    my ($query, $match, $ref) = $aw->padded_alignment;
+    ok($query, $read_padded[$record]->[0], "Check padded_alignment query $record");
+    ok($match, $read_padded[$record]->[1], "Check padded_alignment match $record");
+    ok($ref, $read_padded[$record]->[2], "Check padded_alignment ref $record");
+    $record++;
+  }
+}
+
 
 {
   ## Following tests added by malcolm_cook@stowers.org while
