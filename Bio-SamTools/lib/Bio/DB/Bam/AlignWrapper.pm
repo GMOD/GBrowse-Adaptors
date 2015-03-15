@@ -225,7 +225,7 @@ sub padded_alignment {
     my $sdna  = $self->dna;
     my $tdna  = $self->query->dna;
 
-    my ($pad_source,$pad_target,$pad_match);
+    my ($pad_source,$pad_target,$pad_match, $char_source, $char_target);
     for my $event (@$cigar) {
 	my ($op,$count) = @$event;
 	if ($op eq 'I' || $op eq 'S') {
@@ -233,16 +233,15 @@ sub padded_alignment {
 	    $pad_target .= substr($tdna,0,$count,'');
 	    $pad_match  .= ' ' x $count;
 	}
-#	elsif ($op eq 'D' || $op eq 'N') {
 	elsif ($op eq 'D') {
 	    $pad_source .= substr($sdna,0,$count,'');
 	    $pad_target .= '-' x $count;
 	    $pad_match  .= ' ' x $count;
 	}
 	elsif ($op eq 'N') {
-	    $pad_source .= '~'.$count.'~';
-	    $pad_target .= '~'.$count.'~';
-	    $pad_match  .= '~'.$count.'~';
+	    $pad_source .= '-' x $count;
+	    $pad_target .= '-' x $count;
+	    $pad_match  .= ' ' x $count;
 	}
 	elsif ($op eq 'P') {
 	    $pad_source .= '*' x $count;
@@ -251,10 +250,14 @@ sub padded_alignment {
 	}
 	elsif ($op eq 'H') {
 	    # nothing needs to be done in this case
-	} else {  # everything else is assumed to be a match -- revisit
-	    $pad_source .= substr($sdna,0,$count,'');
-	    $pad_target .= substr($tdna,0,$count,'');
-	    $pad_match  .= '|' x $count;
+	} else {  # everything else is assumed to be a match
+	    while($count-- > 0) {
+	      $char_source = substr($sdna,0,1,'');
+	      $char_target = substr($tdna,0,1,'');
+	      $pad_source .= $char_source;
+	      $pad_target .= $char_target;
+	      $pad_match .= $char_source eq $char_target ? '|' : ' ';
+	    }
 	}
     }
     return ($pad_source,$pad_match,$pad_target);

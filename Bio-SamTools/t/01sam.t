@@ -65,9 +65,9 @@ use Bio::DB::Bam::AlignWrapper;
     [ 'ACATGAGATTATTAGGAAATGCTTTACTGT------------------------------',
       '||||||||||||||||||||||||||||||                              ',
       'ACATGAGATTATTAGGAAATGCTTTACTGTCATAACTATGAAGAGACTATTGCCAGATGA'],
-    [ 'ACATGAGATT~10~ATTAGGAAATGCTTTACTGT------------------------------',
-      '||||||||||~10~||||||||||||||||||||                              ',
-      'ACATGAGATT~10~ATTAGGAAATGCTTTACTGTCATAACTATGAAGAGACTATTGCCAGATGA'],
+    [ 'ACATGAGATT----------GCTTTACTGTCATAACTATG',
+      '||||||||||          ||||||||||||||||||||',
+      'ACATGAGATT----------GCTTTACTGTCATAACTATG'],
   );
 
 
@@ -91,7 +91,6 @@ use Bio::DB::Bam::AlignWrapper;
     $record++;
   }
 }
-
 
 {
   ## Following tests added by malcolm_cook@stowers.org while
