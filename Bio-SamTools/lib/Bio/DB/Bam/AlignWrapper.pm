@@ -219,11 +219,13 @@ sub subseq {
 
 sub padded_alignment {
     my $self  = shift;
-
     my $cigar = $self->cigar_array;
+    my $real_ref = 0;
+    $real_ref = 1 if($self->{sam}->force_refseq || !$self->has_tag('MD'));
 
     my $sdna  = $self->dna;
     my $tdna  = $self->query->dna;
+
 
     my ($pad_source,$pad_target,$pad_match, $char_source, $char_target);
     for my $event (@$cigar) {
@@ -239,7 +241,12 @@ sub padded_alignment {
 	    $pad_match  .= ' ' x $count;
 	}
 	elsif ($op eq 'N') {
-	    $pad_source .= '-' x $count;
+	    if($real_ref) {
+	      $pad_source .= substr($sdna,0,$count,'');
+	    }
+	    else {
+	      $pad_source .= '-' x $count;
+	    }
 	    $pad_target .= '-' x $count;
 	    $pad_match  .= ' ' x $count;
 	}
