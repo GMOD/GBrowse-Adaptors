@@ -615,7 +615,7 @@ new value of tripal (to set)
 
 sub tripal {
     my $self = shift;
-    my $tripal = shift if defined(@_);
+    my $tripal = shift;
     return $self->{'tripal'} = $tripal if defined($tripal);
     return $self->{'tripal'};
 }
@@ -649,7 +649,7 @@ new value of fulltext (to set)
 
 sub fulltext {
     my $self = shift;
-    my $fulltext = shift if defined(@_);
+    my $fulltext = shift;
     return $self->{'fulltext'} = $fulltext if defined($fulltext);
     return $self->{'fulltext'};
 }
@@ -680,7 +680,7 @@ new value of the reference class's cvterm_id (to set)
 
 sub refclass {
     my $self = shift;
-    my $refclass = shift if defined(@_);
+    my $refclass = shift;
     return $self->{'refclass'} = $refclass if defined($refclass);
     return $self->{'refclass'};
 }
@@ -857,7 +857,7 @@ obsolete features.
 
 sub allow_obsolete {
     my $self = shift;
-    my $allow_obsolete = shift if defined(@_);
+    my $allow_obsolete = shift;
     return $self->{'allow_obsolete'} = $allow_obsolete if defined($allow_obsolete);
     return $self->{'allow_obsolete'};
 }
