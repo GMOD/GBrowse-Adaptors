@@ -2410,6 +2410,9 @@ sub aggregators { return(); }
 
 
 package Bio::DB::Das::ChadoIterator;
+use vars qw($VERSION);
+
+$VERSION = 0.35;
 
 sub new {
   my $package  = shift;
