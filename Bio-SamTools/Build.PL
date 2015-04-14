@@ -47,7 +47,7 @@ my $build = $class->new(
 	'-D_IOLIB=2','-D_FILE_OFFSET_BITS=64', 
 
 	# turn off warnings originating in Perl's Newx* calls
-	'-Wformat=0'
+	'-Wformat=0',
     ],
 
     c_source    => 'c_bin',

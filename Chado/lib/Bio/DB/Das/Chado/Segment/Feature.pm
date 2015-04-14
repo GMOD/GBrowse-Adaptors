@@ -168,7 +168,7 @@ new value of organism (to set)
 
 sub organism {
     my $self = shift;
-    my $organism = shift if defined(@_);
+    my $organism = shift;
     return $self->{'organism'} = $organism if defined($organism);
 
     #if it isn't passed in, we need to try to go get it
