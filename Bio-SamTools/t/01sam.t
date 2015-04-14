@@ -7,7 +7,7 @@ use strict;
 use ExtUtils::MakeMaker;
 use File::Temp qw(tempfile);
 use FindBin '$Bin';
-use constant TEST_COUNT => 170;
+use constant TEST_COUNT => 268;
 
 use lib "$Bin/../lib","$Bin/../blib/lib","$Bin/../blib/arch";
 
@@ -24,6 +24,142 @@ BEGIN {
 }
 
 use Bio::DB::Sam;
+use Bio::DB::Bam::AlignWrapper;
+
+{
+  ## Tests by keiranmraine@gmail.com (kr2@sanger.ac.uk) for fixing alignments with hard + soft clips
+  # 49 tests
+
+  # !! not-forced ref-seq
+
+  my @read_pos = ([1,120], # 120M
+                  [61,120], # 60S60M
+                  [1,60], # 60M60H
+                  [1,120], # 120M
+                  [31,90], # 30H30S60M
+                  [1,30], # 30M30S60H
+                  [1,30], # 10M10N20M30S60H (N ref skip)
+                  );
+  my @ref_pos = ( [61, 180],
+                  [1081, 1140],
+                  [961, 1020],
+                  [61, 180],
+                  [1081, 1140],
+                  [961, 990],
+                  [961, 1000],
+                  );
+  my @read_padded = (
+    [ 'GTGGACCCTGCAGCCTGGCTGTGGGGGCCGCAGTGGCTGAGGGGTGCAGAGCCGAGTCACGGGGTTGCCAGCACAGGGGCTTAACCTCTGGTGACTGCCAGAGCTGCTGGCAAGCTAGAG',
+      '||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||',
+      'GTGGACCCTGCAGCCTGGCTGTGGGGGCCGCAGTGGCTGAGGGGTGCAGAGCCGAGTCACGGGGTTGCCAGCACAGGGGCTTAACCTCTGGTGACTGCCAGAGCTGCTGGCAAGCTAGAG'],
+    [ '------------------------------------------------------------TGTCCATGTACACACGCTGTCCTATGTACTTATCATGACTCTATCCCAAATTCCCAATTA',
+      '                                                            ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||',
+      'ACATGAGATTATTAGGAAATGCTTTACTGTCATAACTATGAAGAGACTATTGCCAGATGATGTCCATGTACACACGCTGTCCTATGTACTTATCATGACTCTATCCCAAATTCCCAATTA'],
+    [ 'ACATGAGATTATTAGGAAATGCTTTACTGTCATAACTATGAAGAGACTATTGCCAGATGA',
+      '||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||',
+      'ACATGAGATTATTAGGAAATGCTTTACTGTCATAACTATGAAGAGACTATTGCCAGATGA'],
+    [ 'GTGGACCCTGCAGCCTGGCTGTGGGGGCCGCAGTGGCTGAGGGGTGCAGAGCCGAGTCACGGGGTTGCCAGCACAGGGGCTTAACCTCTGGTGACTGCCAGAGCTGCTGGCAAGCTAGAG',
+      '||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||',
+      'GTGGACCCTGCAGCCTGGCTGTGGGGGCCGCAGTGGCTGAGGGGTGCAGAGCCGAGTCACGGGGTTGCCAGCACAGGGGCTTAACCTCTGGTGACTGCCAGAGCTGCTGGCAAGCTAGAG'],
+    [ '------------------------------TGTCCATGTACACACGCTGTCCTATGTACTTATCATGACTCTATCCCAAATTCCCAATTA',
+      '                              ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||',
+      'CATAACTATGAAGAGACTATTGCCAGATGATGTCCATGTACACACGCTGTCCTATGTACTTATCATGACTCTATCCCAAATTCCCAATTA'],
+    [ 'ACATGAGATTATTAGGAAATGCTTTACTGT------------------------------',
+      '||||||||||||||||||||||||||||||                              ',
+      'ACATGAGATTATTAGGAAATGCTTTACTGTCATAACTATGAAGAGACTATTGCCAGATGA'],
+    [ 'ACATGAGATT----------GCTTTACTGTCATAACTATG------------------------------',
+      '||||||||||          ||||||||||||||||||||                              ',
+      'ACATGAGATT----------GCTTTACTGTCATAACTATGGAAGAGACTATTGCCAGATGATGTCCATGT'],
+  );
+
+  my $sam     = Bio::DB::Sam->new(  -bam => "$Bin/data/ex2.bam",
+                                    -fasta => "$Bin/data/ex1.fa",
+                                  );
+  my $bam = $sam->bam;
+  my $record=0;
+  while(my $a = $bam->read1) {
+    ok($a->query->start, $read_pos[$record]->[0], "Check query start $record");
+    ok($a->query->end, $read_pos[$record]->[1], "Check query end $record");
+
+    ok($a->start, $ref_pos[$record]->[0], "Check ref pos start $record");
+    ok($a->start, $ref_pos[$record]->[0], "Check ref pos end $record");
+
+    my $aw = Bio::DB::Bam::AlignWrapper->new($a, $sam);
+    my ($ref, $match, $query) = $aw->padded_alignment;
+    ok($ref, $read_padded[$record]->[0], "Check padded_alignment ref $record");
+    ok($match, $read_padded[$record]->[1], "Check padded_alignment match $record");
+    ok($query, $read_padded[$record]->[2], "Check padded_alignment query $record");
+    $record++;
+  }
+}
+
+{
+  ## Tests by keiranmraine@gmail.com (kr2@sanger.ac.uk) for fixing alignments with hard + soft clips
+  # 49 tests
+
+  # !! FORCED refseq ref-seq
+
+  my @read_pos = ([1,120], # 120M
+                  [61,120], # 60S60M
+                  [1,60], # 60M60H
+                  [1,120], # 120M
+                  [31,90], # 30H30S60M
+                  [1,30], # 30M30S60H
+                  [1,30], # 10M10N20M30S60H (N ref skip) # changes
+                  );
+  my @ref_pos = ( [61, 180],
+                  [1081, 1140],
+                  [961, 1020],
+                  [61, 180],
+                  [1081, 1140],
+                  [961, 990],
+                  [961, 1000],
+                  );
+  my @read_padded = (
+    [ 'GTGGACCCTGCAGCCTGGCTGTGGGGGCCGCAGTGGCTGAGGGGTGCAGAGCCGAGTCACGGGGTTGCCAGCACAGGGGCTTAACCTCTGGTGACTGCCAGAGCTGCTGGCAAGCTAGAG',
+      '||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||',
+      'GTGGACCCTGCAGCCTGGCTGTGGGGGCCGCAGTGGCTGAGGGGTGCAGAGCCGAGTCACGGGGTTGCCAGCACAGGGGCTTAACCTCTGGTGACTGCCAGAGCTGCTGGCAAGCTAGAG'],
+    [ '------------------------------------------------------------TGTCCATGTACACACGCTGTCCTATGTACTTATCATGACTCTATCCCAAATTCCCAATTA',
+      '                                                            ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||',
+      'ACATGAGATTATTAGGAAATGCTTTACTGTCATAACTATGAAGAGACTATTGCCAGATGATGTCCATGTACACACGCTGTCCTATGTACTTATCATGACTCTATCCCAAATTCCCAATTA'],
+    [ 'ACATGAGATTATTAGGAAATGCTTTACTGTCATAACTATGAAGAGACTATTGCCAGATGA',
+      '||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||',
+      'ACATGAGATTATTAGGAAATGCTTTACTGTCATAACTATGAAGAGACTATTGCCAGATGA'],
+    [ 'GTGGACCCTGCAGCCTGGCTGTGGGGGCCGCAGTGGCTGAGGGGTGCAGAGCCGAGTCACGGGGTTGCCAGCACAGGGGCTTAACCTCTGGTGACTGCCAGAGCTGCTGGCAAGCTAGAG',
+      '||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||',
+      'GTGGACCCTGCAGCCTGGCTGTGGGGGCCGCAGTGGCTGAGGGGTGCAGAGCCGAGTCACGGGGTTGCCAGCACAGGGGCTTAACCTCTGGTGACTGCCAGAGCTGCTGGCAAGCTAGAG'],
+    [ '------------------------------TGTCCATGTACACACGCTGTCCTATGTACTTATCATGACTCTATCCCAAATTCCCAATTA',
+      '                              ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||',
+      'CATAACTATGAAGAGACTATTGCCAGATGATGTCCATGTACACACGCTGTCCTATGTACTTATCATGACTCTATCCCAAATTCCCAATTA'],
+    [ 'ACATGAGATTATTAGGAAATGCTTTACTGT------------------------------',
+      '||||||||||||||||||||||||||||||                              ',
+      'ACATGAGATTATTAGGAAATGCTTTACTGTCATAACTATGAAGAGACTATTGCCAGATGA'],
+    [ 'ACATGAGATTATTAGGAAATGCTTTACTGTCATAACTATG------------------------------',
+      '||||||||||          ||||||||||||||||||||                              ',
+      'ACATGAGATT----------GCTTTACTGTCATAACTATGGAAGAGACTATTGCCAGATGATGTCCATGT'],
+  );
+
+  my $sam     = Bio::DB::Sam->new(  -bam => "$Bin/data/ex2.bam",
+                                    -fasta => "$Bin/data/ex1.fa",
+                                    -force_refseq => 1,
+                                  );
+  my $bam = $sam->bam;
+  my $record=0;
+  while(my $a = $bam->read1) {
+    ok($a->query->start, $read_pos[$record]->[0], "Check query start $record");
+    ok($a->query->end, $read_pos[$record]->[1], "Check query end $record");
+
+    ok($a->start, $ref_pos[$record]->[0], "Check ref pos start $record");
+    ok($a->start, $ref_pos[$record]->[0], "Check ref pos end $record");
+
+    my $aw = Bio::DB::Bam::AlignWrapper->new($a, $sam);
+    my ($ref, $match, $query) = $aw->padded_alignment;
+    ok($ref, $read_padded[$record]->[0], "Check padded_alignment ref $record");
+    ok($match, $read_padded[$record]->[1], "Check padded_alignment match $record");
+    ok($query, $read_padded[$record]->[2], "Check padded_alignment query $record");
+    $record++;
+  }
+}
 
 {
   ## Following tests added by malcolm_cook@stowers.org while
@@ -31,7 +167,7 @@ use Bio::DB::Sam;
   ## processing of multi-gaps"
   ## (https://sourceforge.net/tracker/?func=detail&aid=3083769&group_id=27707&atid=391291)
   my $bamfile = "$Bin/data/dm3_3R_4766911_4767130.sam.sorted.bam";
-  my $sam     = Bio::DB::Sam->new( -bam => $bamfile, 
+  my $sam     = Bio::DB::Sam->new( -bam => $bamfile,
 				   -split_splices => 1,
 				   -autoindex => 1,
 				 );
@@ -64,7 +200,7 @@ use Bio::DB::Sam;
      "split alignments having a part (exon) that starts at 4767130 (the acceptor of the downstream exon)" );
 }
 
-# low level tests (defined in lib/Bio/DB/Sam.xs) 
+# low level tests (defined in lib/Bio/DB/Sam.xs)
 {
     my $bamfile = "$Bin/data/ex1.bam";
     my $bam     = Bio::DB::Bam->open($bamfile);
@@ -78,19 +214,19 @@ use Bio::DB::Sam;
     ok($target_names);
     ok(scalar @$target_names,2);
     ok($target_names->[0],'seq1');
-    
+
     my $target_lens = $header->target_len;
     ok($target_lens);
     ok(scalar @$target_lens,2);
     ok($target_lens->[0],1575);
-    
+
     my $text = $header->text;
     ok(length $text > 0);
 
     my $c = "\@CO\tThis is a comment\n";
     $header->text($c);
     ok($header->text,$c);
-    
+
     my $fai  = Bio::DB::Sam::Fai->open("$Bin/data/ex1.fa");
     my $seq  = $fai->fetch('seq2:51-1000');
     ok(length $seq,950);
@@ -100,13 +236,13 @@ use Bio::DB::Sam;
 	$count++;
     }
     ok($count,3307);
-    
+
     my @result = $header->parse_region('seq2:51-1000');
     ok($result[0],1);
     ok($result[1],50);
     @result    = $header->parse_region('seq_invalid:51-1000');
     ok(scalar @result,0);
-    
+
     my $index = Bio::DB::Bam->index($bamfile,1);
     ok($index);
 
@@ -135,7 +271,7 @@ use Bio::DB::Sam;
 	    $matches{total}++;
 	}
     };
-    
+
     $index->pileup($bam,$header->parse_region('seq2:1-100'),$fetch_back);
     ok($matches{matched}/$matches{total} > 0.99);
 
@@ -196,7 +332,7 @@ use Bio::DB::Sam;
     ok($target_names);
     ok(scalar @$target_names,2);
     ok($target_names->[0],'seq1');
-    
+
     $target_lens = $header->target_len;
     ok($target_lens);
     ok(scalar @$target_lens,2);
@@ -251,8 +387,8 @@ for my $use_fasta (0,1) {
 					-bam  =>"invalid_path.txt")};
     ok($dummy,undef);
     ok($@ =~ /does not exist/);
-    
-    my @alignments = 
+
+    my @alignments =
 	$sam->get_features_by_location(
 	    -seq_id => 'seq2',
 	    -start  => 500,
@@ -264,11 +400,11 @@ for my $use_fasta (0,1) {
     ok(scalar @{$alignments[0]->qscore},length $alignments[0]->dna);
 
     my @keys = $alignments[0]->get_all_tags;
-    ok(scalar @keys,17);
+    ok(scalar @keys,18);
     ok($alignments[0]->get_tag_values('MF'),18);
 
     my %att  = $alignments[0]->attributes;
-    ok(scalar(keys %att),17);
+    ok(scalar(keys %att),18);
     ok($alignments[0]->cigar_str,'35M');
 
     $sam->expand_flags(0);
@@ -389,7 +525,7 @@ for my $use_fasta (0,1) {
 	    $matches{total}++;
 	}
     };
-    
+
     $sam->pileup('seq2:1-100',$fetch_back);
     ok($matches{matched}/$matches{total} > 0.99);
 }

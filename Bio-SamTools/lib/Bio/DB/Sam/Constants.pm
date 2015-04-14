@@ -95,7 +95,8 @@ use constant FLAGS => {
     0x0080 => 'SECOND_MATE',
     0x0100 => 'NOT_PRIMARY',
     0x0200 => 'QC_FAILED',
-    0x0400 => 'DUPLICATE'
+    0x0400 => 'DUPLICATE',
+    0x0800 => 'SUPPLEMENTARY',
 };
 use constant RFLAGS => {reverse %{FLAGS()}};
 
