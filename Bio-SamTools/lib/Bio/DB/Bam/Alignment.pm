@@ -588,7 +588,7 @@ sub mate_len {
     my $adjust = 0;
     my @cigar = $self->cigar_array;
     for my $event (@cigar) {
-        my ($op,$len) = @event;
+        my ($op,$len) = @$event;
         $adjust += $len if $op eq 'I';
         $adjust -= $len if $op eq 'D';
     }
