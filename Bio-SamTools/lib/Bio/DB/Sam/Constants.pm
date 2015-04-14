@@ -73,7 +73,7 @@ our @EXPORT = qw(CIGAR_SYMBOLS BAM_CIGAR_SHIFT BAM_CIGAR_MASK
                  BAM_CSOFT_CLIP BAM_CHARD_CLIP BAM_CPAD FLAGS RFLAGS);
 our @EXPORT_OK = @EXPORT;
 
-use constant CIGAR_SYMBOLS   => [qw(M I D N S H P)];
+use constant CIGAR_SYMBOLS   => [qw(M I D N S H P = X)];
 use constant BAM_CIGAR_SHIFT => 4;
 use constant BAM_CIGAR_MASK  => (1 << BAM_CIGAR_SHIFT) - 1;
 use constant BAM_CMATCH      => 0;
