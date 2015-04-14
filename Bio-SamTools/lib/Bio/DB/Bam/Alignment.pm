@@ -586,11 +586,11 @@ sub mate_len {
     my $len     = $self->length;
 
     my $adjust = 0;
-    my @cigar   = $self->cigar_str =~ /(\d+)(\w)/g;
-    while (@cigar) {
-	my ($len,$op) = splice(@cigar,0,2);
-	$adjust += $len if $op eq 'I';
-	$adjust -= $len if $op eq 'D';
+    my @cigar = $self->cigar_array;
+    for my $event (@cigar) {
+        my ($op,$len) = @event;
+        $adjust += $len if $op eq 'I';
+        $adjust -= $len if $op eq 'D';
     }
 
     return $adjust + $ins_len + ($self->start-$self->mate_start) if $ins_len > 0;
