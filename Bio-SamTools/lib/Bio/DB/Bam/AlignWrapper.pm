@@ -148,7 +148,7 @@ sub split_splices {
 	} else {
 	    $partial_cigar .= "$operation$count";
 	}
-	$end  += $count if $operation =~ /^[MDSHP]/i;
+	$end  += $count if $operation =~ /^[MDSHP=X]/i;
 	$skip += $count if $operation eq 'N';
 	if ($operation eq 'H' and $start == 0) {
 	    $qseq = 'N' x $count . $qseq;
@@ -283,7 +283,7 @@ sub dna {
 	my $seq   = '';
 	for my $op (@$cigar) {
 	    my ($operation,$count) = @$op;
-	    if ($operation eq 'M') {
+	    if ($operation eq 'M' || $operation eq '=' || $operation eq 'X') {
 		$seq .= substr($qseq,0,$count,''); # include these residues
 	    } elsif ($operation eq 'S' or $operation eq 'I') {
 		substr($qseq,0,$count,'');         # skip soft clipped and inserted residues
