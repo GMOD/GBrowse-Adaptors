@@ -3,9 +3,12 @@
 use strict;
 use Module::Build;
 use Module::Load::Conditional qw(can_load);
+use File::Spec;
 
-my $HeaderFile = "bam.h";
-my $LibFile    = "libbam.a";
+my $SamHeaderFile = "bam.h";
+my $SamLibFile    = "libbam.a";
+my $HTSLibFile    = "libhts.a";
+
 my $ReadLine;
 
 my ($sam_include,$sam_lib,$hts_include,$hts_lib) = find_sam(); # may exit with error here
@@ -39,7 +42,7 @@ my $build = $class->new(
     dist_abstract      => 'Perl interface to SamTools library for DNA sequencing',
     license            => 'perl',
     include_dirs       => [$sam_include,$hts_include],
-    extra_linker_flags => ["-L$sam_lib","-L$hts_lib",'-lbam','-lhts','-lpthread','-lz'],
+    extra_linker_flags => ["$sam_lib/$SamLibFile","$hts_lib/$HTSLibFile",'-lpthread','-lz'],
 
     extra_compiler_flags=>[
 
@@ -73,13 +76,13 @@ sub find_sam {
 
     if (my $samtools = _samtools()) {
 	$sam_include = $samtools
-	    if -e "$samtools/$HeaderFile";
+	    if -e "$samtools/$SamHeaderFile";
 	$sam_include = "$samtools/include"
-	    if -e "$samtools/include/$HeaderFile";
+	    if -e "$samtools/include/$SamHeaderFile";
 	$sam_lib     = $samtools
-	    if -e "$samtools/$LibFile";
+	    if -e "$samtools/$SamLibFile";
 	$sam_lib     = "$samtools/lib"
-	    if -e "$samtools/lib/$LibFile";
+	    if -e "$samtools/lib/$SamLibFile";
     }
 
     my @search_path = qw(/ /usr /usr/share /usr/local);
@@ -87,14 +90,14 @@ sub find_sam {
     unless ($sam_include) {
 	for my $p (@search_path) {
 	    $sam_include ||= "$p/include" if
-		-e "$p/include/$HeaderFile";
+		-e "$p/include/$SamHeaderFile";
 	}
     }
 
     unless ($sam_lib) {
 	for my $p (@search_path) {
 	    $sam_lib ||= "$p/lib" if
-		-e "$p/lib/$LibFile";
+		-e "$p/lib/$SamLibFile";
 	}
     }
 
@@ -108,13 +111,13 @@ sub find_sam {
 	    print STDOUT "\n";
 	    last unless $path;
 	    $sam_include = $path
-		if -e "$path/$HeaderFile";
+		if -e "$path/$SamHeaderFile";
 	    $sam_include = "$path/include"
-		if -e "$path/include/$HeaderFile";
+		if -e "$path/include/$SamHeaderFile";
 	    $sam_lib = $path
-		if -e "$path/$LibFile";
+		if -e "$path/$SamLibFile";
 	    $sam_lib = "$path/lib"
-		if -e "$path/lib/$LibFile";
+		if -e "$path/lib/$SamLibFile";
 	    $found = $sam_include && $sam_lib;
 	    unless ($found) {
 		print STDOUT "That didn't seem to be right.\n";
@@ -125,23 +128,23 @@ sub find_sam {
 
     unless ($sam_include && $sam_lib) {
 	die <<END;
-Can\'t find $LibFile and/or $HeaderFile!
+Can\'t find $SamLibFile and/or $SamHeaderFile!
 
 If you haven\'t done so already, please compile samtools 0.1.10 or
 higher from http://samtools.sourceforge.net and set the SAMTOOLS
 environment variable to point to a samtools distribution directory
-containing the compiled $LibFile and $HeaderFile files.
+containing the compiled $SamLibFile and $SamHeaderFile files.
 END
 }
 
     my ($hts_include,$hts_lib);
     if (my @glob = glob("$sam_include/htslib*")) {
-	$hts_include = $glob[0];
-	$hts_lib     = $glob[0];
+        $hts_include = $glob[0];
+        $hts_lib     = $glob[0];
     }
 
-    print STDOUT "Found $sam_include/$HeaderFile and $sam_lib/$LibFile.\n";
-    print STDOUT "Found hts includes at $hts_include.\n" if $hts_include;
+    print STDOUT "Found $sam_include/$SamHeaderFile and $sam_lib/$SamLibFile.\n";
+    print STDOUT "Found hts includes at $hts_include and libraries at $hts_lib.\n" if $hts_include;
     
     return ($sam_include,$sam_lib,$hts_include,$hts_lib);
 }
@@ -176,3 +179,10 @@ sub _samtools {
     ( can_load(modules => {'Alien::SamTools' => undef, 'File::ShareDir' => undef}) &&
       File::ShareDir::dist_dir('Alien-SamTools'));
 }
+
+#sub _htslib {
+#    $ENV{HTSLIB} ||
+#    ( can_load(modules => {'Alien::SamTools' => undef, 'File::ShareDir' => undef}) &&
+#      File::ShareDir::dist_dir('Alien-SamTools'));
+#}
+#
