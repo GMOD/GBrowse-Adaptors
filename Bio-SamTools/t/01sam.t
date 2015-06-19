@@ -207,11 +207,11 @@ use Bio::DB::Sam;
     ok(Bio::DB::Bam->index($bamfile,1));
     ok(-e "$Bin/data/ex1.bam.bai");
 
-    Bio::DB::Bam->sort_core(1,"$Bin/data/ex1.bam","$Bin/data/ex1.sorted");
-    ok(-e "$Bin/data/ex1.sorted.bam");
-    ok(Bio::DB::Bam->index("$Bin/data/ex1.sorted.bam",1));
-    ok(-e "$Bin/data/ex1.sorted.bam.bai");
-    unlink ("$Bin/data/ex1.sorted.bam","$Bin/data/ex1.sorted.bam.bai");
+    #Bio::DB::Bam->sort_core(1,"$Bin/data/ex1.bam","$Bin/data/ex1.sorted");
+    #ok(-e "$Bin/data/ex1.sorted.bam");
+    #ok(Bio::DB::Bam->index("$Bin/data/ex1.sorted.bam",1));
+    #ok(-e "$Bin/data/ex1.sorted.bam.bai");
+    #unlink ("$Bin/data/ex1.sorted.bam","$Bin/data/ex1.sorted.bam.bai");
 }
 
 # high level tests (defined in lib/Bio/DB/Sam.pm)
