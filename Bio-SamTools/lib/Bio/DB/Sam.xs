@@ -156,11 +156,11 @@ int add_pileup_line (const bam1_t *b, void *data) {
   return 0;
 }
 
-//int add_lpileup_line (const bam1_t *b, void *data) {
-//  bam_lplbuf_t *pileup = (bam_lplbuf_t*) data;
-//  bam_lplbuf_push(b,pileup);
-//  return 0;
-//}
+int add_lpileup_line (const bam1_t *b, void *data) {
+  bam_lplbuf_t *pileup = (bam_lplbuf_t*) data;
+  bam_lplbuf_push(b,pileup);
+  return 0;
+}
 
 int coverage_from_pileup_fun (uint32_t tid, 
 			      uint32_t pos, 
@@ -312,16 +312,16 @@ bam_index_build(packname, filename)
   OUTPUT:
      RETVAL
 
-#void
-#bam_sort_core(packname, is_by_qname=0, filename, prefix, max_mem=500000000)
-#   char * packname
-#   int    is_by_qname
-#   char * filename
-#   char * prefix
-#   int    max_mem
-# PROTOTYPE: $$$$$
-# CODE:
-#   bam_sort_core(is_by_qname,filename,prefix,max_mem);
+void
+bam_sort_core(packname, is_by_qname=0, filename, prefix, max_mem=500000000)
+   char * packname
+   int    is_by_qname
+   char * filename
+   char * prefix
+   int    max_mem
+ PROTOTYPE: $$$$$
+ CODE:
+   bam_sort_core(is_by_qname,filename,prefix,max_mem);
 
 Bio::DB::Bam::Index
 bam_index_open(packname="Bio::DB::Bam", filename)
