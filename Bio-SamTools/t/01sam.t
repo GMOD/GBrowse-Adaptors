@@ -7,7 +7,7 @@ use strict;
 use ExtUtils::MakeMaker;
 use File::Temp qw(tempfile);
 use FindBin '$Bin';
-use constant TEST_COUNT => 170;
+use constant TEST_COUNT => 172;
 use Data::Dumper;
 
 use lib "$Bin/../lib","$Bin/../blib/lib","$Bin/../blib/arch";
