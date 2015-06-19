@@ -165,7 +165,8 @@ use Bio::DB::Sam;
     ok($head);
 
     my $result = $sam->read1($head,$align);
-    ok($result>0);
+    ok($result > 0);
+    
     ok($align->qseq,'CACTAGTGGCTCATTGTAAATGTGTGGTTTAACTCG');
     ok($align->start,1);
     ok($sam->read1($head,$align)>0);
@@ -208,11 +209,20 @@ use Bio::DB::Sam;
     ok(Bio::DB::Bam->index($bamfile,1));
     ok(-e "$Bin/data/ex1.bam.bai");
 
-    #Bio::DB::Bam->sort_core(1,"$Bin/data/ex1.bam","$Bin/data/ex1.sorted");
-    #ok(-e "$Bin/data/ex1.sorted.bam");
-    #ok(Bio::DB::Bam->index("$Bin/data/ex1.sorted.bam",1));
-    #ok(-e "$Bin/data/ex1.sorted.bam.bai");
-    #unlink ("$Bin/data/ex1.sorted.bam","$Bin/data/ex1.sorted.bam.bai");
+    # name-sorting is not indexable anymore
+    Bio::DB::Bam->sort_core(1,"$Bin/data/ex1.bam","$Bin/data/ex1.querysorted");
+    ok(-e "$Bin/data/ex1.querysorted.bam");
+    
+    eval {Bio::DB::Bam->index("$Bin/data/ex1.querysorted.bam",1)};
+    ok($@ =~ /unsorted positions/);
+    
+    # coord-sorted is indexed
+    Bio::DB::Bam->sort_core(0,"$Bin/data/ex1.bam","$Bin/data/ex1.sorted");
+    ok(-e "$Bin/data/ex1.sorted.bam");
+    
+    ok(Bio::DB::Bam->index("$Bin/data/ex1.sorted.bam",1));
+    ok(-e "$Bin/data/ex1.sorted.bam.bai");
+    unlink ("$Bin/data/ex1.sorted.bam","$Bin/data/ex1.sorted.bam.bai");
 }
 
 # high level tests (defined in lib/Bio/DB/Sam.pm)
