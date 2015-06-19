@@ -9,6 +9,8 @@ my $SamHeaderFile = "bam.h";
 my $SamLibFile    = "libbam.a";
 my $HTSLibFile    = "libhts.a";
 
+my @sam_o_files = qw(bam_sort.o bam_lpileup.o);
+
 my $ReadLine;
 
 my ($sam_include,$sam_lib,$hts_include,$hts_lib) = find_sam(); # may exit with error here
@@ -42,7 +44,15 @@ my $build = $class->new(
     dist_abstract      => 'Perl interface to SamTools library for DNA sequencing',
     license            => 'perl',
     include_dirs       => [$sam_include,$hts_include],
-    extra_linker_flags => ["$sam_lib/$SamLibFile","$hts_lib/$HTSLibFile",'-lpthread','-lz'],
+    extra_linker_flags => [
+        # this loads the specific library; if we use -lbam or -lhts on Mac this
+        # will use the .dylib, which we don't want. Explicit path always seems to work
+        "$sam_lib/$SamLibFile",
+        "$hts_lib/$HTSLibFile",
+        # This adds back in the compiled object files missing from libbam
+        (map {"$sam_lib/$_"} @sam_o_files),
+        '-lpthread','-lz'
+        ],
 
     extra_compiler_flags=>[
 
