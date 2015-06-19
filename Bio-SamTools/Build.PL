@@ -19,7 +19,7 @@ my $class = Module::Build->subclass(code=><<EOF);
 	chomp(my \$make  = `which make`);
 	chomp(my \$nmake = `which nmake`);
 	\$make ||= \$nmake;
-	system "cd c_bin; \$make INCLUDES='-I$sam_include -I$hts_include' LIBPATH='-L$sam_lib -L$hts_lib'";
+	system "cd c_bin; \$make INCLUDES='-I$sam_include -I$hts_include' LIBPATH='$sam_lib/$SamLibFile $hts_lib/$HTSLibFile'";
 	mkdir "blib/bin" unless -e "blib/bin";
         my \@exec = grep {-x \$_} <c_bin/*>;
 	\$self->copy_if_modified(from   =>\$_,
@@ -180,9 +180,3 @@ sub _samtools {
       File::ShareDir::dist_dir('Alien-SamTools'));
 }
 
-#sub _htslib {
-#    $ENV{HTSLIB} ||
-#    ( can_load(modules => {'Alien::SamTools' => undef, 'File::ShareDir' => undef}) &&
-#      File::ShareDir::dist_dir('Alien-SamTools'));
-#}
-#

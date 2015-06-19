@@ -14,7 +14,7 @@ PROG=		bam2bedgraph
 all:$(PROG)
 
 bam2bedgraph: bam2bedgraph.o
-	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS) $(LIBPATH) -lhts -lbam -lpthread -lm -lz
+	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS) $(LIBPATH) -lpthread -lm -lz
 
 clean:
 	rm -f *.o $(PROG)

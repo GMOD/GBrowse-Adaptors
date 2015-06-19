@@ -156,11 +156,11 @@ int add_pileup_line (const bam1_t *b, void *data) {
   return 0;
 }
 
-int add_lpileup_line (const bam1_t *b, void *data) {
-  bam_lplbuf_t *pileup = (bam_lplbuf_t*) data;
-  bam_lplbuf_push(b,pileup);
-  return 0;
-}
+//int add_lpileup_line (const bam1_t *b, void *data) {
+//  bam_lplbuf_t *pileup = (bam_lplbuf_t*) data;
+//  bam_lplbuf_push(b,pileup);
+//  return 0;
+//}
 
 int coverage_from_pileup_fun (uint32_t tid, 
 			      uint32_t pos, 
@@ -312,16 +312,16 @@ bam_index_build(packname, filename)
   OUTPUT:
      RETVAL
 
-void
-bam_sort_core(packname, is_by_qname=0, filename, prefix, max_mem=500000000)
-   char * packname
-   int    is_by_qname
-   char * filename
-   char * prefix
-   int    max_mem
- PROTOTYPE: $$$$$
- CODE:
-   bam_sort_core(is_by_qname,filename,prefix,max_mem);
+#void
+#bam_sort_core(packname, is_by_qname=0, filename, prefix, max_mem=500000000)
+#   char * packname
+#   int    is_by_qname
+#   char * filename
+#   char * prefix
+#   int    max_mem
+# PROTOTYPE: $$$$$
+# CODE:
+#   bam_sort_core(is_by_qname,filename,prefix,max_mem);
 
 Bio::DB::Bam::Index
 bam_index_open(packname="Bio::DB::Bam", filename)
@@ -946,25 +946,25 @@ CODE:
 OUTPUT:
     RETVAL
 
-void
-bami_lpileup(bai,bfp,ref,start,end,callback,callbackdata=&PL_sv_undef)
-  Bio::DB::Bam::Index bai
-  Bio::DB::Bam        bfp
-  int   ref
-  int   start
-  int   end
-  CV*   callback
-  SV*   callbackdata
-PREINIT:  
-  fetch_callback_data fcd;
-  bam_lplbuf_t        *pileup;
-CODE:
-  fcd.callback = (SV*) callback;
-  fcd.data     = callbackdata;
-  pileup       = bam_lplbuf_init(invoke_pileup_callback_fun,(void*)&fcd);
-  bam_fetch(bfp,bai,ref,start,end,(void*)pileup,add_lpileup_line);
-  bam_lplbuf_push(NULL,pileup);
-  bam_lplbuf_destroy(pileup);
+#void
+#bami_lpileup(bai,bfp,ref,start,end,callback,callbackdata=&PL_sv_undef)
+#  Bio::DB::Bam::Index bai
+#  Bio::DB::Bam        bfp
+#  int   ref
+#  int   start
+#  int   end
+#  CV*   callback
+#  SV*   callbackdata
+#PREINIT:  
+#  fetch_callback_data fcd;
+#  bam_lplbuf_t        *pileup;
+#CODE:
+#  fcd.callback = (SV*) callback;
+#  fcd.data     = callbackdata;
+#  pileup       = bam_lplbuf_init(invoke_pileup_callback_fun,(void*)&fcd);
+#  bam_fetch(bfp,bai,ref,start,end,(void*)pileup,add_lpileup_line);
+#  bam_lplbuf_push(NULL,pileup);
+#  bam_lplbuf_destroy(pileup);
 
 void
 bami_pileup(bai,bfp,ref,start,end,callback,callbackdata=&PL_sv_undef)
