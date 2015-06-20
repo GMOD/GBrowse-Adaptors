@@ -49,8 +49,12 @@ my $build = $class->new(
         # will use the .dylib, which we don't want. Explicit path always seems to work
         "$sam_lib/$SamLibFile",
         "$hts_lib/$HTSLibFile",
-        # This adds back in the compiled object files missing from libbam
+        
+        # This adds back in the compiled object files missing from libbam;
+        # clunky b/c it assumes the object files are still around, maybe we
+        # should compile these locally from source and pull them in?
         (map {"$sam_lib/$_"} @sam_o_files),
+        
         '-lpthread','-lz'
         ],
 
