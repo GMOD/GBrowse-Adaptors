@@ -165,11 +165,11 @@ use Bio::DB::Sam;
     ok($head);
 
     my $result = $sam->read1($head,$align);
-    ok($result > 0);
+    ok($result >= 0);
     
     ok($align->qseq,'CACTAGTGGCTCATTGTAAATGTGTGGTTTAACTCG');
     ok($align->start,1);
-    ok($sam->read1($head,$align)>0);
+    ok($sam->read1($head,$align) >= 0);
     ok($align->start,3);
     ok($header->target_name->[$align->tid],'seq1');
 
@@ -180,9 +180,9 @@ use Bio::DB::Sam;
     ok($bam);
     ok($bam->header_write($head),0);
     $count = 0;
-    while ($sam->read1($head,$align) > 0) {
-	$count++;
-	$bam->write1($align);
+    while ($sam->read1($head,$align) >= 0) {
+      $count++;
+      $bam->write1($align);
     }
     ok($count,3307);
     undef $bam;
