@@ -1,3 +1,7 @@
+Version 1.42 
+  * Software is now triply-licensed via Apache 2.0,
+	Artistic 2.0 or GPL v1 or higher.
+
 Version 1.41
   * Added missing INSTALL.pl script.
   * Make it clear that this library only works up through

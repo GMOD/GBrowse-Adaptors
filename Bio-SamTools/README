@@ -1,5 +1,5 @@
 This is a Perl interface to the SAMtools sequence alignment
-interface. It ONLY works on versions of Samtools up to 0.1.19. It does
+interface. It ONLY works on versions of Samtools up to 0.1.17. It does
 not work on version 1.0 or higher due to major changes in the library
 structure. 
 
@@ -17,11 +17,10 @@ install. Simply run:
 * MULTI-STEP INSTALLATION
 
 The more traditional install requires you to separately download,
-unpack and compile SAMtools 0.1.4 or higher in some accessible
-directory. FOR SAMTOOLS VERSION 0.1.4, YOU MUST RUN "make -f
-makefile.generic" IN THE DISTRIBUTION DIRECTORY IN ORDER TO CREATE THE
-REQUIRED libbam.a LIBRARY FILE. For other versions, just "make" will
-usually work.
+unpack and compile SAMtools 0.1.10 through 0.1.17 in some accessible
+directory. Typing "make" in the samtools directory will usually
+work. SAMtools versions 0.1.18 and higher do not work with this
+library.
 
 Then set the environment variable SAMTOOLS to point to this directory.
 
@@ -73,9 +72,9 @@ AUTHOR:
 
 Lincoln D. Stein <lincoln.stein@gmail.com>
 
-Copyright (c) 2009 Ontario Institute for Cancer Research
+Copyright (c) 2009-2015 Ontario Institute for Cancer Research
 
-This package and its accompanying libraries is free software; you can
-redistribute it and/or modify it under the terms of the GPL (either
-version 1, or at your option, any later version) or the Artistic
-License 2.0.  Refer to LICENSE for the full license text.
+This package and its accompanying libraries are free software; you can
+redistribute it and/or modify it under the terms of the Artistic
+License 2.0, the Apache 2.0 License, or the GNU General Public License
+(version 1 or higher).  Refer to LICENSE for the full license text.
