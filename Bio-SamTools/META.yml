@@ -36,7 +36,7 @@ provides:
     file: lib/Bio/DB/Bam/Target.pm
   Bio::DB::Sam:
     file: lib/Bio/DB/Sam.pm
-    version: '1.42'
+    version: '1.43'
   Bio::DB::Sam::Constants:
     file: lib/Bio/DB/Sam/Constants.pm
   Bio::DB::Sam::Fai:
@@ -54,4 +54,4 @@ requires:
   perl: '5.008'
 resources:
   license: http://dev.perl.org/licenses/
-version: '1.42'
+version: '1.43'

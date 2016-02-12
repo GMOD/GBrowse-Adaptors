@@ -2219,6 +2219,8 @@ use File::Spec;
 use Cwd;
 use Carp 'croak';
 
+our $VERSION = $Bio::DB::Sam::VERSION;
+
 sub index {
     my $self = shift;
     my $path = shift;
