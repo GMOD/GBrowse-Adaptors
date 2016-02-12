@@ -1,3 +1,7 @@
+Version 1.43
+  * Added a few files that were missing from MANIFEST and which were therefore making it
+    impossible to install from CPAN.
+
 Version 1.42 
   * Software is now triply-licensed via Apache 2.0,
 	Artistic 2.0 or GPL v1 or higher.

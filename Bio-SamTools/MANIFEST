@@ -6,6 +6,7 @@ c_bin/bam2bedgraph.c
 c_bin/makefile
 Changes
 DISCLAIMER
+INSTALL.pl
 lib/Bio/DB/Bam/Alignment.pm
 lib/Bio/DB/Bam/AlignWrapper.pm
 lib/Bio/DB/Bam/FetchIterator.pm
@@ -32,4 +33,6 @@ t/data/dm3_3R_4766911_4767130.sam.sorted.bam
 t/data/ex1.bam
 t/data/ex1.fa
 t/data/ex1.sam.gz
+t/data/ex2.bam
+t/data/ex2.sam.gz
 typemap
