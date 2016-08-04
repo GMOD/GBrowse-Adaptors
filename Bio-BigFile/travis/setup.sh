@@ -58,6 +58,19 @@ export PATH="$INST_PATH/bin:$PATH"
 SETUP_DIR=$INIT_DIR/install_tmp
 mkdir -p $SETUP_DIR
 
+cd $SETUP_DIR
+if [ -e $SETUP_DIR/kentsrc.success ]; then
+  echo "Previously unpacked kentsrc..."
+else
+  rm -rf kent kentsrc.zip
+  get_distro "kentsrc" $SOURCE_KENTSRC
+  unzip -q kentsrc.zip
+  perl -pi -e 's/(\s+CFLAGS=)$/${1}-fPIC/' kent/src/inc/common.mk
+  perl -pi -e 'if($_ =~ m/^CFLAGS/ && $_ !~ m/\-fPIC/i){chomp; s/#.+//; $_ .= " -fPIC -Wno-unused -Wno-unused-result\n"};' kent/src/htslib/Makefile
+  touch $SETUP_DIR/kentsrc.success
+fi
+
+
 get_file $SETUP_DIR/cpanm https://cpanmin.us/
 perl $SETUP_DIR/cpanm -l $INST_PATH App::cpanminus
 CPANM=`which cpanm`
@@ -70,18 +83,6 @@ else
     $CPANM -v --no-interactive --notest --mirror http://cpan.metacpan.org -l $INST_PATH $i
   done
   touch $SETUP_DIR/basePerlDeps.success
-fi
-
-cd $SETUP_DIR
-if [ -e $SETUP_DIR/kentsrc.success ]; then
-  echo "Previously unpacked kentsrc..."
-else
-  rm -rf kent kentsrc.zip
-  get_distro "kentsrc" $SOURCE_KENTSRC
-  unzip -q kentsrc.zip
-  perl -pi -e 's/(\s+CFLAGS=)$/${1}-fPIC/' kent/src/inc/common.mk
-  perl -pi -e 'if($_ =~ m/^CFLAGS/ && $_ !~ m/\-fPIC/i){chomp; s/#.+//; $_ .= " -fPIC -Wno-unused -Wno-unused-result\n"};' kent/src/htslib/Makefile
-  touch $SETUP_DIR/kentsrc.success
 fi
 
 cd kent/src/htslib
