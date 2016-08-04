@@ -1,3 +1,7 @@
+Version NEXT
+        * Update Build.PL to link new required elements of jksrc
+        * Added travis build
+
 Version 1.07
         * Allow -types to be used as an alias for -type in calls to features()
 	  and get_seq_stream().
@@ -9,9 +13,9 @@ Version 1.05
 	* Added patch to Jim Kent build tree to allow for compilation on
 	MacOS X.
 
-Version 1.04 
-	 * Added the following methods to Bio::DB::BigWig::Summary objects: 
-	 chr_stats(),    chr_mean(),    chr_stdev(), 
+Version 1.04
+	 * Added the following methods to Bio::DB::BigWig::Summary objects:
+	 chr_stats(),    chr_mean(),    chr_stdev(),
 	 global_stats(), global_mean(), global_stdev().
 	 * Fixed BigWigSet->get_feature_by_id() to return correct class of
 	   object (e.g. summary).
@@ -24,7 +28,7 @@ Version 1.02
 	* BigWigSet now operates correctly on remote HTTP and FTP directories.
 	* Added instructions and patch file for compiling on MacOSX platforms.
 
-Version 1.01 
+Version 1.01
         * fixed bug in build process -- not finding jkweb.a library or
 	header files when path entered at the prompt.
 
