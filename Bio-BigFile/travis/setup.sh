@@ -3,8 +3,7 @@
 set -uex
 
 # for Bio::DB::BigWig
-#SOURCE_KENTSRC="ftp://ftp.sanger.ac.uk/pub/cancer/legacy-dependancies/jksrc.v334.zip"
-SOURCE_KENTSRC="ftp://ftp.sanger.ac.uk/pub/cancer/legacy-dependancies/jksrc.v336.zip"
+SOURCE_KENTSRC="http://hgdownload.cse.ucsc.edu/admin/jksrc.zip"
 SOURCE_BIGFILE="http://www.cpan.org/authors/id/L/LD/LDS/Bio-BigFile-1.07.tar.gz"
 
 CPU=`grep -c ^processor /proc/cpuinfo`

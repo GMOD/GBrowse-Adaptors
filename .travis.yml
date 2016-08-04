@@ -26,6 +26,6 @@ perl:
 install: true
 
 script:
- - Bio-BigFile/travis/setup.sh ~/build ftp://ftp.sanger.ac.uk/pub/cancer/legacy-dependancies/jksrc.v336.zip
+ - Bio-BigFile/travis/setup.sh ~/build
+ # add an extra param to download jksrc.zip from a different location, default can be slow/intermittent
 
-# force more
