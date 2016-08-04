@@ -5,9 +5,11 @@ use Module::Build;
 
 my $HeaderFile = "bigWig.h";
 my $LibFile    = "jkweb.a";
+my $HeaderFileHTS = "tbx.h";
+my $LibFileHTS    = "libhts.a";
 my $ReadLine;
 
-my ($jk_include,$jk_lib) = find_jk(); # may exit with error here
+my ($jk_include,$jk_lib,$hts_include,$hts_lib) = find_jk(); # may exit with error here
 
 my $build = Module::Build->new(
     module_name        => 'Bio::BigFile',
@@ -15,8 +17,8 @@ my $build = Module::Build->new(
     dist_author        => 'Lincoln Stein <lincoln.stein@gmail.com>',
     dist_abstract      => "Manipulate Jim Kent's BigWig and BigBed index files for genomic features.",
     license            => 'perl',
-    include_dirs       => [$jk_include],
-    extra_linker_flags => ["$jk_lib/$LibFile",'-lz','-lssl'],
+    include_dirs       => [$jk_include,$hts_include],
+    extra_linker_flags => ["$jk_lib/$LibFile","$hts_lib/$LibFileHTS",'-lz','-lssl','-pthread'],
 
     extra_compiler_flags=>[
 	# turn off warnings originating in Perl's Newx* calls
@@ -45,14 +47,15 @@ $build->create_build_script;
 exit 0;
 
 sub find_jk {
-    my ($jk_include,$jk_lib);
+    my ($jk_include,$jk_lib,$hts_include,$hts_lib);
 
     if (my $jksrc = $ENV{KENT_SRC}) {
-	$jk_include = "$jksrc/inc"
-	    if -e "$jksrc/inc/$HeaderFile";
-	$jk_lib     = "$jksrc/lib/$ENV{MACHTYPE}"
-	    if -e "$jksrc/lib/$ENV{MACHTYPE}/$LibFile";
+      $jk_include  = "$jksrc/inc" if -e "$jksrc/inc/$HeaderFile";
+      $jk_lib      = "$jksrc/lib/$ENV{MACHTYPE}" if -e "$jksrc/lib/$ENV{MACHTYPE}/$LibFile";
+      $hts_include = "$jksrc/htslib" if -e "$jksrc/htslib/htslib/$HeaderFileHTS";
+      $hts_lib     = "$jksrc/htslib" if -e "$jksrc/htslib/$LibFileHTS";
     }
+
 
     unless ($jk_include && $jk_lib) {
 	print STDERR <<END;
@@ -62,7 +65,7 @@ If you haven't already done so, please download the source from
 http://hgdownload.cse.ucsc.edu/admin/jksrc.zip, unpack it, and build the
 contents of the "kent/src/lib" subdirectory as directed in the README. Then
 enter the location of the "kent/src" subdirectory at the prompt below. To prevent
-this message from appearing in the future, set the environment variable KENT_SRC 
+this message from appearing in the future, set the environment variable KENT_SRC
 to point to the "kent/src" subdirectory.
 
 END
@@ -72,18 +75,21 @@ END
 	    my $path = prompt($prompt);
 	    print STDERR "\n";
 	    last unless $path;
-	    $jk_include = "$path/inc"
-		if -e "$path/inc/$HeaderFile";
-	    $jk_lib = "$path/lib/$ENV{MACHTYPE}"
-		if -e "$path/lib/$ENV{MACHTYPE}/$LibFile";
-	    $found = $jk_include && $jk_lib;
+
+      $jk_include  = "$path/inc" if -e "$path/inc/$HeaderFile";
+      $jk_lib      = "$path/lib/$ENV{MACHTYPE}" if -e "$path/lib/$ENV{MACHTYPE}/$LibFile";
+      $hts_include = "$path/htslib" if -e "$path/htslib/htslib/$HeaderFileHTS";
+      $hts_lib     = "$path/htslib" if -e "$path/htslib/$LibFileHTS";
+
+
+	    $found = $jk_include && $jk_lib && $hts_include && $hts_lib;
 	    unless ($found) {
 		print STDERR "Can't find the $HeaderFile and $LibFile files at this location.\n";
 		$prompt = "Try again, or hit <enter> to cancel: ";
 	    }
 	}
     }
-    return ($jk_include,$jk_lib);
+    return ($jk_include,$jk_lib,$hts_include,$hts_lib);
 }
 
 
@@ -97,7 +103,7 @@ sub prompt {
 	eval {readline::rl_set('TcshCompleteMode','On')};
     }
 
-    
+
     unless ($ReadLine) {
 	print STDOUT $msg;
 	chomp (my $in = <>);
