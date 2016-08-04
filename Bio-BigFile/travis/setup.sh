@@ -2,9 +2,7 @@
 
 set -uex
 
-# for Bio::DB::BigWig
 SOURCE_KENTSRC="http://hgdownload.cse.ucsc.edu/admin/jksrc.zip"
-SOURCE_BIGFILE="http://www.cpan.org/authors/id/L/LD/LDS/Bio-BigFile-1.07.tar.gz"
 
 CPU=`grep -c ^processor /proc/cpuinfo`
 
