@@ -1,0 +1,31 @@
+notifications:
+  slack: wtsi-cgpit:vtT8FxSRsOnHblGjzu6YTfvN
+  email: false
+
+env:
+ - CC=gcc
+
+addons:
+ apt:
+  packages:
+   - build-essential
+   - curl
+   - libcurl4-openssl-dev
+   - zlib1g-dev
+   - libncurses5-dev
+   - libpstreams-dev
+   - unzip
+   - libpng12-dev
+   - libexpat1-dev
+
+language: perl
+
+perl:
+ - "5.22"
+
+install: true
+
+script:
+ - Bio-BigFile/travis/setup.sh ~/build
+
+# force more
