@@ -13,6 +13,10 @@ get, unpack and compile the necessary file are:
 
  wget http://hgdownload.cse.ucsc.edu/admin/jksrc.zip
  unzip jksrc.zip
+ perl -pi -e 's/(\s+CFLAGS=)$/${1}-fPIC/' kent/src/inc/common.mk
+ perl -pi -e 'if($_ =~ m/^CFLAGS/ && $_ !~ m/\-fPIC/i){chomp; s/#.+//; $_ .= " -fPIC -Wno-unused -Wno-unused-result\n"};' kent/src/htslib/Makefile
+ cd kent/htslib
+ make
  cd kent/src/lib
  export    MACHTYPE=i686    # for a 64-bit system
  # export  MACHTYPE=i386    # for a 32-bit system
@@ -53,7 +57,7 @@ following line:
 
  Old:
   CFLAGS=
-     
+
  New:
   CFLAGS=-fPIC
 
@@ -85,7 +89,7 @@ to set the environment variable MACHTYPE to point to the appropriate
 architecture for your system. This is described in the installation
 directions for the Jim Kent source tree.
 
-AUTHOR: 
+AUTHOR:
 
 Lincoln D. Stein <lincoln.stein@gmail.com>
 
