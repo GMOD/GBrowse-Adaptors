@@ -50,7 +50,7 @@ ok(defined $summary->[-1]);
 my $es = $bed->bigBedSummaryArrayExtended('chr1',0,12_000_000,500);
 ok ($es);
 ok(scalar @$es,500);
-ok($es->[-2]{validCount}/(12_000_000/500),$summary->[-2]);
+ok(sprintf("%.6f", $es->[-2]{validCount}/(12_000_000/500)), sprintf("%.6f", $summary->[-2]));
 
 my $as = $bed->bigBedAs;
 ok($as);
