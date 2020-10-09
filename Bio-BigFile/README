@@ -11,16 +11,14 @@ the Jim Kent source tree, located at
 http://hgdownload.cse.ucsc.edu/admin/jksrc.zip. The commands needed to
 get, unpack and compile the necessary file are:
 
- wget http://hgdownload.cse.ucsc.edu/admin/jksrc.zip
- unzip jksrc.zip
- perl -pi -e 's/(\s+CFLAGS=)$/${1}-fPIC/' kent/src/inc/common.mk
- perl -pi -e 'if($_ =~ m/^CFLAGS/ && $_ !~ m/\-fPIC/i){chomp; s/#.+//; $_ .= " -fPIC -Wno-unused -Wno-unused-result\n"};' kent/src/htslib/Makefile
- cd kent/htslib
- make
- cd kent/src/lib
+ wget https://hgdownload.cse.ucsc.edu/admin/exe/userApps.src.tgz
+ tar -xzf userApps.src.tgz
+ cd userApps/kent/src/htslib
+ make CFLAGS='-fPIC'
+ cd ../lib
  export    MACHTYPE=i686    # for a 64-bit system
  # export  MACHTYPE=i386    # for a 32-bit system
- make
+ make CFLAGS='-fPIC'
  cd ..
  export KENT_SRC=`pwd`
 
@@ -47,23 +45,7 @@ the environment variable KENT_SRC to point to this directory.
 
  ** ISSUES AND TROUBLESHOOTING **
 
-PROBLEM 1) Compilation fails with a "relocation error" or warnings about
-recompiling with "-fPIC".
-
-Some combinations of Perl, GCC and jksrc do not play well together. If
-you see warnings like these, you will need to patch and recompile the
-kent source. Find the file kent/src/inc/common.mk and modify the
-following line:
-
- Old:
-  CFLAGS=
-
- New:
-  CFLAGS=-fPIC
-
-Then run make again from within kent/src/lib
-
-PROBLEM 2) On Mac OSX systems, compilation fails with "Symbol not found: _environ"
+PROBLEM 1) On Mac OSX systems, compilation fails with "Symbol not found: _environ"
 
 This occurs on Mac OSX platforms prior to Snow Leopard. It is due to a
 problem in the Macintosh header files that causes one of the Kent
@@ -82,7 +64,7 @@ If you encounter this problem, then do the following:
 
  4) Rerun "./Build" in the Bio-BigFile directory.
 
-PROBLEM 3) Compilation of the Kent surce fails.
+PROBLEM 2) Compilation of the Kent surce fails.
 
 If you encounter errors while compiling the Kent source, you may need
 to set the environment variable MACHTYPE to point to the appropriate
