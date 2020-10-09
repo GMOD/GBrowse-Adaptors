@@ -11,13 +11,13 @@ the Jim Kent source tree, located at
 http://hgdownload.cse.ucsc.edu/admin/jksrc.zip. The commands needed to
 get, unpack and compile the necessary file are:
 
- wget http://hgdownload.cse.ucsc.edu/admin/jksrc.zip
- unzip jksrc.zip
- perl -pi -e 's/(\s+CFLAGS=)$/${1}-fPIC/' kent/src/inc/common.mk
- perl -pi -e 'if($_ =~ m/^CFLAGS/ && $_ !~ m/\-fPIC/i){chomp; s/#.+//; $_ .= " -fPIC -Wno-unused -Wno-unused-result\n"};' kent/src/htslib/Makefile
- cd kent/htslib
+ wget https://hgdownload.cse.ucsc.edu/admin/exe/userApps.src.tgz
+ tar -xzf userApps.src.tgz
+ perl -pi -e 's/(\s+CFLAGS=)$/${1}-fPIC/' userApps/kent/src/inc/common.mk
+ perl -pi -e 'if($_ =~ m/^CFLAGS/ && $_ !~ m/\-fPIC/i){chomp; s/#.+//; $_ .= " -fPIC -Wno-unused -Wno-unused-result\n"};' userApps/kent/src/htslib/Makefile
+ cd userApps/kent/src/htslib
  make
- cd kent/src/lib
+ cd ../lib
  export    MACHTYPE=i686    # for a 64-bit system
  # export  MACHTYPE=i386    # for a 32-bit system
  make
